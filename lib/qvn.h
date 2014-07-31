@@ -32,11 +32,13 @@ typedef struct
     int               running;
     int               tun_fd;
     char              tun_name[IFNAMSIZ];
+    int               rmt_fd;
 } qvn_conf_t;
 
 extern qvn_conf_t conf;
 
 extern int init_with_server(int port);
+extern void do_network(int count, fd_set* set);
 
 #endif
 

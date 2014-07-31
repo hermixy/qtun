@@ -25,3 +25,19 @@ int init_with_server(int port)
 
     return QVN_STATUS_OK;
 }
+
+void do_network(int count, fd_set* set)
+{
+    if (conf.type == QVN_CONF_TYPE_SERVER)
+    {
+        server_network_t* network = network_this;
+        if (FD_ISSET(network->bindfd, set))
+        {
+            network->clients[0] = accept(network->bindfd, NULL, NULL);
+        }
+    }
+    else /* if (conf.type == QVN_CONF_TYPE_CLIENT) */
+    {
+    }
+}
+

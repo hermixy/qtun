@@ -11,6 +11,8 @@ int create_server(int port)
 {
     server_network_t* network = NULL;
     struct sockaddr_in addr = {0};
+    int yes = 1;
+    int i;
 
     if (conf.type != QVN_CONF_TYPE_SERVER) return QVN_RESULT_WRONG_TYPE;
 
@@ -26,6 +28,12 @@ int create_server(int port)
         return QVN_STATUS_ERR;
     }
 
+    if (setsockopt(network->bindfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
+    {
+        perror("setsockopt");
+        return QVN_STATUS_ERR;
+    }
+
     if (bind(network->bindfd, (struct sockaddr*)&addr, sizeof(addr)) == -1)
     {
         perror("bind");
@@ -37,36 +45,43 @@ int create_server(int port)
         perror("listen");
         return QVN_STATUS_ERR;
     }
+
+    for (i = 0; i < MAX_CLIENTS; ++i) network->clients[i] = -1;
+
     return QVN_STATUS_OK;
 }
 
 void network_loop()
 {
+    fd_set set;
+    struct timeval tv = {60, 0};
+    int i;
+
     if (conf.type == QVN_CONF_TYPE_SERVER)
     {
-        int fd;
         server_network_t* network = network_this;
-        struct sockaddr_in addr;
-        socklen_t addr_len;
-        unsigned char buf[1024] = {0};
-        char ip[20] = {0};
 
         while (conf.running)
         {
-            if ((fd = accept(network->bindfd, (struct sockaddr*)&addr, &addr_len)) == -1)
+            int max;
+
+            FD_ZERO(&set);
+            FD_SET(network->bindfd, &set);
+            FD_SET(conf.tun_fd, &set);
+            max = network->bindfd > conf.tun_fd ? network->bindfd : conf.tun_fd;
+
+            for (i = 0; i < MAX_CLIENTS; ++i)
             {
-                perror("accept");
-                continue;
+                if (network->clients[i] != -1)
+                {
+                    FD_SET(network->clients[i], &set);
+                    if (network->clients[i] > max) max = network->clients[i];
+                }
             }
-            getpeername(fd, (struct sockaddr*)&addr, &addr_len);
-            inet_ntop(AF_INET, &addr.sin_addr, ip, sizeof(ip));
-            printf("%s accepted\n", ip);
-            memset(buf, 0, sizeof(buf));
-            while (recv(fd, buf, sizeof(buf), 0) > 0)
-            {
-                printf("%s\n", buf);
-            }
-            close(fd);
+
+            max = select(max + 1, &set, NULL, NULL, &tv);
+            if (max == -1)
+            else do_network(max, &set);
         }
     }
     else /* if (conf.type == QVN_CONF_TYPE_CLIENT) */
