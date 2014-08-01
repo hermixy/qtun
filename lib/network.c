@@ -63,7 +63,7 @@ void network_loop()
 
         while (conf.running)
         {
-            int max;
+            int max = 0;
 
             FD_ZERO(&set);
             FD_SET(network->bindfd, &set);
@@ -80,8 +80,7 @@ void network_loop()
             }
 
             max = select(max + 1, &set, NULL, NULL, &tv);
-            if (max == -1)
-            else do_network(max, &set);
+            if (max) do_network(max, &set);
         }
     }
     else /* if (conf.type == QVN_CONF_TYPE_CLIENT) */
