@@ -65,7 +65,7 @@ void network_loop()
 
         while (conf.running)
         {
-            int max;
+            int max = 0;
 
             FD_ZERO(&set);
             FD_SET(network->bindfd, &set);
