@@ -6,13 +6,16 @@
 typedef struct
 {
     int  bindfd;
-    int  clients[MAX_CLIENTS];
+    int  connfd;
 } server_network_t;
 
 extern void* network_this;
 
 extern int create_server(int port);
 extern void network_loop();
+
+extern int s_send(int fd, const void* data, size_t len);
+extern int s_recv(int fd, void* data, size_t len, double timeout);
 
 #endif
 

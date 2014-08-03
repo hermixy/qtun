@@ -1,7 +1,9 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "common.h"
 #include "network.h"
 #include "qvn.h"
 
@@ -46,7 +48,7 @@ int create_server(int port)
         return QVN_STATUS_ERR;
     }
 
-    for (i = 0; i < MAX_CLIENTS; ++i) network->clients[i] = -1;
+    network->connfd = -1;
 
     return QVN_STATUS_OK;
 }
@@ -70,18 +72,14 @@ void network_loop()
             FD_SET(conf.tun_fd, &set);
             max = network->bindfd > conf.tun_fd ? network->bindfd : conf.tun_fd;
 
-            for (i = 0; i < MAX_CLIENTS; ++i)
+            if (network->connfd != -1)
             {
-                if (network->clients[i] != -1)
-                {
-                    FD_SET(network->clients[i], &set);
-                    if (network->clients[i] > max) max = network->clients[i];
-                }
+                FD_SET(network->connfd, &set);
+                if (network->connfd > max) max = network->connfd;
             }
 
             max = select(max + 1, &set, NULL, NULL, &tv);
-            if (max == -1)
-            else do_network(max, &set);
+            if (max != -1) do_network(max, &set);
         }
     }
     else /* if (conf.type == QVN_CONF_TYPE_CLIENT) */
@@ -89,3 +87,42 @@ void network_loop()
     }
 }
 
+int s_send(int fd, const void* data, size_t len)
+{
+    const char* ptr = data;
+    size_t left = len;
+    while (left)
+    {
+        ssize_t written = write(fd, ptr, left);
+        if (written == 0) return 0;
+        else if (written == -1)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
+            return 0;
+        }
+        ptr += written;
+        left -= written;
+    }
+    return 1;
+}
+
+int s_recv(int fd, void* data, size_t len, double timeout)
+{
+    char* ptr = data;
+    size_t left = len;
+    double start = microtime();
+    while (left)
+    {
+        ssize_t readen = read(fd, ptr, left);
+        if (timeout && microtime() - start >= timeout) return 0;
+        if (readen == 0) return 0;
+        else if (readen == -1)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
+            return 0;
+        }
+        ptr += readen;
+        left -= readen;
+    }
+    return 1;
+}
