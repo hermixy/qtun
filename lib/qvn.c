@@ -1,5 +1,7 @@
 #include <linux/if_tun.h>
+#include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "qvn.h"
@@ -76,7 +78,8 @@ static void read_and_write(server_network_t* network, int from, int to)
         len += readen;
         if (readen < PROXY_BLOCK_LENGTH) break; // 已读完
     } while (1);
-    s_send(to, ptr, 
+    // TODO
+    //s_send(to, ptr, 
 }
 
 void do_network(int count, fd_set* set)
