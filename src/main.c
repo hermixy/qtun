@@ -4,10 +4,12 @@
 #include "rand.h"
 #include "qvn.h"
 
+typedef long type_t;
+
 int comp(const void* a, const void* b)
 {
-    long long n1 = *(int*)a;
-    long long n2 = *(int*)b;
+    type_t n1 = *(type_t*)a;
+    type_t n2 = *(type_t*)b;
     if (n1 < 0)
     {
         if (n2 < n1) return 1;
@@ -31,21 +33,31 @@ int main(int argc, char* argv[])
     {
 #define CNT 1000000
         int i;
-        static long long tmp[CNT] = {0};
-        int same = 0;
+        static type_t tmp[CNT] = {0};
+        int same;
         FILE* fp;
+        struct timeval tv;
         
-        srand32(time(NULL));
-        for (i = 0; i < CNT; ++i)
+        do
         {
-            tmp[i] = rand64();
-        }
-        qsort(tmp, CNT, sizeof(tmp[0]), comp);
-        for (i = 0; i < CNT; ++i)
-        {
-            if (tmp[i] == tmp[i - 1]) ++same;
-        }
-        printf("same: %d %f\%\n", same, (double)same / CNT * 100);
+            same = 0;
+            gettimeofday(&tv, NULL);
+            srand64(tv.tv_sec * tv.tv_usec);
+            for (i = 0; i < CNT; ++i)
+            {
+                tmp[i] = rand64();
+            }
+            qsort(tmp, CNT, sizeof(tmp[0]), comp);
+            for (i = 1; i < CNT; ++i)
+            {
+                if (tmp[i] == tmp[i - 1]) ++same;
+            }
+            printf("same: %d %f\%\n", same, (double)same / CNT * 100);
+            
+            if (same > 1000) return 0;
+            return 0;
+            sleep(1);
+        } while (1);
         
         same = 0;
         fp = fopen("/dev/urandom", "r");
