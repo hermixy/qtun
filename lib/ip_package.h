@@ -3,6 +3,6 @@
 
 #include <stdlib.h>
 
-extern int read_ip_package(int fd, void* buffer, size_t* len);
+extern int read_ip_package(int fd, int have_type, void* buffer, size_t* len);
 
 #endif

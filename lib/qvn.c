@@ -96,47 +96,38 @@ static void accept_and_check(server_network_t* network)
 
 static void do_tun(int tun_fd, int net_fd)
 {
-    static char buf[USHRT_MAX + 2];
+    static char buf[USHRT_MAX];
     size_t len;
     
-    if (read_ip_package(tun_fd, buf + 2, &len) != QVN_STATUS_OK)
+    if (read_ip_package(tun_fd, 1, buf, &len) != QVN_STATUS_OK)
     {
         fprintf(stderr, "read ip package faild\n");
         return;
     }
-    *(unsigned short*)buf = htons(len);
-    write_n(net_fd, buf, len + sizeof(unsigned short));
+    printf("len: %lu\n", len);
+    write_n(net_fd, buf, len);
     printf("do_tun\n");
 }
 
 static void do_net(int net_fd, int tun_fd)
 {
-    char* buf;
-    unsigned short dst_len;
-    ssize_t ret;
+    static char buf[USHRT_MAX];
+    size_t len;
     int type;
     struct iovec iv[2];
     
-    ret = read_n(net_fd, &dst_len, sizeof(dst_len));
-    printf("ret1: %d\n", ret);
-    if (ret <= 0) return;
-    dst_len = ntohs(dst_len);
-    printf("dst_len: %u\n", dst_len);
-    buf = malloc(dst_len);
-    ret = read_n(net_fd, buf, dst_len);
-    printf("ret2: %d\n", ret);
-    if (ret <= 0)
+    if (read_ip_package(net_fd, 0, buf, &len) != QVN_STATUS_OK)
     {
-        free(buf);
+        fprintf(stderr, "read ip package faild\n");
         return;
     }
-    type = htons(ETH_P_IP | AF_INET);
+    printf("len: %lu\n", len);
+    type = htonl(ETH_P_IP);
     iv[0].iov_base = (char*)&type;
     iv[0].iov_len = sizeof(type);
     iv[1].iov_base = buf;
-    iv[1].iov_len = dst_len;
+    iv[1].iov_len = len;
     writev(tun_fd, iv, 2);
-    free(buf);
     printf("do_net\n");
 }
 
