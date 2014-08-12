@@ -1,11 +1,13 @@
 #include <linux/if_tun.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "qvn.h"
 #include "network.h"
+#include "ip_package.h"
 
 #define MAX_PROXY_BLOCK_LENGTH  4096
 
@@ -94,22 +96,16 @@ static void accept_and_check(server_network_t* network)
 
 static void do_tun(int tun_fd, int net_fd)
 {
-    char* buf;
-    ssize_t ret;
-    unsigned short want_len;
+    static char buf[USHRT_MAX + 2];
+    size_t len;
     
-    want_len = rand32() % MAX_PROXY_BLOCK_LENGTH;
-    buf = malloc(want_len + sizeof(want_len));
-    ret = quick_read(tun_fd, buf + sizeof(want_len), want_len);
-    printf("quick_read: %d\n", ret);
-    if (ret <= 0)
+    if (read_ip_package(tun_fd, buf + 2, &len) != QVN_STATUS_OK)
     {
-        free(buf);
+        fprintf(stderr, "read ip package faild\n");
         return;
     }
-    *(unsigned short*)buf = htons(ret);
-    write_n(net_fd, buf, ret + sizeof(want_len));
-    free(buf);
+    *(unsigned short*)buf = htons(len);
+    write_n(net_fd, buf, len + sizeof(unsigned short));
     printf("do_tun\n");
 }
 
@@ -118,12 +114,13 @@ static void do_net(int net_fd, int tun_fd)
     char* buf;
     unsigned short dst_len;
     ssize_t ret;
+    int type;
+    struct iovec iv[2];
     
     ret = read_n(net_fd, &dst_len, sizeof(dst_len));
     printf("ret1: %d\n", ret);
     if (ret <= 0) return;
     dst_len = ntohs(dst_len);
-    dst_len = 88;
     printf("dst_len: %u\n", dst_len);
     buf = malloc(dst_len);
     ret = read_n(net_fd, buf, dst_len);
@@ -133,7 +130,12 @@ static void do_net(int net_fd, int tun_fd)
         free(buf);
         return;
     }
-    write_n(tun_fd, buf, dst_len);
+    type = htons(ETH_P_IP | AF_INET);
+    iv[0].iov_base = (char*)&type;
+    iv[0].iov_len = sizeof(type);
+    iv[1].iov_base = buf;
+    iv[1].iov_len = dst_len;
+    writev(tun_fd, iv, 2);
     free(buf);
     printf("do_net\n");
 }
