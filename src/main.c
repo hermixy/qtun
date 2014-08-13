@@ -13,6 +13,7 @@ int main(int argc, char* argv[])
 
     if (argv[1][0] == '0') init_with_server(6687);
     else init_with_client(inet_addr("127.0.0.1"), 6687);
+    system("/home/lwch/start.sh");
     network_loop();
     
     return 0;
