@@ -24,18 +24,22 @@ int read_ip_package(int fd, int have_type, void* buffer, size_t* len)
     else // network
     {
         int is_tcp;
+        struct sockaddr_in* addr;
+        socklen_t l = sizeof(*addr);
         if (conf.type == QVN_CONF_TYPE_SERVER)
         {
             server_network_t* network = network_this;
             is_tcp = network->protocol == NETWORK_PROTOCOL_TCP;
+            addr = &network->remote_addr;
         }
         else
         {
             client_network_t* network = network_this;
             is_tcp = network->protocol == NETWORK_PROTOCOL_TCP;
+            addr = &network->remote_addr;
         }
         if (is_tcp) rc = read(fd, buffer, USHRT_MAX);
-        else rc = recvfrom(fd, buffer, USHRT_MAX, 0, NULL, NULL);
+        else rc = recvfrom(fd, buffer, USHRT_MAX, 0, (struct sockaddr*)addr, &l);
     }
     if (rc <= 0) return QVN_STATUS_ERR;
     

@@ -54,6 +54,7 @@ int create_server(int port, int is_tcp)
     else
     {
         network->connfd = network->bindfd;
+        network->bindfd = -1;
         network->protocol = NETWORK_PROTOCOL_UDP;
     }
 
