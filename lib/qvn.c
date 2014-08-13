@@ -21,7 +21,7 @@ int init_with_server(int port)
     conf.server.port = port;
     conf.running = 1;
 
-    rc = create_server(port);
+    rc = create_server(port, 0);
     if (rc != QVN_STATUS_OK) return rc;
 
     memset(conf.tun_name, 0, sizeof(conf.tun_name));
@@ -57,11 +57,11 @@ int init_with_client(in_addr_t addr, int port)
     conf.client.server_port = port;
     conf.running = 1;
     
-    rc = create_client(addr, port);
+    rc = create_client(addr, port, 0);
     if (rc != QVN_STATUS_OK) return rc;
     
-    rc = client_say_hello();
-    if (rc != QVN_STATUS_OK) return rc;
+    //rc = client_say_hello();
+    //if (rc != QVN_STATUS_OK) return rc;
     
     memset(conf.tun_name, 0, sizeof(conf.tun_name));
     conf.tun_fd = tun_open(conf.tun_name);
@@ -79,7 +79,10 @@ static void accept_and_check(server_network_t* network)
     static char dst[sizeof(msg)] = {0};
 
     int rc;
-    int fd = accept(network->bindfd, NULL, NULL);
+    int fd;
+    struct sockaddr_in addr;
+    socklen_t len = sizeof(addr);
+    fd = accept(network->bindfd, (struct sockaddr*)&addr, &len);
     if (fd == -1) return;
     
     memset(dst, 0, sizeof(msg));
@@ -89,12 +92,13 @@ static void accept_and_check(server_network_t* network)
     if (strcmp(msg, dst) == 0)
     {
         network->connfd = fd;
+        network->remote_addr = addr;
         // TODO: 打印IP地址等信息
     }
     else close(fd);
 }
 
-static void do_tun(int tun_fd, int net_fd)
+static void do_tun(int tun_fd, int net_fd, int is_tcp, struct sockaddr_in* addr)
 {
     static char buf[USHRT_MAX];
     size_t len;
@@ -105,7 +109,8 @@ static void do_tun(int tun_fd, int net_fd)
         return;
     }
     printf("len: %lu\n", len);
-    write_n(net_fd, buf, len);
+    if (is_tcp) write_n(net_fd, buf, len);
+    else sendto(net_fd, buf, len, 0, (struct sockaddr*)addr, sizeof(*addr));
     printf("do_tun\n");
 }
 
@@ -155,7 +160,7 @@ void do_network(int count, fd_set* set)
         }
         if (FD_ISSET(conf.tun_fd, set)) // 服务器有数据
         {
-            do_tun(conf.tun_fd, network->connfd);
+            do_tun(conf.tun_fd, network->connfd, network->protocol == NETWORK_PROTOCOL_TCP, &network->remote_addr);
         }
     }
     else /* if (conf.type == QVN_CONF_TYPE_CLIENT) */
@@ -163,7 +168,7 @@ void do_network(int count, fd_set* set)
         client_network_t* network = network_this;
         if (FD_ISSET(conf.tun_fd, set)) // 客户端有数据
         {
-            do_tun(conf.tun_fd, network->serverfd);
+            do_tun(conf.tun_fd, network->serverfd, network->protocol == NETWORK_PROTOCOL_TCP, &network->remote_addr);
         }
         if (FD_ISSET(network->serverfd, set)) // 服务器有数据
         {

@@ -3,6 +3,7 @@
 #include <limits.h>
 
 #include "qvn.h"
+#include "network.h"
 #include "ip_package.h" 
 
 int read_ip_package(int fd, int have_type, void* buffer, size_t* len)
@@ -12,7 +13,7 @@ int read_ip_package(int fd, int have_type, void* buffer, size_t* len)
     int type;
     struct iovec iv[2];
 
-    if (have_type)
+    if (have_type) // tun dev
     {
         iv[0].iov_base = (char *)&type;
         iv[0].iov_len = sizeof (type);
@@ -20,9 +21,21 @@ int read_ip_package(int fd, int have_type, void* buffer, size_t* len)
         iv[1].iov_len = USHRT_MAX;
         rc = readv(fd, iv, 2);
     }
-    else
+    else // network
     {
-        rc = read(fd, buffer, USHRT_MAX);
+        int is_tcp;
+        if (conf.type == QVN_CONF_TYPE_SERVER)
+        {
+            server_network_t* network = network_this;
+            is_tcp = network->protocol == NETWORK_PROTOCOL_TCP;
+        }
+        else
+        {
+            client_network_t* network = network_this;
+            is_tcp = network->protocol == NETWORK_PROTOCOL_TCP;
+        }
+        if (is_tcp) rc = read(fd, buffer, USHRT_MAX);
+        else rc = recvfrom(fd, buffer, USHRT_MAX, 0, NULL, NULL);
     }
     if (rc <= 0) return QVN_STATUS_ERR;
     

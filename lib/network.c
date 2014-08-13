@@ -9,22 +9,21 @@
 
 void* network_this;
 
-int create_server(int port)
+int create_server(int port, int is_tcp)
 {
     server_network_t* network = NULL;
-    struct sockaddr_in addr = {0};
     int yes = 1;
     int i;
 
     if (conf.type != QVN_CONF_TYPE_SERVER) return QVN_RESULT_WRONG_TYPE;
 
     network_this = network = malloc(sizeof(server_network_t));
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(port);
+    memset(&network->remote_addr, 0, sizeof(network->remote_addr));
+    network->remote_addr.sin_family = AF_INET;
+    network->remote_addr.sin_addr.s_addr = INADDR_ANY;
+    network->remote_addr.sin_port = htons(port);
 
-    if ((network->bindfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    if ((network->bindfd = socket(AF_INET, is_tcp ? SOCK_STREAM : SOCK_DGRAM, 0)) == -1)
     {
         perror("socket");
         return QVN_STATUS_ERR;
@@ -36,38 +35,45 @@ int create_server(int port)
         return QVN_STATUS_ERR;
     }
 
-    if (bind(network->bindfd, (struct sockaddr*)&addr, sizeof(addr)) == -1)
+    if (bind(network->bindfd, (struct sockaddr*)&network->remote_addr, sizeof(network->remote_addr)) == -1)
     {
         perror("bind");
         return QVN_STATUS_ERR;
     }
 
-    if (listen(network->bindfd, SOMAXCONN) == -1)
+    if (is_tcp)
     {
-        perror("listen");
-        return QVN_STATUS_ERR;
+        if (listen(network->bindfd, SOMAXCONN) == -1)
+        {
+            perror("listen");
+            return QVN_STATUS_ERR;
+        }
+        network->connfd = -1;
+        network->protocol = NETWORK_PROTOCOL_TCP;
     }
-
-    network->connfd = -1;
+    else
+    {
+        network->connfd = network->bindfd;
+        network->protocol = NETWORK_PROTOCOL_UDP;
+    }
 
     return QVN_STATUS_OK;
 }
 
-int create_client(in_addr_t addr, int port)
+int create_client(in_addr_t addr, int port, int is_tcp)
 {
     client_network_t* network = NULL;
-    struct sockaddr_in remote_addr = {0};
     int yes = 1;
     
     if (conf.type != QVN_CONF_TYPE_CLIENT) return QVN_RESULT_WRONG_TYPE;
     
     network_this = network = malloc(sizeof(client_network_t));
-    memset(&remote_addr, 0, sizeof(remote_addr));
-    remote_addr.sin_family = AF_INET;
-    remote_addr.sin_addr.s_addr = addr;
-    remote_addr.sin_port = htons(port);
+    memset(&network->remote_addr, 0, sizeof(network->remote_addr));
+    network->remote_addr.sin_family = AF_INET;
+    network->remote_addr.sin_addr.s_addr = addr;
+    network->remote_addr.sin_port = htons(port);
     
-    if ((network->serverfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    if ((network->serverfd = socket(AF_INET, is_tcp ? SOCK_STREAM : SOCK_DGRAM, 0)) == -1)
     {
         perror("socket");
         return QVN_STATUS_ERR;
@@ -79,7 +85,7 @@ int create_client(in_addr_t addr, int port)
         return QVN_STATUS_ERR;
     }
     
-    if (connect(network->serverfd, (struct sockaddr*)&remote_addr, sizeof(remote_addr)) == -1)
+    if (connect(network->serverfd, (struct sockaddr*)&network->remote_addr, sizeof(network->remote_addr)) == -1)
     {
         perror("connect");
         return QVN_STATUS_ERR;
@@ -101,7 +107,7 @@ void network_loop()
         while (conf.running)
         {
             FD_ZERO(&set);
-            FD_SET(network->bindfd, &set);
+            if (network->protocol == NETWORK_PROTOCOL_TCP) FD_SET(network->bindfd, &set);
             FD_SET(conf.tun_fd, &set);
             max = network->bindfd > conf.tun_fd ? network->bindfd : conf.tun_fd;
 
