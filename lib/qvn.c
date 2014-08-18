@@ -98,7 +98,7 @@ static void accept_and_check(server_network_t* network)
     else close(fd);
 }
 
-static void do_tun(int tun_fd, int net_fd, int is_tcp, struct sockaddr_in* addr)
+static int do_tun(int tun_fd, int net_fd, int is_tcp, struct sockaddr_in* addr)
 {
     static char buf[USHRT_MAX];
     size_t len;
@@ -106,15 +106,16 @@ static void do_tun(int tun_fd, int net_fd, int is_tcp, struct sockaddr_in* addr)
     if (read_ip_package(tun_fd, 1, buf, &len) != QVN_STATUS_OK)
     {
         fprintf(stderr, "read ip package faild\n");
-        return;
+        return QVN_STATUS_ERR;
     }
     printf("len: %lu\n", len);
     if (is_tcp) write_n(net_fd, buf, len);
     else sendto(net_fd, buf, len, 0, (struct sockaddr*)addr, sizeof(*addr));
     printf("do_tun\n");
+    return QVN_STATUS_OK;
 }
 
-static void do_net(int net_fd, int tun_fd)
+static int do_net(int net_fd, int tun_fd)
 {
     static char buf[USHRT_MAX];
     size_t len;
@@ -124,7 +125,7 @@ static void do_net(int net_fd, int tun_fd)
     if (read_ip_package(net_fd, 0, buf, &len) != QVN_STATUS_OK)
     {
         fprintf(stderr, "read ip package faild\n");
-        return;
+        return QVN_STATUS_ERR;
     }
     printf("len: %lu\n", len);
     type = htonl(ETH_P_IP);
@@ -134,10 +135,12 @@ static void do_net(int net_fd, int tun_fd)
     iv[1].iov_len = len;
     writev(tun_fd, iv, 2);
     printf("do_net\n");
+    return QVN_STATUS_OK;
 }
 
 void do_network(int count, fd_set* set)
 {
+    int rc;
     if (conf.type == QVN_CONF_TYPE_SERVER)
     {
         server_network_t* network = network_this;
@@ -156,7 +159,14 @@ void do_network(int count, fd_set* set)
         }
         if (network->connfd != -1 && FD_ISSET(network->connfd, set)) // 客户端有数据
         {
-            do_net(network->connfd, conf.tun_fd);
+            rc = do_net(network->connfd, conf.tun_fd);
+            if (rc != QVN_STATUS_OK && network->protocol == NETWORK_PROTOCOL_TCP)
+            {
+                close(network->connfd);
+                fprintf(stderr, "connection closed\n");
+                network->connfd = -1;
+                return;
+            }
         }
         if (FD_ISSET(conf.tun_fd, set)) // 服务器有数据
         {
@@ -172,7 +182,14 @@ void do_network(int count, fd_set* set)
         }
         if (FD_ISSET(network->serverfd, set)) // 服务器有数据
         {
-            do_net(network->serverfd, conf.tun_fd);
+            rc = do_net(network->serverfd, conf.tun_fd);
+            if (rc != QVN_STATUS_OK)
+            {
+                close(network->serverfd);
+                fprintf(stderr, "connection closed\n");
+                conf.running = 0;
+                return;
+            }
         }
     }
 }
