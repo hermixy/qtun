@@ -1,0 +1,8 @@
+ 
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+PROJECT(step2)
+
+INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../../warning2error.cmake)
+
+ADD_EXECUTABLE(step2 main.h main.c)
