@@ -90,7 +90,7 @@ int connect_server(char* ip, unsigned short port)
 void reply_echo(int fd, struct iphdr* ipHdr)
 {
     unsigned char ipHdrLen = ipHdr->ihl << 2;
-    struct icmphdr* icmpHdr = (struct icmphdr*)(ipHdr + ipHdrLen); // 跳过IP头和可选头
+    struct icmphdr* icmpHdr = (struct icmphdr*)((char*)ipHdr + ipHdrLen); // 跳过IP头和可选头
     unsigned short ipLen = ntohs(ipHdr->tot_len) - ipHdrLen;
 
     __be32 tmp = ipHdr->saddr;
@@ -154,6 +154,11 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
             }
             printf("\n");
         }
+        else
+        {
+            close(connfd);
+            connfd = -1;
+        }
     }
 }
 
@@ -184,12 +189,11 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
             {
                 unsigned char ipHdrLen = ipHdr->ihl << 2;
                 struct icmphdr* icmpHdr = (struct icmphdr*)(buffer + ipHdrLen); // 跳过IP头和可选头
-                if (icmpHdr->type == ICMP_ECHO || icmpHdr->type == ICMP_ECHOREPLY)
+                if (icmpHdr->type == ICMP_ECHO) // 只处理ECHO包
                 {
                     reply_echo(localfd, ipHdr);
                     reply = 1;
                 }
-                //else if (icmpHdr->type == ICMP_ECHOREPLY) reply = 1;
             }
             if (!reply) write(remotefd, buffer, readen);
         }
