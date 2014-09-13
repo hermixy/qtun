@@ -59,6 +59,8 @@ int connect_server(char* ip, unsigned short port)
 {
     int fd, rc;
     struct sockaddr_in addr = {0};
+    unsigned char buffer[1024];
+    ssize_t readen;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1)
@@ -80,6 +82,22 @@ int connect_server(char* ip, unsigned short port)
     if (rc == -1)
     {
         perror("connect");
+        close(fd);
+        return -1;
+    }
+    
+    readen = read(fd, buffer, sizeof(buffer));
+    if (readen > 0 && strcmp(SERVER_AUTH_MSG, buffer) == 0)
+    {
+        pid_t pid = getpid();
+        strcpy(buffer, CLIENT_AUTH_MSG);
+        client_id = pid;
+        client_id = htonl(client_id);
+        memcpy(&buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(client_id) - 2], &client_id, sizeof(client_id));
+        write(fd, buffer, sizeof(CLIENT_AUTH_MSG) - 1);
+    }
+    else
+    {
         close(fd);
         return -1;
     }
@@ -164,19 +182,6 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
 
 static void client_process(int max, fd_set* set, int remotefd, int localfd)
 {
-    if (FD_ISSET(remotefd, set))
-    {
-        unsigned char buffer[1024];
-        ssize_t readen = read(remotefd, buffer, sizeof(buffer));
-        if (readen > 0 && strcmp(SERVER_AUTH_MSG, buffer) == 0)
-        {
-            pid_t pid = getpid();
-            strcpy(buffer, CLIENT_AUTH_MSG);
-            client_id = pid;
-            client_id = htonl(client_id);
-            memcpy(&buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(client_id) - 2], &client_id, sizeof(client_id));
-        }
-    }
     if (FD_ISSET(localfd, set))
     {
         unsigned char buffer[1024];
@@ -229,9 +234,8 @@ void client_loop(int remotefd, int localfd)
     while (1)
     {
         FD_ZERO(&set);
-        FD_SET(remotefd, &set);
         FD_SET(localfd, &set);
-        max = remotefd > localfd ? remotefd : localfd;
+        max = localfd;
 
         max = select(max + 1, &set, NULL, NULL, &tv);
         if (max != -1) client_process(max, &set, remotefd, localfd);
