@@ -145,10 +145,12 @@ static void accept_and_check(int bindfd)
         if (getpeername(fd, (struct sockaddr*)&addr, &len) == -1)
         {
             perror("getpeername");
+            close(fd);
             return;
         }
         str = inet_ntoa(addr.sin_addr);
-        printf("authcheck failed: %s\n", str);
+        fprintf(stderr, "authcheck failed: %s\n", str);
+        close(fd);
         return;
     }
 
@@ -156,8 +158,24 @@ static void accept_and_check(int bindfd)
     {
         memcpy(&client_id, &buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(client_id) - 2], sizeof(client_id));
         client_id = ntohl(client_id);
+        connfd = fd;
     }
-    connfd = fd;
+    else
+    {
+        struct sockaddr_in addr;
+        socklen_t len = sizeof(addr);
+        char* str;
+
+        if (getpeername(fd, (struct sockaddr*)&addr, &len) == -1)
+        {
+            perror("getpeername");
+            close(fd);
+            return;
+        }
+        str = inet_ntoa(addr.sin_addr);
+        fprintf(stderr, "authcheck failed: %s\n", str);
+        close(fd);
+    }
 }
 
 static void server_process(int max, fd_set* set, int remotefd, int localfd)
