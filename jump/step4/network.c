@@ -95,7 +95,7 @@ int connect_server(char* ip, unsigned short port)
         strcpy(buffer, CLIENT_AUTH_MSG);
         client_id = pid;
         client_id = htonl(client_id);
-        memcpy(&buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(client_id) - 2], &client_id, sizeof(client_id));
+        memcpy(&buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(client_id) - 1], &client_id, sizeof(client_id));
         write_n(fd, buffer, sizeof(CLIENT_AUTH_MSG) - 1);
     }
     else
