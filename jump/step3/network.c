@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <linux/icmp.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -133,14 +134,35 @@ static void accept_and_check(int bindfd)
 
     write(fd, SERVER_AUTH_MSG, sizeof(SERVER_AUTH_MSG) - 1);
     readen = read(fd, buffer, sizeof(buffer));
-    if (readen <= 0) return;
+    if (readen <= 0)
+    {
+        perror("read");
+        close(fd);
+        return;
+    }
 
     if (strncmp(buffer, CLIENT_AUTH_MSG, sizeof(CLIENT_AUTH_MSG) - 5) == 0)
     {
         memcpy(&client_id, &buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(client_id) - 2], sizeof(client_id));
         client_id = ntohl(client_id);
+        connfd = fd;
     }
-    connfd = fd;
+    else
+    {
+        struct sockaddr_in addr;
+        socklen_t len = sizeof(addr);
+        char* str;
+
+        if (getpeername(fd, (struct sockaddr*)&addr, &len) == -1)
+        {
+            perror("getpeername");
+            close(fd);
+            return;
+        }
+        str = inet_ntoa(addr.sin_addr);
+        fprintf(stderr, "authcheck failed: %s\n", str);
+        close(fd);
+    }
 }
 
 static void server_process(int max, fd_set* set, int remotefd, int localfd)
