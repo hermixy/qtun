@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <linux/icmp.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -87,7 +88,7 @@ int connect_server(char* ip, unsigned short port)
         return -1;
     }
 
-    readen = read(fd, buffer, sizeof(buffer));
+    readen = read_t(fd, buffer, sizeof(buffer), 5);
     if (readen > 0 && strcmp(SERVER_AUTH_MSG, buffer) == 0)
     {
         pid_t pid = getpid();
@@ -95,10 +96,11 @@ int connect_server(char* ip, unsigned short port)
         client_id = pid;
         client_id = htonl(client_id);
         memcpy(&buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(client_id) - 2], &client_id, sizeof(client_id));
-        write(fd, buffer, sizeof(CLIENT_AUTH_MSG) - 1);
+        write_n(fd, buffer, sizeof(CLIENT_AUTH_MSG) - 1);
     }
     else
     {
+        fprintf(stderr, "is not allowed server\n");
         close(fd);
         return -1;
     }
@@ -122,7 +124,7 @@ void reply_echo(int fd, struct iphdr* ipHdr)
     icmpHdr->checksum = 0;
     icmpHdr->checksum = checksum(icmpHdr, ipLen);
 
-    write(fd, ipHdr, ipHdrLen + ipLen);
+    write_n(fd, ipHdr, ipHdrLen + ipLen);
 }
 
 static void accept_and_check(int bindfd)
@@ -132,9 +134,23 @@ static void accept_and_check(int bindfd)
     ssize_t readen;
     if (fd == -1) return;
 
-    write(fd, SERVER_AUTH_MSG, sizeof(SERVER_AUTH_MSG) - 1);
-    readen = read(fd, buffer, sizeof(buffer));
-    if (readen <= 0) return;
+    write_n(fd, SERVER_AUTH_MSG, sizeof(SERVER_AUTH_MSG) - 1);
+    readen = read_t(fd, buffer, sizeof(buffer), 5);
+    if (readen <= 0)
+    {
+        struct sockaddr_in addr;
+        socklen_t len = sizeof(addr);
+        char* str;
+
+        if (getpeername(fd, (struct sockaddr*)&addr, &len) == -1)
+        {
+            perror("getpeername");
+            return;
+        }
+        str = inet_ntoa(addr.sin_addr);
+        printf("authcheck failed: %s\n", str);
+        return;
+    }
 
     if (strncmp(buffer, CLIENT_AUTH_MSG, sizeof(CLIENT_AUTH_MSG) - 5) == 0)
     {
@@ -201,7 +217,7 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
                     reply = 1;
                 }
             }
-            if (!reply) write(remotefd, buffer, readen);
+            if (!reply) write_n(remotefd, buffer, readen);
         }
     }
 }
