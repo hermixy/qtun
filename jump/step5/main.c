@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
 
     if (argc < 2)
     {
-        fprintf(stderr, "usage: ./step3 <0|1>\n");
+        fprintf(stderr, "usage: ./step5 <0|1>\n");
         return 1;
     }
 
@@ -57,17 +57,26 @@ int main(int argc, char* argv[])
 
     if (atoi(argv[1]))
     {
-        sprintf(cmd, "ifconfig %s 10.0.1.1 up", name);
+        if (argc < 3)
+        {
+            fprintf(stderr, "usage: ./step5 1 ip\n");
+            return 1;
+        }
+        sprintf(cmd, "ifconfig %s 10.0.1.2 up", name);
         system(cmd);
-        sprintf(cmd, "route add 8.8.8.8 dev %s", name);
+        sprintf(cmd, "route add 10.0.1.1 dev %s", name);
         system(cmd);
-        remotefd = connect_server("127.0.0.1", 6687);
+        sprintf(cmd, "route add 8.8.8.8 dev %s gw 10.0.1.1", name);
+        system(cmd);
+        remotefd = connect_server(argv[2], 6687);
         if (remotefd == -1) return 1;
         client_loop(remotefd, localfd);
     }
     else
     {
-        sprintf(cmd, "ifconfig %s 10.0.2.1 up", name);
+        sprintf(cmd, "ifconfig %s 10.0.1.1 up", name);
+        system(cmd);
+        sprintf(cmd, "route add 10.0.1.2 dev %s", name);
         system(cmd);
         remotefd = bind_and_listen(6687);
         if (remotefd == -1) return 1;
