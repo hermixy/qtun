@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
     {
         sprintf(cmd, "ifconfig %s 10.0.1.1 up", name);
         system(cmd);
-        sprintf(cmd, "route add 10.0.1.2 dev %s", name);
+        sprintf(cmd, "route add 8.8.8.8 dev %s", name);
         system(cmd);
         remotefd = connect_server("127.0.0.1", 6687);
         if (remotefd == -1) return 1;

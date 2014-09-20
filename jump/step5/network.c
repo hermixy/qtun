@@ -180,6 +180,8 @@ static void accept_and_check(int bindfd)
 
 static void server_process(int max, fd_set* set, int remotefd, int localfd)
 {
+    unsigned char buffer[1024] = {0};
+    ssize_t readen;
     if (FD_ISSET(remotefd, set))
     {
         if (connfd == -1) accept_and_check(remotefd);
@@ -195,38 +197,21 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     }
     if (connfd != -1 && FD_ISSET(connfd, set))
     {
-        unsigned char buffer[1024] = {0};
-        ssize_t readen = read(connfd, buffer, sizeof(buffer));
-        int reply = 0;
+        readen = read(connfd, buffer, sizeof(buffer));
         if (readen > 0)
         {
-            struct iphdr* ipHdr = (struct iphdr*)buffer;
-            if (ipHdr->version == 4 && ipHdr->protocol == IPPROTO_ICMP) // 只处理ICMP的IPV4包
-            {
-                unsigned char ipHdrLen = ipHdr->ihl << 2;
-                struct icmphdr* icmpHdr = (struct icmphdr*)(buffer + ipHdrLen); // 跳过IP头和可选头
-                if (icmpHdr->type == ICMP_ECHO) // 只处理ECHO包
-                {
-                    reply_echo(connfd, ipHdr);
-                    reply = 1;
-                }
-            }
-            if (!reply)
-            {
-                ssize_t i;
-                printf("received:\n");
-                for (i = 0; i < readen; ++i)
-                {
-                    printf("%02X ", buffer[i]);
-                }
-                printf("\n");
-            }
+            write_n(localfd, buffer, readen);
         }
         else
         {
             close(connfd);
             connfd = -1;
         }
+    }
+    if (FD_ISSET(localfd, set))
+    {
+        readen = read(localfd, buffer, sizeof(buffer));
+        if (connfd != -1 && readen > 0) write_n(connfd, buffer, readen);
     }
 }
 
@@ -243,6 +228,12 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
     {
         readen = read(remotefd, buffer, sizeof(buffer));
         if (readen > 0) write_n(localfd, buffer, readen);
+        else
+        {
+            fprintf(stderr, "read error\n");
+            close(remotefd);
+            exit(1);
+        }
     }
 }
 
