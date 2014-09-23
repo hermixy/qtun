@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
 
     if (argc < 2)
     {
-        fprintf(stderr, "usage: ./step5 <0|1>\n");
+        fprintf(stderr, "usage: ./step6 <0|1>\n");
         return 1;
     }
 
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
     {
         if (argc < 3)
         {
-            fprintf(stderr, "usage: ./step5 1 ip\n");
+            fprintf(stderr, "usage: ./step6 1 ip\n");
             return 1;
         }
         sprintf(cmd, "ifconfig %s 10.0.1.2 up", name);
