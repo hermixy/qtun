@@ -23,18 +23,28 @@ typedef struct
 
 typedef struct
 {
-    hash_functor_t  functor;
     hash_bucket_t** buckets;
-    size_t          max_buckets_length; // 当前吊桶最大长度
-    size_t          buckets_count;      // 吊桶数
-    size_t          buckets_idx;        // 当前使用素数的索引
-    size_t          count;              // 元素总数
-    size_t          max_length;         // 允许的最大吊桶长度
+    size_t*         buckets_pre_length; // 每个吊桶的长度
+    size_t          buckets_count;
+    size_t          count;
+}hash_dict_t;
+
+typedef struct
+{
+    hash_functor_t functor;
+    hash_dict_t    dicts[2];
+    size_t         max_length;         // 允许的最大吊桶长度
+    int            rehashing;          // 正在rehash
+    size_t         rehashing_idx;      // 当前正在rehash的指针
+    size_t         buckets_idx;        // 当前使用素数的索引
 }hash_t;
 
 extern int hash_init(hash_t* h, hash_functor_t functor, size_t max_length);
 extern void hash_free(hash_t* h);
 extern int hash_set(hash_t* h, const void* key, const size_t key_len, const void* val, const size_t val_len);
 extern int hash_get(hash_t* h, const void* key, const size_t key_len, void** val, size_t* val_len);
+extern int hash_del(hash_t* h, const void* key, const size_t key_len);
+
+#define hash_count(h) (h->dicts[0].count + h->dicts[1].count)
 
 #endif
