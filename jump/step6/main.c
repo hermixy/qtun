@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
         }
         sprintf(cmd, "ifconfig %s 10.0.1.2 up", name);
         system(cmd);
-        sprintf(cmd, "route add 10.0.1.1 dev %s", name);
+        sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
         system(cmd);
         remotefd = connect_server(argv[2], 6687);
         if (remotefd == -1) return 1;
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
         }
         sprintf(cmd, "ifconfig %s 10.0.1.3 up", name);
         system(cmd);
-        sprintf(cmd, "route add 10.0.1.1 dev %s", name);
+        sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
         system(cmd);
         remotefd = connect_server(argv[2], 6687);
         if (remotefd == -1) return 1;
@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
     default:
         sprintf(cmd, "ifconfig %s 10.0.1.1 up", name);
         system(cmd);
-        sprintf(cmd, "route add 10.0.1.2 dev %s", name);
+        sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
         system(cmd);
         remotefd = bind_and_listen(6687);
         if (remotefd == -1) return 1;
