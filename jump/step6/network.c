@@ -10,14 +10,21 @@
 #include "common.h"
 #include "network.h"
 
-static int connfd = -1;
-static unsigned int client_id = 0;
+network_t network;
 
 int bind_and_listen(unsigned short port)
 {
     int fd, rc;
     int opt = 1;
     struct sockaddr_in addr = {0};
+    hash_functor_t functor = {
+        fd_hash,
+        fd_compare,
+        fd_dup,
+        hash_dummy_dup,
+        hash_dummy_free,
+        NULL
+    };
 
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htons(INADDR_ANY);
@@ -54,6 +61,7 @@ int bind_and_listen(unsigned short port)
         return -1;
     }
 
+    hash_init(&network.hash, functor, 11);
     return fd;
 }
 
@@ -92,10 +100,11 @@ int connect_server(char* ip, unsigned short port)
     if (readen > 0 && strcmp(SERVER_AUTH_MSG, buffer) == 0)
     {
         pid_t pid = getpid();
+        unsigned int cid;
         strcpy(buffer, CLIENT_AUTH_MSG);
-        client_id = pid;
-        client_id = htonl(client_id);
-        memcpy(&buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(client_id) - 1], &client_id, sizeof(client_id));
+        cid = htonl(pid);
+        network.client.id = pid;
+        memcpy(&buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(cid) - 1], &cid, sizeof(cid));
         write_n(fd, buffer, sizeof(CLIENT_AUTH_MSG) - 1);
     }
     else
@@ -106,25 +115,6 @@ int connect_server(char* ip, unsigned short port)
     }
 
     return fd;
-}
-
-void reply_echo(int fd, struct iphdr* ipHdr)
-{
-    unsigned char ipHdrLen = ipHdr->ihl << 2;
-    struct icmphdr* icmpHdr = (struct icmphdr*)((char*)ipHdr + ipHdrLen); // 跳过IP头和可选头
-    unsigned short ipLen = ntohs(ipHdr->tot_len) - ipHdrLen;
-
-    __be32 tmp = ipHdr->saddr;
-    ipHdr->saddr = ipHdr->daddr;
-    ipHdr->daddr = tmp;
-    ipHdr->check = 0;
-    ipHdr->check = checksum(ipHdr, ipHdrLen);
-
-    icmpHdr->type = ICMP_ECHOREPLY;
-    icmpHdr->checksum = 0;
-    icmpHdr->checksum = checksum(icmpHdr, ipLen);
-
-    write_n(fd, ipHdr, ipHdrLen + ipLen);
 }
 
 static void accept_and_check(int bindfd)
@@ -156,9 +146,21 @@ static void accept_and_check(int bindfd)
 
     if (strncmp(buffer, CLIENT_AUTH_MSG, sizeof(CLIENT_AUTH_MSG) - 5) == 0)
     {
-        memcpy(&client_id, &buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(client_id) - 2], sizeof(client_id));
-        client_id = ntohl(client_id);
-        connfd = fd;
+        client_t* client = malloc(sizeof(*client));
+        if (client == NULL)
+        {
+            fprintf(stderr, "out of memory\n");
+            close(fd);
+            return;
+        }
+        client->id = ntohl(*(unsigned int*)&buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(client->id) - 2]);
+        client->fd = fd;
+        if (!hash_set(&network.hash, (void*)(long)fd, sizeof(fd), client, sizeof(*client)))
+        {
+            fprintf(stderr, "hash set error\n");
+            close(fd);
+            return;
+        }
     }
     else
     {
@@ -182,36 +184,43 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
 {
     unsigned char buffer[1024] = {0};
     ssize_t readen;
-    if (FD_ISSET(remotefd, set))
+    hash_iterator_t iter;
+
+    if (FD_ISSET(remotefd, set)) accept_and_check(remotefd);
+    iter = hash_begin(&network.hash);
+    while (!hash_is_end(iter))
     {
-        if (connfd == -1) accept_and_check(remotefd);
-        else
+        int fd = hash2fd(iter.data.key);
+        if (FD_ISSET(fd, set))
         {
-            int fd = accept(remotefd, NULL, NULL);
-            if (fd != -1)
+            readen = read(fd, buffer, sizeof(buffer));
+            if (readen > 0)
             {
-                fprintf(stderr, "I can only process 1 client!\n");
+                write_n(localfd, buffer, readen);
+            }
+            else
+            {
                 close(fd);
+                hash_del(&network.hash, iter.data.key, iter.data.key_len);
             }
         }
-    }
-    if (connfd != -1 && FD_ISSET(connfd, set))
-    {
-        readen = read(connfd, buffer, sizeof(buffer));
-        if (readen > 0)
-        {
-            write_n(localfd, buffer, readen);
-        }
-        else
-        {
-            close(connfd);
-            connfd = -1;
-        }
+        iter = hash_next(&network.hash, iter);
     }
     if (FD_ISSET(localfd, set))
     {
         readen = read(localfd, buffer, sizeof(buffer));
-        if (connfd != -1 && readen > 0) write_n(connfd, buffer, readen);
+        if (readen > 0)
+        {
+            struct iphdr* ipHdr = (struct iphdr*)buffer;
+            struct in_addr addr;
+            char* str;
+
+            addr.s_addr = ipHdr->daddr;
+            str = inet_ntoa(addr);
+            printf("send to: %s\n", str);
+        }
+        // TODO: route
+        //if (connfd != -1 && readen > 0) write_n(connfd, buffer, readen);
     }
 }
 
@@ -244,14 +253,18 @@ void server_loop(int remotefd, int localfd)
     while (1)
     {
         struct timeval tv = {60, 0};
+        hash_iterator_t iter;
+
         FD_ZERO(&set);
         FD_SET(remotefd, &set);
         FD_SET(localfd, &set);
         max = remotefd > localfd ? remotefd : localfd;
-        if (connfd != -1)
+        iter = hash_begin(&network.hash);
+        while (!hash_is_end(iter))
         {
-            FD_SET(connfd, &set);
-            if (connfd > max) max = connfd;
+            int fd = hash2fd(iter.data.key);
+            FD_SET(fd, &set);
+            if (fd > max) max = fd;
         }
 
         max = select(max + 1, &set, NULL, NULL, &tv);

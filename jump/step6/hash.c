@@ -138,7 +138,7 @@ static int hash_set_exists(hash_t* h, int dst, const void* key, const size_t key
     {
         if (h->functor.compare(key, key_len, node->data.key, node->data.key_len))
         {
-            h->functor.free_val(node->data.val, node->data.val_len);
+            if (h->functor.free_val) h->functor.free_val(node->data.val, node->data.val_len);
             node->data.val = h->functor.dup_val(val, val_len);
             return 1;
         }
@@ -246,3 +246,78 @@ int hash_del(hash_t* h, const void* key, const size_t key_len)
     return 0;
 }
 
+static int _hash_enum(hash_t* h, int dict_start, size_t buckets_start, hash_iterator_t* iter)
+{
+    int i;
+    for (i = dict_start; i < (h->rehashing ? 2 : 1); ++i)
+    {
+        hash_bucket_t* node;
+        size_t j;
+        for (j = buckets_start; j < h->dicts[i].buckets_count; ++j)
+        {
+            node = h->dicts[i].buckets[j];
+            if (node == NULL) continue;
+            iter->data = node->data;
+            iter->dict = i;
+            iter->bidx = j;
+            iter->node = node;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+hash_iterator_t hash_begin(hash_t* h)
+{
+    hash_iterator_t iter;
+    if (hash_count(h) == 0)
+    {
+        iter.end = 1;
+        return iter;
+    }
+    iter.end = 0;
+    if (_hash_enum(h, 0, 0, &iter))
+    {
+        iter.bidx = 0;
+        return iter;
+    }
+    iter.end = 1;
+    return iter;
+}
+
+hash_iterator_t hash_next(hash_t* h, hash_iterator_t iter)
+{
+    hash_iterator_t next;
+    int i;
+    if (iter.idx >= hash_count(h))
+    {
+        next.end = 1;
+        return next;
+    }
+    next.end = 0;
+    if (iter.node->next)
+    {
+        next.data = iter.node->next->data;
+        next.dict = iter.dict;
+        next.bidx = iter.bidx;
+        next.idx  = iter.idx + 1;
+        next.node = iter.node->next;
+        return next;
+    }
+    if (_hash_enum(h, iter.dict, iter.bidx + 1, &next))
+    {
+        next.idx = iter.idx + 1;
+        return next;
+    }
+    next.end = 1;
+    return next;
+}
+
+void* hash_dummy_dup(const void* data, const size_t len)
+{
+    return (void*)data;
+}
+
+void hash_dummy_free(void* key, size_t key_len, void* val, size_t val_len)
+{
+}

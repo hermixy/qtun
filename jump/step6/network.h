@@ -3,8 +3,27 @@
 
 #include <linux/ip.h>
 
+#include "hash.h"
+
 #define SERVER_AUTH_MSG "Who are you"
 #define CLIENT_AUTH_MSG "I am 0000"
+
+typedef struct
+{
+    unsigned int id;
+    int          fd;
+}client_t;
+
+typedef struct
+{
+    union
+    {
+        client_t client;
+        hash_t   hash;
+    };
+}network_t;
+
+extern network_t network;
 
 extern int bind_and_listen(unsigned short port);
 extern int connect_server(char* ip, unsigned short port);

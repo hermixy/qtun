@@ -55,8 +55,9 @@ int main(int argc, char* argv[])
     if (localfd == -1) return 1;
     fprintf(stdout, "%s opened\n", name);
 
-    if (atoi(argv[1]))
+    switch (atoi(argv[1]))
     {
+    case 1:
         if (argc < 3)
         {
             fprintf(stderr, "usage: ./step6 1 ip\n");
@@ -66,14 +67,25 @@ int main(int argc, char* argv[])
         system(cmd);
         sprintf(cmd, "route add 10.0.1.1 dev %s", name);
         system(cmd);
-        sprintf(cmd, "route add 8.8.8.8 dev %s", name);
+        remotefd = connect_server(argv[2], 6687);
+        if (remotefd == -1) return 1;
+        client_loop(remotefd, localfd);
+        break;
+    case 2:
+        if (argc < 3)
+        {
+            fprintf(stderr, "usage: ./step6 2 ip\n");
+            return 1;
+        }
+        sprintf(cmd, "ifconfig %s 10.0.1.3 up", name);
+        system(cmd);
+        sprintf(cmd, "route add 10.0.1.1 dev %s", name);
         system(cmd);
         remotefd = connect_server(argv[2], 6687);
         if (remotefd == -1) return 1;
         client_loop(remotefd, localfd);
-    }
-    else
-    {
+        break;
+    default:
         sprintf(cmd, "ifconfig %s 10.0.1.1 up", name);
         system(cmd);
         sprintf(cmd, "route add 10.0.1.2 dev %s", name);
@@ -81,6 +93,7 @@ int main(int argc, char* argv[])
         remotefd = bind_and_listen(6687);
         if (remotefd == -1) return 1;
         server_loop(remotefd, localfd);
+        break;
     }
     return 0;
 }
