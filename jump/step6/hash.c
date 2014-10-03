@@ -78,6 +78,8 @@ static void rehash_start(hash_t* h)
         return;
     }
     h->dicts[1].count = 0;
+    h->rehashing = 1;
+    h->rehashing_idx = 0;
 }
 
 static void rehash_end(hash_t* h)
@@ -112,14 +114,15 @@ static void rehash_step(hash_t* h)
             ++h->rehashing_idx;
             continue;
         }
+        h->dicts[0].buckets[h->rehashing_idx] = node->next;
         idx = h->functor.hash(node->data.key, node->data.key_len) % h->dicts[1].buckets_count;
         node->next = h->dicts[1].buckets[idx];
         h->dicts[1].buckets[idx] = node;
         ++h->dicts[1].count;
         ++h->dicts[1].buckets_pre_length[idx];
 
-        if (--h->dicts[0].count <= 0) rehash_end(h);
         --h->dicts[0].buckets_pre_length[h->rehashing_idx];
+        if (--h->dicts[0].count <= 0) rehash_end(h);
         break;
     }
 }
@@ -156,7 +159,8 @@ int hash_set(hash_t* h, const void* key, const size_t key_len, const void* val, 
     if (h->rehashing)
     {
         if (hash_set_exists(h, 1, key, key_len, val, val_len, &idx)) return 1;
-        dst = 1;
+        if (!h->rehashing) idx = h->functor.hash(key, key_len) % h->dicts[0].buckets_count;
+        else dst = 1;
     }
 
     node = malloc(sizeof(hash_bucket_t));
@@ -181,7 +185,7 @@ int hash_get(hash_t* h, const void* key, const size_t key_len, void** val, size_
     size_t i;
 
     if (h->rehashing) rehash_step(h);
-    for (i = 0; i < h->rehashing ? 2 : 1; ++i)
+    for (i = 0; i < (h->rehashing ? 2 : 1); ++i)
     {
         idx = h->functor.hash(key, key_len) % h->dicts[i].buckets_count;
         node = h->dicts[i].buckets[idx];

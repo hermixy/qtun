@@ -1,6 +1,29 @@
+#include <execinfo.h>
+#include <signal.h>
 #include <stdio.h>
 
-#include "hash.h"
+#include "../hash.h"
+
+static void crash_sig(int signum)
+{
+    void* array[10];
+    size_t size;
+    char** strings;
+    size_t i;
+
+    signal(signum, SIG_DFL);
+
+    size = backtrace(array, sizeof(array) / sizeof(void*));
+    strings = (char**)backtrace_symbols(array, size);
+
+    for (i = 0; i < size; ++i)
+    {
+        fprintf(stderr, "%s\n", strings[i]);
+    }
+
+    free(strings);
+    exit(1);
+}
 
 static size_t hash(const void* key, const size_t key_len)
 {
@@ -14,7 +37,7 @@ static int compare(const void* k1, const size_t k1_len, const void* k2, const si
 
 static void* dup(const void* v, const size_t v_len)
 {
-    long* p = malloc(sizeof(p));
+    long* p = malloc(sizeof(*p));
     *p = *(const long*)v;
     return p;
 }
@@ -32,6 +55,9 @@ static void fv(void* v, size_t v_len)
 
 int main()
 {
+    signal(SIGSEGV, crash_sig);
+    signal(SIGABRT, crash_sig);
+
     hash_t h;
     hash_functor_t func = {
         hash,
@@ -46,7 +72,7 @@ int main()
     size_t v_len;
 
     hash_init(&h, func, 11);
-    for (i = 0; i < 100; ++i)
+    for (i = 0; i < 1000000; ++i)
     {
         hash_set(&h, &i, sizeof(i), &i, sizeof(i));
         hash_get(&h, &i, sizeof(i), &v, &v_len);
