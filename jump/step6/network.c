@@ -17,10 +17,18 @@ int bind_and_listen(unsigned short port)
     int fd, rc;
     int opt = 1;
     struct sockaddr_in addr = {0};
-    hash_functor_t functor = {
+    hash_functor_t functor_fd = {
         fd_hash,
         fd_compare,
         fd_dup,
+        hash_dummy_dup,
+        hash_dummy_free,
+        NULL
+    };
+    hash_functor_t functor_ip = {
+        ip_hash,
+        ip_compare,
+        ip_dup,
         hash_dummy_dup,
         hash_dummy_free,
         NULL
@@ -61,7 +69,8 @@ int bind_and_listen(unsigned short port)
         return -1;
     }
 
-    hash_init(&network.hash, functor, 11);
+    hash_init(&network.server.hash_fd, functor_fd, 11);
+    hash_init(&network.server.hash_ip, functor_ip, 11);
     return fd;
 }
 
@@ -155,7 +164,7 @@ static void accept_and_check(int bindfd)
         }
         client->id = ntohl(*(unsigned int*)&buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(client->id) - 2]);
         client->fd = fd;
-        if (!hash_set(&network.hash, (void*)(long)fd, sizeof(fd), client, sizeof(*client)))
+        if (!hash_set(&network.server.hash_fd, (void*)(long)fd, sizeof(fd), client, sizeof(*client)))
         {
             fprintf(stderr, "hash set error\n");
             close(fd);
@@ -185,9 +194,10 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     unsigned char buffer[1024] = {0};
     ssize_t readen;
     hash_iterator_t iter;
+    struct iphdr* ipHdr;
 
     if (FD_ISSET(remotefd, set)) accept_and_check(remotefd);
-    iter = hash_begin(&network.hash);
+    iter = hash_begin(&network.server.hash_fd);
     while (!hash_is_end(iter))
     {
         int fd = hash2fd(iter.data.key);
@@ -197,14 +207,16 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
             if (readen > 0)
             {
                 write_n(localfd, buffer, readen);
+                ipHdr = (struct iphdr*)buffer;
+                hash_set(&network.server.hash_ip, (void*)(long)ipHdr->saddr, sizeof(ipHdr->saddr), iter.data.key, iter.data.key_len);
             }
             else
             {
                 close(fd);
-                hash_del(&network.hash, iter.data.key, iter.data.key_len);
+                hash_del(&network.server.hash_fd, iter.data.key, iter.data.key_len);
             }
         }
-        iter = hash_next(&network.hash, iter);
+        iter = hash_next(&network.server.hash_fd, iter);
     }
     if (FD_ISSET(localfd, set))
     {
@@ -212,15 +224,14 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
         if (readen > 0)
         {
             struct iphdr* ipHdr = (struct iphdr*)buffer;
-            struct in_addr addr;
-            char* str;
+            void* value;
+            size_t value_len;
 
-            addr.s_addr = ipHdr->daddr;
-            str = inet_ntoa(addr);
-            printf("send to: %s\n", str);
+            if (hash_get(&network.server.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len))
+            {
+                write_n(hash2fd(value), buffer, readen);
+            }
         }
-        // TODO: route
-        //if (connfd != -1 && readen > 0) write_n(connfd, buffer, readen);
     }
 }
 
@@ -259,12 +270,13 @@ void server_loop(int remotefd, int localfd)
         FD_SET(remotefd, &set);
         FD_SET(localfd, &set);
         max = remotefd > localfd ? remotefd : localfd;
-        iter = hash_begin(&network.hash);
+        iter = hash_begin(&network.server.hash_fd);
         while (!hash_is_end(iter))
         {
             int fd = hash2fd(iter.data.key);
             FD_SET(fd, &set);
             if (fd > max) max = fd;
+            iter = hash_next(&network.server.hash_fd, iter);
         }
 
         max = select(max + 1, &set, NULL, NULL, &tv);

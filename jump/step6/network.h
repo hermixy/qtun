@@ -19,7 +19,11 @@ typedef struct
     union
     {
         client_t client;
-        hash_t   hash;
+        struct
+        {
+            hash_t hash_fd;
+            hash_t hash_ip;
+        } server;
     };
 }network_t;
 
