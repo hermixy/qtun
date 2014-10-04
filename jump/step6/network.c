@@ -195,6 +195,8 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     ssize_t readen;
     hash_iterator_t iter;
     struct iphdr* ipHdr;
+    void* value;
+    size_t value_len;
 
     if (FD_ISSET(remotefd, set)) accept_and_check(remotefd);
     iter = hash_begin(&network.server.hash_fd);
@@ -206,8 +208,11 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
             readen = read(fd, buffer, sizeof(buffer));
             if (readen > 0)
             {
-                write_n(localfd, buffer, readen);
+                fd = localfd;
                 ipHdr = (struct iphdr*)buffer;
+                if (hash_get(&network.server.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len))
+                    fd = hash2fd(value);
+                write_n(fd, buffer, readen);
                 hash_set(&network.server.hash_ip, (void*)(long)ipHdr->saddr, sizeof(ipHdr->saddr), iter.data.key, iter.data.key_len);
             }
             else
@@ -223,14 +228,9 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
         readen = read(localfd, buffer, sizeof(buffer));
         if (readen > 0)
         {
-            struct iphdr* ipHdr = (struct iphdr*)buffer;
-            void* value;
-            size_t value_len;
-
+            ipHdr = (struct iphdr*)buffer;
             if (hash_get(&network.server.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len))
-            {
                 write_n(hash2fd(value), buffer, readen);
-            }
         }
     }
 }
