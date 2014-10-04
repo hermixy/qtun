@@ -289,7 +289,7 @@ hash_iterator_t hash_next(hash_t* h, hash_iterator_t iter)
 {
     hash_iterator_t next;
     int i;
-    if (iter.idx >= hash_count(h))
+    if (iter.idx >= hash_count(h) - 1)
     {
         next.end = 1;
         return next;
