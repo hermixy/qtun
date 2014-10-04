@@ -278,7 +278,7 @@ hash_iterator_t hash_begin(hash_t* h)
     iter.end = 0;
     if (_hash_enum(h, 0, 0, &iter))
     {
-        iter.bidx = 0;
+        iter.idx = 0;
         return iter;
     }
     iter.end = 1;

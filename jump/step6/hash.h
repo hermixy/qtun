@@ -58,7 +58,7 @@ extern int hash_del(hash_t* h, const void* key, const size_t key_len);
 extern hash_iterator_t hash_begin(hash_t* h);
 extern hash_iterator_t hash_next(hash_t* h, hash_iterator_t iter);
 
-#define hash_count(h) (h->dicts[0].count + h->dicts[1].count)
+#define hash_count(h) ((h)->dicts[0].count + (h)->dicts[1].count)
 #define hash_is_end(iter) iter.end
 
 extern void* hash_dummy_dup(const void* data, const size_t len);

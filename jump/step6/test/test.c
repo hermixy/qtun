@@ -2,6 +2,7 @@
 #include <signal.h>
 #include <stdio.h>
 
+#include "../common.h"
 #include "../hash.h"
 
 static void crash_sig(int signum)
@@ -67,9 +68,19 @@ int main()
         f,
         fv
     };
+    /*hash_functor_t func = {
+        fd_hash,
+        fd_compare,
+        fd_dup,
+        hash_dummy_dup,
+        hash_dummy_free,
+        NULL
+    };*/
     long i;
+    int fd;
     void* v;
     size_t v_len;
+    hash_iterator_t iter;
 
     hash_init(&h, func, 11);
     for (i = 0; i < 1000000; ++i)
@@ -82,6 +93,19 @@ int main()
     hash_del(&h, &i, sizeof(i));
     i = 0;
     hash_del(&h, &i, sizeof(i));
+    /*fd = 5;
+    hash_set(&h, (void*)(long)fd, sizeof(fd), NULL, 0);
+    fd = 6;
+    hash_set(&h, (void*)(long)fd, sizeof(fd), NULL, 0);
+    printf("count: %lu\n", hash_count(&h));
+    iter = hash_begin(&h);
+    while (!hash_is_end(iter))
+    {
+        printf("idx: %lu\n", iter.idx);
+        fd = hash2fd(iter.data.key);
+        printf("%d\n", fd);
+        iter = hash_next(&h, iter);
+    }*/
     hash_free(&h);
     return 0;
 }
