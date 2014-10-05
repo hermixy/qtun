@@ -54,6 +54,7 @@ extern void hash_free(hash_t* h);
 extern int hash_set(hash_t* h, const void* key, const size_t key_len, const void* val, const size_t val_len);
 extern int hash_get(hash_t* h, const void* key, const size_t key_len, void** val, size_t* val_len);
 extern int hash_del(hash_t* h, const void* key, const size_t key_len);
+extern void hash_clear(hash_t* h);
 
 extern hash_iterator_t hash_begin(hash_t* h);
 extern hash_iterator_t hash_next(hash_t* h, hash_iterator_t iter);

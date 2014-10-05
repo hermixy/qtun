@@ -34,7 +34,7 @@ void hash_free(hash_t* h)
 {
     hash_bucket_t *node, *next;
     size_t i, j;
-    for (j = 0; j < 2; ++j)
+    for (j = 0; j < (h->rehashing ? 2 : 1); ++j)
     {
         for (i = 0; i < h->dicts[j].buckets_count; ++i)
         {
@@ -244,6 +244,39 @@ int hash_del(hash_t* h, const void* key, const size_t key_len)
     if (_hash_del(h, 0, key, key_len)) return 1;
     if (h->rehashing) return _hash_del(h, 1, key, key_len);
     return 0;
+}
+
+void hash_clear(hash_t* h)
+{
+    hash_bucket_t *node, *next;
+    size_t i, j;
+    for (j = 0; j < (h->rehashing ? 2 : 1); ++j)
+    {
+        for (i = 0; i < h->dicts[j].buckets_count; ++i)
+        {
+            node = h->dicts[j].buckets[i];
+            while (node)
+            {
+                next = node->next;
+                h->functor.free(node->data.key, node->data.key_len, node->data.val, node->data.val_len);
+                free(node);
+                node = next;
+            }
+            h->dicts[j].buckets[i] = NULL;
+            h->dicts[j].buckets_pre_length[i] = 0;
+        }
+        h->dicts[j].count = 0;
+    }
+    if (h->rehashing)
+    {
+        free(h->dicts[1].buckets);
+        free(h->dicts[1].buckets_pre_length);
+        h->dicts[1].buckets = NULL;
+        h->dicts[1].buckets_pre_length = NULL;
+        h->dicts[1].buckets_count = 0;
+    }
+    h->rehashing = 0;
+    h->rehashing_idx = 0;
 }
 
 static int _hash_enum(hash_t* h, int dict_start, size_t buckets_start, hash_iterator_t* iter)
