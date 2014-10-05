@@ -113,6 +113,7 @@ int connect_server(char* ip, unsigned short port)
         strcpy(buffer, CLIENT_AUTH_MSG);
         cid = htonl(pid);
         network.client.id = pid;
+        network.client.fd = fd;
         memcpy(&buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(cid) - 1], &cid, sizeof(cid));
         write_n(fd, buffer, sizeof(CLIENT_AUTH_MSG) - 1);
     }
