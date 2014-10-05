@@ -192,7 +192,7 @@ static void accept_and_check(int bindfd)
 
 static void server_process(int max, fd_set* set, int remotefd, int localfd)
 {
-    unsigned char buffer[1024] = {0};
+    unsigned char buffer[2048] = {0};
     ssize_t readen;
     hash_iterator_t iter;
     struct iphdr* ipHdr;
@@ -238,7 +238,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
 
 static void client_process(int max, fd_set* set, int remotefd, int localfd)
 {
-    unsigned char buffer[1024] = {0};
+    unsigned char buffer[2048] = {0};
     ssize_t readen;
     if (FD_ISSET(localfd, set))
     {
