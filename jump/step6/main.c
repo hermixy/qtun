@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
         client_loop(remotefd, localfd);
         break;
     default:
-        sprintf(cmd, "ifconfig %s 10.0.1.1 up", name);
+        sprintf(cmd, "ifconfig %s 10.0.1.1 mtu 1000 up", name);
         system(cmd);
         sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
         system(cmd);
