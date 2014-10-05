@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
             fprintf(stderr, "usage: ./step6 1 ip\n");
             return 1;
         }
-        sprintf(cmd, "ifconfig %s 10.0.1.2 up", name);
+        sprintf(cmd, "ifconfig %s 10.0.1.2 mtu 1000 up", name);
         system(cmd);
         sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
         system(cmd);
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
             fprintf(stderr, "usage: ./step6 2 ip\n");
             return 1;
         }
-        sprintf(cmd, "ifconfig %s 10.0.1.3 up", name);
+        sprintf(cmd, "ifconfig %s 10.0.1.3 mtu 1000 up", name);
         system(cmd);
         sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
         system(cmd);
