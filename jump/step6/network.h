@@ -14,17 +14,14 @@ typedef struct
     int          fd;
 }client_t;
 
-typedef struct
+typedef union
 {
-    union
+    client_t client;
+    struct
     {
-        client_t client;
-        struct
-        {
-            hash_t hash_fd;
-            hash_t hash_ip;
-        } server;
-    };
+        hash_t hash_fd;
+        hash_t hash_ip;
+    } server;
 }network_t;
 
 extern network_t network;
