@@ -11,6 +11,8 @@
 #include "network.h"
 #include "main.h"
 
+this_t this;
+
 static int tun_open(char name[IFNAMSIZ])
 {
     struct ifreq ifr;
@@ -50,6 +52,8 @@ int main(int argc, char* argv[])
         fprintf(stderr, "usage: ./step7 <0|1>\n");
         return 1;
     }
+
+    this.msg_ident = 0;
 
     memset(name, 0, IFNAMSIZ);
     localfd = tun_open(name);

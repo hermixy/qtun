@@ -1,0 +1,57 @@
+#ifndef _MSG_H_
+#define _MSG_H_
+
+#include "link.h"
+
+#define SYS_MSG_AUTH_REQ  1
+#define SYS_MSG_AUTH_ACK  2
+#define SYS_MSG_AUTH_NAK  3
+#define SYS_MSG_AUTH_REP  4
+#define SYS_DHCP_REQ      5
+#define SYS_DHCP_REP      6
+#define SYS_PING_REQ      7
+#define SYS_PING_REP      8
+#define SYS_REPEAT        9
+#define SYS_EXPIRED      10
+
+#define MSG_PROCESS_COMPRESS_HANDLER 1
+#define MSG_PROCESS_ENCRYPT_HANDLER  2
+
+typedef struct
+{
+    unsigned char  syscontrol : 1; // 是否是系统消息
+    unsigned char  compress   : 4; // 压缩算法
+    unsigned char  encrypt    : 3; // 加密算法
+    unsigned int   ident;          // 序号
+    unsigned int   sec;            // 发包时间
+    unsigned int   usec   : 20;    // 精确到微秒，little-endian
+    unsigned short len    : 12;    // 长度 = len * 16 + pfx
+    unsigned char  pfx    : 4;     // pfx
+    unsigned char  hold   : 2;     // 等待前一个及下一个
+    unsigned char  unused : 2;
+    unsigned short checksum;       // 校验和
+    unsigned char  data[];         // 数据
+} msg_t;
+
+typedef struct
+{
+    unsigned char op;
+    unsigned char data[];
+} sys_msg_t;
+
+typedef struct
+{
+    unsigned int  type;
+    unsigned char id;
+    int (*do_handler)(const void*, const size_t, void**, size_t*);
+    int (*undo_handler)(const void*, const size_t, void**, size_t*);
+} msg_process_handler_t;
+
+extern link_t msg_process_handlers;
+
+extern msg_t* new_sys_msg(const void* data, const unsigned short len);
+extern msg_t* new_msg(const unsigned char flag, const void* data, const unsigned short len);
+extern int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len);
+
+#endif
+

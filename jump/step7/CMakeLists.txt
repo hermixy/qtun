@@ -27,9 +27,12 @@ ADD_EXECUTABLE(${PROJECT_NAME}
     hash.c
     link.h
     link.c
+    msg.h
+    msg.c
 )
 
 TARGET_LINK_LIBRARIES(${PROJECT_NAME}
     ${ZLIB_LIBRARIES}
     ${OPENSSL_LIBRARIES}
+    "m"
 )

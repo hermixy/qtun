@@ -20,7 +20,7 @@ typedef struct
 {
     unsigned int id;
     int          fd;
-}client_t;
+} client_t;
 
 typedef union
 {
@@ -29,25 +29,10 @@ typedef union
     {
         hash_t hash_fd;
         hash_t hash_ip;
-        link_t link_msg;
     } server;
-}network_t;
+} network_t;
 
 extern network_t network;
-
-typedef struct
-{
-    unsigned int   ident;
-    unsigned short checksum;
-    unsigned long  timestamp;
-    unsigned char  data[];
-}msg_t;
-
-typedef struct
-{
-    unsigned char op;
-    unsigned char data[];
-}msg_wrap_t;
 
 extern int bind_and_listen(unsigned short port);
 extern int connect_server(char* ip, unsigned short port);

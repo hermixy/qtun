@@ -15,5 +15,14 @@ extern int ip_compare(const void* ip1, const size_t l1, const void* ip2, const s
 extern void* ip_dup(const void* ip, const size_t len);
 extern struct in_addr hash2ip(void* ip);
 
+extern uint32_t little32(uint32_t n);
+extern uint16_t little16(uint16_t n);
+extern uint32_t big32(uint32_t n);
+extern uint16_t big16(uint16_t n);
+extern void cpy_net32(uint32_t src, uint32_t* dst);
+extern void cpy_net16(uint16_t src, uint16_t* dst);
+extern uint32_t little2host32(uint32_t n);
+extern uint16_t little2host16(uint16_t n);
+
 #endif
 
