@@ -13,6 +13,7 @@
 3. [Jump The Great Firewall【step3 建立TCP链接】](http://blog.q-devel.com/jump-the-great-firewall-step3/)
 4. [Jump The Great Firewall【step4 包装read/write函数】](http://blog.q-devel.com/jump-the-great-firewall-step4/)
 5. [Jump The Great Firewall【step5 简陋的翻墙】](http://blog.q-devel.com/jump-the-great-firewall-step5/)
+6. [Jump The Great Firewall【step6 支持多客户端】](http://blog.q-devel.com/jump-the-great-firewall-step6/)
 
 # 关于
 
