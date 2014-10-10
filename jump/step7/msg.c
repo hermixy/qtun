@@ -3,10 +3,49 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "library.h"
 #include "main.h"
 #include "msg.h"
 
 link_t msg_process_handlers;
+
+int gzip_compress(const void* src, const size_t src_len, void** dst, size_t* dst_len)
+{
+}
+
+int gzip_decompress(const void* src, const size_t src_len, void** dst, size_t* dst_len)
+{
+}
+
+static int msg_process_handlers_compare(const void* d1, const size_t l1, const void* d2, const size_t l2)
+{
+    const msg_process_handler_t *dst1 = (const msg_process_handler_t*)d1, *dst2 = (const msg_process_handler_t*)d2;
+    return dst1->type == dst2->type && dst1->id == dst2->id;
+}
+
+void init_msg_process_handler()
+{
+    link_functor_t func = {
+        msg_process_handlers_compare,
+        link_dummy_dup,
+        link_normal_free
+    };
+    link_init(&msg_process_handlers, func);
+}
+
+int append_msg_process_handler(int type, int id, int (*do_handler)(const void*, const size_t, void**, size_t*), int (*undo_handler)(const void*, const size_t, void**, size_t*))
+{
+    msg_process_handler_t* h = malloc(sizeof(*h));
+    int rc;
+    if (h == NULL) return 0;
+    h->type = type;
+    h->id = id;
+    h->do_handler = do_handler;
+    h->undo_handler = undo_handler;
+    rc = link_insert_tail(&msg_process_handlers, h, sizeof(*h));
+    if (!rc) free(h);
+    return rc;
+}
 
 msg_t* new_sys_msg(const void* data, const unsigned short len)
 {

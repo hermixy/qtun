@@ -8,10 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "library.h"
 #include "network.h"
 #include "main.h"
-
-this_t this;
 
 static int tun_open(char name[IFNAMSIZ])
 {

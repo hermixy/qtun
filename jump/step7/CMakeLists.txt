@@ -29,6 +29,8 @@ ADD_EXECUTABLE(${PROJECT_NAME}
     link.c
     msg.h
     msg.c
+    library.h
+    library.c
 )
 
 TARGET_LINK_LIBRARIES(${PROJECT_NAME}

@@ -187,3 +187,9 @@ void* link_dummy_dup(const void* data, const size_t len)
 void link_dummy_free(void* key, size_t len)
 {
 }
+
+void link_normal_free(void* key, size_t len)
+{
+    free(key);
+}
+

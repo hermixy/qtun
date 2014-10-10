@@ -49,6 +49,10 @@ typedef struct
 
 extern link_t msg_process_handlers;
 
+extern int gzip_compress(const void* src, const size_t src_len, void** dst, size_t* dst_len);
+extern int gzip_decompress(const void* src, const size_t src_len, void** dst, size_t* dst_len);
+extern void init_msg_process_handler();
+extern int append_msg_process_handler(int type, int id, int (*do_handler)(const void*, const size_t, void**, size_t*), int (*undo_handler)(const void*, const size_t, void**, size_t*));
 extern msg_t* new_sys_msg(const void* data, const unsigned short len);
 extern msg_t* new_msg(const unsigned char flag, const void* data, const unsigned short len);
 extern int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len);

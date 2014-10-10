@@ -56,5 +56,6 @@ extern link_iterator_t link_next(link_t* l, link_iterator_t iter);
 
 extern void* link_dummy_dup(const void* data, const size_t len);
 extern void link_dummy_free(void* data, size_t len);
+extern void link_normal_free(void* data, size_t len);
 
 #endif
