@@ -1,9 +1,12 @@
 #include <arpa/inet.h>
 #include <linux/icmp.h>
+#include <linux/if_tun.h>
+#include <linux/ip.h>
 #include <netinet/in.h>
+#include <sys/ioctl.h>
 #include <sys/select.h>
-#include <sys/socket.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,6 +15,32 @@
 #include "network.h"
 
 network_t network;
+
+int tun_open(char name[IFNAMSIZ])
+{
+    struct ifreq ifr;
+    int fd;
+
+    if ((fd = open("/dev/net/tun", O_RDWR)) == -1)
+    {
+        perror("open");
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
+    strncpy(ifr.ifr_name, name, IFNAMSIZ);
+
+    if (ioctl(fd, TUNSETIFF, (void *) &ifr) == -1)
+    {
+        perror("ioctl");
+        close(fd);
+        return -1;
+    }
+
+    strncpy(name, ifr.ifr_name, IFNAMSIZ);
+    return fd;
+}
 
 int bind_and_listen(unsigned short port)
 {

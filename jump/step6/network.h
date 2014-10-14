@@ -1,7 +1,8 @@
 #ifndef _NETWORK_H_
 #define _NETWORK_H_
 
-#include <linux/ip.h>
+#include <sys/socket.h>
+#include <linux/if.h>
 
 #include "hash.h"
 
@@ -26,6 +27,7 @@ typedef union
 
 extern network_t network;
 
+extern int tun_open(char name[IFNAMSIZ]);
 extern int bind_and_listen(unsigned short port);
 extern int connect_server(char* ip, unsigned short port);
 extern void server_loop(int remotefd, int localfd);
