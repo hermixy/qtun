@@ -8,5 +8,14 @@ typedef struct
 
 extern this_t this;
 
+typedef struct
+{
+    int use_gzip;
+    int use_aes;
+    int use_des;
+} library_conf_t;
+
+extern int library_init(library_conf_t conf);
+
 #endif
 

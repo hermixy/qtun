@@ -105,7 +105,6 @@ static void rehash_step(hash_t* h)
 {
     size_t idx;
     hash_bucket_t* node;
-    size_t length;
     while (h->dicts[0].count)
     {
         node = h->dicts[0].buckets[h->rehashing_idx];
@@ -321,7 +320,6 @@ hash_iterator_t hash_begin(hash_t* h)
 hash_iterator_t hash_next(hash_t* h, hash_iterator_t iter)
 {
     hash_iterator_t next;
-    int i;
     if (iter.idx >= hash_count(h) - 1)
     {
         next.end = 1;

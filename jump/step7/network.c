@@ -10,8 +10,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "common.h"
+#include "msg.h"
 #include "network.h"
 
 network_t network;
@@ -109,7 +111,7 @@ int connect_server(char* ip, unsigned short port)
 {
     int fd, rc;
     struct sockaddr_in addr = {0};
-    unsigned char buffer[1024] = {0};
+    char buffer[1024] = {0};
     ssize_t readen;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -274,7 +276,11 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
     if (FD_ISSET(localfd, set))
     {
         readen = read(localfd, buffer, sizeof(buffer));
-        if (readen > 0) write_n(remotefd, buffer, readen);
+        if (readen > 0)
+        {
+            msg_t* msg = new_msg(buffer, readen);
+            if (msg) write_n(remotefd, msg, msg_data_length(msg));
+        }
     }
     if (FD_ISSET(remotefd, set))
     {

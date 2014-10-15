@@ -17,6 +17,8 @@
 #define MSG_PROCESS_COMPRESS_HANDLER 1
 #define MSG_PROCESS_ENCRYPT_HANDLER  2
 
+#define MSG_COMPRESS_GZIP_ID         1
+
 typedef struct
 {
     unsigned char  syscontrol : 1; // 是否是系统消息
@@ -43,18 +45,25 @@ typedef struct
 {
     unsigned int  type;
     unsigned char id;
-    int (*do_handler)(const void*, const size_t, void**, size_t*);
-    int (*undo_handler)(const void*, const size_t, void**, size_t*);
+    int (*do_handler)(const void*, const unsigned int, void**, unsigned int*);
+    int (*undo_handler)(const void*, const unsigned int, void**, unsigned int*);
 } msg_process_handler_t;
 
 extern link_t msg_process_handlers;
 
-extern int gzip_compress(const void* src, const size_t src_len, void** dst, size_t* dst_len);
-extern int gzip_decompress(const void* src, const size_t src_len, void** dst, size_t* dst_len);
+extern int gzip_compress(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len);
+extern int gzip_decompress(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len);
+
 extern void init_msg_process_handler();
-extern int append_msg_process_handler(int type, int id, int (*do_handler)(const void*, const size_t, void**, size_t*), int (*undo_handler)(const void*, const size_t, void**, size_t*));
+extern int append_msg_process_handler(
+    int type,
+    int id,
+    int (*do_handler)(const void*, const unsigned int, void**, unsigned int*),
+    int (*undo_handler)(const void*, const unsigned int, void**, unsigned int*)
+);
+extern size_t msg_data_length(const msg_t* msg);
 extern msg_t* new_sys_msg(const void* data, const unsigned short len);
-extern msg_t* new_msg(const unsigned char flag, const void* data, const unsigned short len);
+extern msg_t* new_msg(const void* data, const unsigned short len);
 extern int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len);
 
 #endif

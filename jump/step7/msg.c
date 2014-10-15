@@ -1,20 +1,55 @@
+#include <arpa/inet.h>
 #include <sys/time.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <zlib.h>
 
+#include "common.h"
 #include "library.h"
 #include "main.h"
 #include "msg.h"
 
 link_t msg_process_handlers;
 
-int gzip_compress(const void* src, const size_t src_len, void** dst, size_t* dst_len)
+int gzip_compress(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len)
 {
+    size_t dlen;
+    z_stream stream;
+    unsigned char* ptr;
+
+    dlen = compressBound(src_len) + sizeof(unsigned int);
+    ptr = malloc(dlen);
+    if (ptr == NULL) return 0;
+    *dst = ptr;
+    *(unsigned int*)ptr = htonl(src_len);
+    ptr += sizeof(unsigned int);
+    stream.zalloc = NULL;
+    stream.zfree  = NULL;
+    stream.opaque = NULL;
+    if (deflateInit(&stream, Z_DEFAULT_COMPRESSION) != Z_OK) return 0;
+    stream.next_in   = (Bytef*)src;
+    stream.avail_in  = src_len;
+    stream.next_out  = ptr;
+    stream.avail_out = dlen;
+    deflate(&stream, Z_FINISH);
+    deflateEnd(&stream);
+    return 1;
 }
 
-int gzip_decompress(const void* src, const size_t src_len, void** dst, size_t* dst_len)
+int gzip_decompress(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len)
 {
+    size_t slen = ntohl(*(unsigned int*)src);
+    size_t dlen;
+    int rc;
+
+    src += sizeof(unsigned int);
+    *dst = malloc(slen);
+    if (*dst == NULL) return 0;
+    rc = uncompress(*dst, &dlen, src, slen);
+    *dst_len = dlen;
+    return rc;
 }
 
 static int msg_process_handlers_compare(const void* d1, const size_t l1, const void* d2, const size_t l2)
@@ -33,7 +68,11 @@ void init_msg_process_handler()
     link_init(&msg_process_handlers, func);
 }
 
-int append_msg_process_handler(int type, int id, int (*do_handler)(const void*, const size_t, void**, size_t*), int (*undo_handler)(const void*, const size_t, void**, size_t*))
+int append_msg_process_handler(
+    int type,
+    int id,
+    int (*do_handler)(const void*, const unsigned int, void**, unsigned int*),
+    int (*undo_handler)(const void*, const unsigned int, void**, unsigned int*))
 {
     msg_process_handler_t* h = malloc(sizeof(*h));
     int rc;
@@ -45,6 +84,11 @@ int append_msg_process_handler(int type, int id, int (*do_handler)(const void*, 
     rc = link_insert_tail(&msg_process_handlers, h, sizeof(*h));
     if (!rc) free(h);
     return rc;
+}
+
+size_t msg_data_length(const msg_t* msg)
+{
+    return little2host16(msg->len) * 16 + little2host16(msg->pfx);
 }
 
 msg_t* new_sys_msg(const void* data, const unsigned short len)
@@ -66,18 +110,18 @@ msg_t* new_sys_msg(const void* data, const unsigned short len)
     ret->unused     = 0;
     ret->checksum   = 0;
     memcpy(ret->data, data, len);
-    ret->checksum   = htons(ret, sizeof(msg_t) + len);
+    ret->checksum   = htons(checksum(ret, sizeof(msg_t) + len));
 end:
     return ret;
 }
 
-msg_t* new_msg(const unsigned char flag, const void* data, const unsigned short len)
+msg_t* new_msg(const void* data, const unsigned short len)
 {
     struct timeval tv;
     msg_t* ret = malloc(sizeof(msg_t));
     link_iterator_t iter = link_begin(&msg_process_handlers);
     void *src = (void*)data, *dst;
-    size_t src_len = len, dst_len = len;
+    unsigned int src_len = len, dst_len = len;
 
     if (ret == NULL) goto end;
     gettimeofday(&tv, NULL);
@@ -87,7 +131,9 @@ msg_t* new_msg(const unsigned char flag, const void* data, const unsigned short 
     while (!link_is_end(&msg_process_handlers, iter))
     {
         msg_process_handler_t* handler = (msg_process_handler_t*)iter.data;
+        printf("start do\n");
         if (!handler->do_handler(src, src_len, &dst, &dst_len)) goto failed;
+        printf("end do: %u\n", dst_len);
         ret = realloc(ret, sizeof(msg_t) + dst_len);
         if (ret == NULL)
         {
@@ -106,6 +152,7 @@ msg_t* new_msg(const unsigned char flag, const void* data, const unsigned short 
         }
         iter = link_next(&msg_process_handlers, iter);
     }
+    printf("end\n");
     ret->ident    = htonl(++this.msg_ident);
     ret->sec      = htonl(tv.tv_sec);
     ret->usec     = little32(tv.tv_usec);
@@ -114,7 +161,7 @@ msg_t* new_msg(const unsigned char flag, const void* data, const unsigned short 
     ret->hold     = 0;
     ret->unused   = 0;
     ret->checksum = 0;
-    ret->checksum = htons(ret, sizeof(msg_t) + dst_len);
+    ret->checksum = htons(checksum(ret, sizeof(msg_t) + dst_len));
 end:
     return ret;
 failed:
@@ -124,7 +171,7 @@ failed:
 
 int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len)
 {
-    unsigned short src_len = little2host16(input->len) * 16 + little2host16(input->pfx);
+    unsigned short src_len = msg_data_length(input);
     link_iterator_t iter = link_rev_begin(&msg_process_handlers);
     const void* i = input->data;
 
@@ -138,7 +185,7 @@ int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* outpu
     while (!link_is_end(&msg_process_handlers, iter))
     {
         void* o;
-        size_t ol;
+        unsigned int ol;
         msg_process_handler_t* handler = (msg_process_handler_t*)iter.data;
 
         if (!handler->undo_handler(i, src_len, &o, &ol))
