@@ -192,4 +192,3 @@ void link_normal_free(void* key, size_t len)
 {
     free(key);
 }
-

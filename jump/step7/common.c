@@ -147,4 +147,3 @@ uint16_t big2host16(uint16_t n)
 {
     return big16(n);
 }
-

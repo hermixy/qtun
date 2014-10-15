@@ -35,6 +35,7 @@ int gzip_compress(const void* src, const unsigned int src_len, void** dst, unsig
     stream.avail_out = dlen;
     deflate(&stream, Z_FINISH);
     deflateEnd(&stream);
+    *dst_len = dlen - stream.avail_out;
     return 1;
 }
 
@@ -106,7 +107,6 @@ msg_t* new_sys_msg(const void* data, const unsigned short len)
     ret->usec       = little32(tv.tv_usec);
     ret->len        = little16(floor(len / 16));
     ret->pfx        = little16(len % 16);
-    ret->hold       = 0;
     ret->unused     = 0;
     ret->checksum   = 0;
     memcpy(ret->data, data, len);
@@ -118,7 +118,7 @@ end:
 msg_t* new_msg(const void* data, const unsigned short len)
 {
     struct timeval tv;
-    msg_t* ret = malloc(sizeof(msg_t));
+    msg_t* ret = malloc(sizeof(msg_t) + len);
     link_iterator_t iter = link_begin(&msg_process_handlers);
     void *src = (void*)data, *dst;
     unsigned int src_len = len, dst_len = len;
@@ -131,9 +131,7 @@ msg_t* new_msg(const void* data, const unsigned short len)
     while (!link_is_end(&msg_process_handlers, iter))
     {
         msg_process_handler_t* handler = (msg_process_handler_t*)iter.data;
-        printf("start do\n");
         if (!handler->do_handler(src, src_len, &dst, &dst_len)) goto failed;
-        printf("end do: %u\n", dst_len);
         ret = realloc(ret, sizeof(msg_t) + dst_len);
         if (ret == NULL)
         {
@@ -152,13 +150,11 @@ msg_t* new_msg(const void* data, const unsigned short len)
         }
         iter = link_next(&msg_process_handlers, iter);
     }
-    printf("end\n");
     ret->ident    = htonl(++this.msg_ident);
     ret->sec      = htonl(tv.tv_sec);
     ret->usec     = little32(tv.tv_usec);
     ret->len      = little16(floor(dst_len / 16));
     ret->pfx      = little16(dst_len % 16);
-    ret->hold     = 0;
     ret->unused   = 0;
     ret->checksum = 0;
     ret->checksum = htons(checksum(ret, sizeof(msg_t) + dst_len));
@@ -200,4 +196,3 @@ int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* outpu
     }
     return 1;
 }
-

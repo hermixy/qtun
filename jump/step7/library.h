@@ -18,4 +18,3 @@ typedef struct
 extern int library_init(library_conf_t conf);
 
 #endif
-

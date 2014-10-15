@@ -29,8 +29,7 @@ typedef struct
     unsigned int   usec   : 20;    // 精确到微秒，little-endian
     unsigned short len    : 12;    // 长度 = len * 16 + pfx
     unsigned char  pfx    : 4;     // pfx
-    unsigned char  hold   : 2;     // 等待前一个及下一个
-    unsigned char  unused : 2;
+    unsigned char  unused : 4;
     unsigned short checksum;       // 校验和
     unsigned char  data[];         // 数据
 } msg_t;
@@ -67,4 +66,3 @@ extern msg_t* new_msg(const void* data, const unsigned short len);
 extern int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len);
 
 #endif
-

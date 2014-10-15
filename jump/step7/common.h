@@ -25,4 +25,3 @@ extern uint32_t little2host32(uint32_t n);
 extern uint16_t little2host16(uint16_t n);
 
 #endif
-
