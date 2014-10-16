@@ -78,6 +78,7 @@ int aes_encrypt(const void* src, const unsigned int src_len, void** dst, unsigne
     memcpy(iv, this.aes_iv, sizeof(this.aes_iv));
     AES_set_encrypt_key(this.aes_key, this.aes_key_len, &key);
     AES_cbc_encrypt(src, ptr, *dst_len, &key, iv, AES_ENCRYPT);
+    *dst_len += sizeof(unsigned int);
 
     return 1;
 }
