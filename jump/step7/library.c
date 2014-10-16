@@ -15,6 +15,7 @@ int library_init(library_conf_t conf)
             return 0;
         memcpy(this.aes_key, conf.aes_key, sizeof(this.aes_key));
         memcpy(this.aes_iv, conf.aes_iv, sizeof(this.aes_iv));
+        this.aes_key_len = conf.aes_key_len;
     }
 
     if (conf.use_gzip)
