@@ -8,6 +8,15 @@
 #include "network.h"
 #include "main.h"
 
+#define SYSTEM(cmd) \
+do {\
+    if (system(cmd) == -1) \
+    { \
+        perror("system"); \
+        exit(1); \
+    } \
+} while (0)
+
 static void crash_sig(int signum)
 {
     void* array[10];
@@ -66,11 +75,11 @@ int main(int argc, char* argv[])
             return 1;
         }
         sprintf(cmd, "ifconfig %s 10.0.1.2 mtu 1492 up", name);
-        (void)system(cmd);
+        SYSTEM(cmd);
         sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
-        (void)system(cmd);
+        SYSTEM(cmd);
         sprintf(cmd, "route add 8.8.8.8 dev %s", name);
-        (void)system(cmd);
+        SYSTEM(cmd);
         remotefd = connect_server(argv[2], 6687);
         if (remotefd == -1) return 1;
         client_loop(remotefd, localfd);
@@ -82,20 +91,20 @@ int main(int argc, char* argv[])
             return 1;
         }
         sprintf(cmd, "ifconfig %s 10.0.1.3 mtu 1492 up", name);
-        (void)system(cmd);
+        SYSTEM(cmd);
         sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
-        (void)system(cmd);
+        SYSTEM(cmd);
         sprintf(cmd, "route add 8.8.8.8 dev %s", name);
-        (void)system(cmd);
+        SYSTEM(cmd);
         remotefd = connect_server(argv[2], 6687);
         if (remotefd == -1) return 1;
         client_loop(remotefd, localfd);
         break;
     default:
         sprintf(cmd, "ifconfig %s 10.0.1.1 mtu 1492 up", name);
-        (void)system(cmd);
+        SYSTEM(cmd);
         sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
-        (void)system(cmd);
+        SYSTEM(cmd);
         remotefd = bind_and_listen(6687);
         if (remotefd == -1) return 1;
         server_loop(remotefd, localfd);
