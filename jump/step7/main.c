@@ -72,13 +72,13 @@ int main(int argc, char* argv[])
                     fprintf(stderr, "can not open aes key file\n");
                     return 1;
                 }
-                len = fread(conf.aes_iv, sizeof(conf.aes_iv), 1, fp);
+                len = fread(conf.aes_iv, sizeof(char), sizeof(conf.aes_iv), fp);
                 if (len <= 0 || len != sizeof(conf.aes_iv))
                 {
                     fprintf(stderr, "error aes iv\n");
                     return 1;
                 }
-                len = fread(conf.aes_key, sizeof(conf.aes_key), 1, fp);
+                len = fread(conf.aes_key, sizeof(char), sizeof(conf.aes_key), fp);
                 if (len <= 0 || (len != 16 && len != 24 && len != 32))
                 {
                     fprintf(stderr, "error aes key file\n");
