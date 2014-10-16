@@ -105,7 +105,13 @@ int main(int argc, char* argv[])
         }
     }
 
-    if (n && ip == NULL)
+    if (n == 0)
+    {
+        fprintf(stderr, "-n0 is not support\n");
+        return 1;
+    }
+
+    if (n > 1 && ip == NULL)
     {
         fprintf(stderr, "have no ip for connect\n");
         return 1;
@@ -117,7 +123,7 @@ int main(int argc, char* argv[])
     fprintf(stdout, "%s opened\n", name);
     library_init(conf);
 
-    if (n == 0)
+    if (n == 1)
     {
         sprintf(cmd, "ifconfig %s 10.0.1.%u mtu 1492 up", name, n);
         SYSTEM(cmd);
