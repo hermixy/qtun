@@ -196,6 +196,7 @@ msg_t* new_msg(const void* data, const unsigned short len)
         }
         memcpy(ret->data, dst, dst_len);
         free(dst);
+        src_len = dst_len;
         if (handler->type == MSG_PROCESS_COMPRESS_HANDLER)
         {
             ret->compress |= handler->id;
