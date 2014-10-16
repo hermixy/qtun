@@ -64,12 +64,12 @@ int aes_encrypt(const void* src, const unsigned int src_len, void** dst, unsigne
 {
     AES_KEY key;
     unsigned char iv[AES_BLOCK_SIZE];
-    size_t len = src_len;
     size_t left = src_len % AES_BLOCK_SIZE;
     unsigned char* ptr;
 
-    if (left) len += AES_BLOCK_SIZE - left;
-    ptr = malloc(len + sizeof(unsigned int));
+    *dst_len = src_len;
+    if (left) *dst_len += AES_BLOCK_SIZE - left;
+    ptr = malloc(*dst_len + sizeof(unsigned int));
     if (ptr == NULL) return 0;
     *dst = ptr;
     *(unsigned int*)ptr = htonl(src_len);
@@ -77,7 +77,7 @@ int aes_encrypt(const void* src, const unsigned int src_len, void** dst, unsigne
 
     memcpy(iv, this.aes_iv, sizeof(this.aes_iv));
     AES_set_encrypt_key(this.aes_key, this.aes_key_len, &key);
-    AES_cbc_encrypt(src, ptr, len, &key, iv, AES_ENCRYPT);
+    AES_cbc_encrypt(src, ptr, *dst_len, &key, iv, AES_ENCRYPT);
 
     return 1;
 }
