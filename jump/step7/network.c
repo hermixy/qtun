@@ -18,6 +18,23 @@
 
 network_t network;
 
+static ssize_t read_msg(int fd, msg_t** msg)
+{
+    ssize_t rc;
+    size_t len;
+
+    *msg = malloc(sizeof(msg_t));
+    if (*msg == NULL) return -2;
+    rc = read_n(fd, *msg, sizeof(**msg));
+    if (rc <= 0) return rc;
+    len = msg_data_length(*msg);
+    *msg = realloc(*msg, sizeof(msg_t) + len);
+    if (*msg == NULL) return -2;
+    rc = read_n(fd, (*msg)->data, len);
+
+    return rc;
+}
+
 int tun_open(char name[IFNAMSIZ])
 {
     struct ifreq ifr;
@@ -43,7 +60,6 @@ int tun_open(char name[IFNAMSIZ])
     strncpy(name, ifr.ifr_name, IFNAMSIZ);
     return fd;
 }
-
 
 int bind_and_listen(unsigned short port)
 {
@@ -225,8 +241,7 @@ static void accept_and_check(int bindfd)
 
 static void server_process(int max, fd_set* set, int remotefd, int localfd)
 {
-    unsigned char buffer[2048] = {0};
-    ssize_t readen;
+    msg_t* msg;
     hash_iterator_t iter;
     struct iphdr* ipHdr;
     void* value;
@@ -236,17 +251,24 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     iter = hash_begin(&network.server.hash_fd);
     while (!hash_is_end(iter))
     {
+        void* buffer;
+        unsigned short len;
+        int sys;
         int fd = hash2fd(iter.data.key);
         if (FD_ISSET(fd, set))
         {
-            readen = read(fd, buffer, sizeof(buffer));
-            if (readen > 0)
+            if (read_msg(fd, &msg) > 0 && parse_msg(msg, &sys, &buffer, &len))
             {
-                fd = localfd;
                 ipHdr = (struct iphdr*)buffer;
-                if (hash_get(&network.server.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len))
-                    fd = hash2fd(value);
-                write_n(fd, buffer, readen);
+                if (hash_get(&network.server.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len)) // 是本地局域网的则直接转走
+                {
+                    write_n(hash2fd(value), msg, sizeof(msg_t) + msg_data_length(msg));
+                }
+                else
+                {
+                    if (sys) ;
+                    else write_n(localfd, buffer, len);
+                }
                 hash_set(&network.server.hash_ip, (void*)(long)ipHdr->saddr, sizeof(ipHdr->saddr), iter.data.key, iter.data.key_len);
             }
             else
@@ -259,33 +281,50 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     }
     if (FD_ISSET(localfd, set))
     {
+        unsigned char buffer[2048];
+        ssize_t readen;
+
         readen = read(localfd, buffer, sizeof(buffer));
         if (readen > 0)
         {
             ipHdr = (struct iphdr*)buffer;
             if (hash_get(&network.server.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len))
+            {
+                int fd = hash2fd(value);
+                msg = new_msg(buffer, readen);
+                if (msg) write_n(hash2fd(value), msg, sizeof(msg_t) + msg_data_length(msg));
                 write_n(hash2fd(value), buffer, readen);
+            }
         }
     }
 }
 
 static void client_process(int max, fd_set* set, int remotefd, int localfd)
 {
-    unsigned char buffer[2048] = {0};
-    ssize_t readen;
+    msg_t* msg;
     if (FD_ISSET(localfd, set))
     {
+        unsigned char buffer[2048];
+        ssize_t readen;
+
         readen = read(localfd, buffer, sizeof(buffer));
         if (readen > 0)
         {
-            msg_t* msg = new_msg(buffer, readen);
-            if (msg) write_n(remotefd, msg, msg_data_length(msg));
+            msg = new_msg(buffer, readen);
+            if (msg) write_n(remotefd, msg, sizeof(msg_t) + msg_data_length(msg));
         }
     }
     if (FD_ISSET(remotefd, set))
     {
-        readen = read(remotefd, buffer, sizeof(buffer));
-        if (readen > 0) write_n(localfd, buffer, readen);
+        int sys;
+        void* buffer;
+        unsigned short len;
+
+        if (read_msg(remotefd, &msg) > 0 && parse_msg(msg, &sys, &buffer, &len))
+        {
+            if (sys) ;
+            else write_n(localfd, buffer, len);
+        }
         else
         {
             fprintf(stderr, "read error\n");
