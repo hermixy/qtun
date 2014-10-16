@@ -51,13 +51,13 @@ int gzip_decompress(const void* src, const unsigned int src_len, void** dst, uns
     stream.zalloc = NULL;
     stream.zfree  = NULL;
     stream.opaque = NULL;
-    if (deflateInit(&stream, Z_DEFAULT_COMPRESSION) != Z_OK) return 0;
+    if (inflateInit(&stream) != Z_OK) return 0;
     stream.next_in   = (Bytef*)src;
     stream.avail_in  = src_len;
     stream.next_out  = *dst;
     stream.avail_out = *dst_len;
-    deflate(&stream, Z_FINISH);
-    deflateEnd(&stream);
+    inflate(&stream, Z_FINISH);
+    inflateEnd(&stream);
     return 1;
 }
 
