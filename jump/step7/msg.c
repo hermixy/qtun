@@ -18,6 +18,7 @@ int gzip_compress(const void* src, const unsigned int src_len, void** dst, unsig
     size_t dlen;
     z_stream stream;
     unsigned char* ptr;
+    unsigned int i;
 
     dlen = compressBound(src_len) + sizeof(unsigned int);
     ptr = malloc(dlen);
@@ -32,10 +33,12 @@ int gzip_compress(const void* src, const unsigned int src_len, void** dst, unsig
     stream.next_in   = (Bytef*)src;
     stream.avail_in  = src_len;
     stream.next_out  = ptr;
-    stream.avail_out = dlen;
+    stream.avail_out = dlen - sizeof(unsigned int);
     deflate(&stream, Z_FINISH);
     deflateEnd(&stream);
-    *dst_len = dlen - stream.avail_out;
+    *dst_len = dlen - sizeof(unsigned int) - stream.avail_out;
+    for (i = 0; i < *dst_len; ++i) printf("%02X ", ((unsigned char*)*dst)[i]);
+    printf("\n");
     return 1;
 }
 
@@ -66,6 +69,10 @@ int aes_encrypt(const void* src, const unsigned int src_len, void** dst, unsigne
     unsigned char iv[AES_BLOCK_SIZE];
     size_t left = src_len % AES_BLOCK_SIZE;
     unsigned char* ptr;
+    unsigned int i;
+
+    for (i = 0; i < src_len; ++i) printf("%02X ", ((unsigned char*)src)[i]);
+    printf("\n");
 
     *dst_len = src_len;
     if (left) *dst_len += AES_BLOCK_SIZE - left;
@@ -79,6 +86,8 @@ int aes_encrypt(const void* src, const unsigned int src_len, void** dst, unsigne
     AES_set_encrypt_key(this.aes_key, this.aes_key_len, &key);
     AES_cbc_encrypt(src, ptr, *dst_len, &key, iv, AES_ENCRYPT);
     *dst_len += sizeof(unsigned int);
+    for (i = 0; i < *dst_len; ++i) printf("%02X ", ((unsigned char*)*dst)[i]);
+    printf("\n");
 
     return 1;
 }
@@ -167,7 +176,7 @@ msg_t* new_msg(const void* data, const unsigned short len)
     struct timeval tv;
     msg_t* ret = malloc(sizeof(msg_t) + len);
     link_iterator_t iter = link_begin(&msg_process_handlers);
-    void *src = (void*)data, *dst;
+    void *dst;
     unsigned int src_len = len, dst_len = len;
 
     if (ret == NULL) goto end;
@@ -178,7 +187,7 @@ msg_t* new_msg(const void* data, const unsigned short len)
     while (!link_is_end(&msg_process_handlers, iter))
     {
         msg_process_handler_t* handler = (msg_process_handler_t*)iter.data;
-        if (!handler->do_handler(src, src_len, &dst, &dst_len)) goto failed;
+        if (!handler->do_handler(ret->data, src_len, &dst, &dst_len)) goto failed;
         ret = realloc(ret, sizeof(msg_t) + dst_len);
         if (ret == NULL)
         {
