@@ -18,7 +18,6 @@ int gzip_compress(const void* src, const unsigned int src_len, void** dst, unsig
     size_t dlen;
     z_stream stream;
     unsigned char* ptr;
-    unsigned int i;
 
     dlen = compressBound(src_len) + sizeof(unsigned int);
     ptr = malloc(dlen);
@@ -37,8 +36,7 @@ int gzip_compress(const void* src, const unsigned int src_len, void** dst, unsig
     deflate(&stream, Z_FINISH);
     deflateEnd(&stream);
     *dst_len = dlen - sizeof(unsigned int) - stream.avail_out;
-    for (i = 0; i < *dst_len; ++i) printf("%02X ", ((unsigned char*)*dst)[i]);
-    printf("\n");
+
     return 1;
 }
 
@@ -69,10 +67,6 @@ int aes_encrypt(const void* src, const unsigned int src_len, void** dst, unsigne
     unsigned char iv[AES_BLOCK_SIZE];
     size_t left = src_len % AES_BLOCK_SIZE;
     unsigned char* ptr;
-    unsigned int i;
-
-    for (i = 0; i < src_len; ++i) printf("%02X ", ((unsigned char*)src)[i]);
-    printf("\n");
 
     *dst_len = src_len;
     if (left) *dst_len += AES_BLOCK_SIZE - left;
@@ -86,8 +80,6 @@ int aes_encrypt(const void* src, const unsigned int src_len, void** dst, unsigne
     AES_set_encrypt_key(this.aes_key, this.aes_key_len, &key);
     AES_cbc_encrypt(src, ptr, *dst_len, &key, iv, AES_ENCRYPT);
     *dst_len += sizeof(unsigned int);
-    for (i = 0; i < *dst_len; ++i) printf("%02X ", ((unsigned char*)*dst)[i]);
-    printf("\n");
 
     return 1;
 }
