@@ -1,8 +1,11 @@
+#include <openssl/aes.h>
+
 #include <execinfo.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "library.h"
 #include "network.h"
@@ -46,69 +49,95 @@ int main(int argc, char* argv[])
     char name[IFNAMSIZ];
     char cmd[1024];
     int localfd, remotefd;
-    library_conf_t conf = {
-        1,
-        0,
-        0
-    };
-
-    if (argc < 2)
-    {
-        fprintf(stderr, "usage: ./step7 <0|1>\n");
-        return 1;
-    }
+    library_conf_t conf;
+    int opt;
+    unsigned char n = 0;
+    char* ip = NULL;
+    FILE* fp;
 
     this.msg_ident = 0;
+
+    memset(&conf, 0, sizeof(conf));
+    while ((opt = getopt(argc, argv, "a:d:gn:s:")) != -1)
+    {
+        switch (opt)
+        {
+        case 'a':
+            {
+                ssize_t len;
+                conf.use_aes = 1;
+                fp = fopen(optarg, "r");
+                if (fp == NULL)
+                {
+                    fprintf(stderr, "can not open aes key file\n");
+                    return 1;
+                }
+                len = fread(conf.aes_iv, sizeof(conf.aes_iv), 1, fp);
+                if (len <= 0 || len != sizeof(conf.aes_iv))
+                {
+                    fprintf(stderr, "error aes iv\n");
+                    return 1;
+                }
+                len = fread(conf.aes_key, sizeof(conf.aes_key), 1, fp);
+                if (len <= 0 || (len != 16 && len != 24 && len != 32))
+                {
+                    fprintf(stderr, "error aes key file\n");
+                    return 1;
+                }
+                conf.aes_key_len = len << 3;
+                fclose(fp);
+            }
+            break;
+        case 'd':
+            break;
+        case 'g':
+            conf.use_gzip = 1;
+            break;
+        case 'n':
+            n = atoi(optarg);
+            break;
+        case 's':
+            ip = optarg;
+            break;
+        default:
+            fprintf(stderr, "param error\n");
+            return 1;
+        }
+    }
+
+    if (n && ip == NULL)
+    {
+        fprintf(stderr, "have no ip for connect\n");
+        return 1;
+    }
 
     memset(name, 0, IFNAMSIZ);
     localfd = tun_open(name);
     if (localfd == -1) return 1;
     fprintf(stdout, "%s opened\n", name);
-
     library_init(conf);
-    switch (atoi(argv[1]))
+
+    if (n == 0)
     {
-    case 1:
-        if (argc < 3)
-        {
-            fprintf(stderr, "usage: ./step7 1 ip\n");
-            return 1;
-        }
-        sprintf(cmd, "ifconfig %s 10.0.1.2 mtu 1492 up", name);
-        SYSTEM(cmd);
-        sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
-        SYSTEM(cmd);
-        sprintf(cmd, "route add 8.8.8.8 dev %s", name);
-        SYSTEM(cmd);
-        remotefd = connect_server(argv[2], 6687);
-        if (remotefd == -1) return 1;
-        client_loop(remotefd, localfd);
-        break;
-    case 2:
-        if (argc < 3)
-        {
-            fprintf(stderr, "usage: ./step7 2 ip\n");
-            return 1;
-        }
-        sprintf(cmd, "ifconfig %s 10.0.1.3 mtu 1492 up", name);
-        SYSTEM(cmd);
-        sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
-        SYSTEM(cmd);
-        sprintf(cmd, "route add 8.8.8.8 dev %s", name);
-        SYSTEM(cmd);
-        remotefd = connect_server(argv[2], 6687);
-        if (remotefd == -1) return 1;
-        client_loop(remotefd, localfd);
-        break;
-    default:
-        sprintf(cmd, "ifconfig %s 10.0.1.1 mtu 1492 up", name);
+        sprintf(cmd, "ifconfig %s 10.0.1.%u mtu 1492 up", name, n);
         SYSTEM(cmd);
         sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
         SYSTEM(cmd);
         remotefd = bind_and_listen(6687);
         if (remotefd == -1) return 1;
         server_loop(remotefd, localfd);
-        break;
+    }
+    else
+    {
+        sprintf(cmd, "ifconfig %s 10.0.1.%u mtu 1492 up", name, n);
+        SYSTEM(cmd);
+        sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
+        SYSTEM(cmd);
+        sprintf(cmd, "route add 8.8.8.8 dev %s", name);
+        SYSTEM(cmd);
+        remotefd = connect_server(ip, 6687);
+        if (remotefd == -1) return 1;
+        client_loop(remotefd, localfd);
     }
     return 0;
 }

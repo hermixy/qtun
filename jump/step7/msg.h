@@ -18,6 +18,7 @@
 #define MSG_PROCESS_ENCRYPT_HANDLER  2
 
 #define MSG_COMPRESS_GZIP_ID         1
+#define MSG_ENCRYPT_AES_ID           1
 
 typedef struct
 {
@@ -52,6 +53,8 @@ extern link_t msg_process_handlers;
 
 extern int gzip_compress(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len);
 extern int gzip_decompress(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len);
+extern int aes_encrypt(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len);
+extern int aes_decrypt(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len);
 
 extern void init_msg_process_handler();
 extern int append_msg_process_handler(

@@ -41,7 +41,6 @@ int gzip_compress(const void* src, const unsigned int src_len, void** dst, unsig
 
 int gzip_decompress(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len)
 {
-    size_t dlen;
     z_stream stream;
 
     *dst_len = ntohl(*(unsigned int*)src);
@@ -58,6 +57,45 @@ int gzip_decompress(const void* src, const unsigned int src_len, void** dst, uns
     stream.avail_out = *dst_len;
     inflate(&stream, Z_FINISH);
     inflateEnd(&stream);
+    return 1;
+}
+
+int aes_encrypt(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len)
+{
+    AES_KEY key;
+    unsigned char iv[AES_BLOCK_SIZE];
+    size_t len = src_len;
+    size_t left = src_len % AES_BLOCK_SIZE;
+    unsigned char* ptr;
+
+    if (left) len += AES_BLOCK_SIZE - left;
+    ptr = malloc(len + sizeof(unsigned int));
+    if (ptr == NULL) return 0;
+    *dst = ptr;
+    *(unsigned int*)ptr = htonl(src_len);
+    ptr += sizeof(unsigned int);
+
+    memcpy(iv, this.aes_iv, sizeof(this.aes_iv));
+    AES_set_encrypt_key(this.aes_key, this.aes_key_len, &key);
+    AES_cbc_encrypt(src, ptr, len, &key, iv, AES_ENCRYPT);
+
+    return 1;
+}
+
+int aes_decrypt(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len)
+{
+    AES_KEY key;
+    unsigned char iv[AES_BLOCK_SIZE];
+    const unsigned char* ptr = (const unsigned char*)src + sizeof(unsigned int);
+
+    *dst_len = ntohl(*(unsigned int*)src);
+    *dst = malloc(src_len - sizeof(unsigned int));
+    if (*dst == NULL) return 0;
+
+    memcpy(iv, this.aes_iv, sizeof(this.aes_iv));
+    AES_set_decrypt_key(this.aes_key, this.aes_key_len, &key);
+    AES_cbc_encrypt(ptr, *dst, src_len - sizeof(unsigned int), &key, iv, AES_DECRYPT);
+
     return 1;
 }
 

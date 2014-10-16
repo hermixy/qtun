@@ -292,7 +292,6 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
             ipHdr = (struct iphdr*)buffer;
             if (hash_get(&network.server.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len))
             {
-                int fd = hash2fd(value);
                 msg = new_msg(buffer, readen);
                 if (msg)
                 {
