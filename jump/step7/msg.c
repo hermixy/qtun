@@ -41,16 +41,24 @@ int gzip_compress(const void* src, const unsigned int src_len, void** dst, unsig
 
 int gzip_decompress(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len)
 {
-    size_t slen = ntohl(*(unsigned int*)src);
     size_t dlen;
-    int rc;
+    z_stream stream;
 
-    src += sizeof(unsigned int);
-    *dst = malloc(slen);
+    *dst_len = ntohl(*(unsigned int*)src);
+    src = (const unsigned char*)src + sizeof(unsigned int);
+    *dst = malloc(*dst_len);
     if (*dst == NULL) return 0;
-    rc = uncompress(*dst, &dlen, src, slen);
-    *dst_len = dlen;
-    return rc;
+    stream.zalloc = NULL;
+    stream.zfree  = NULL;
+    stream.opaque = NULL;
+    if (deflateInit(&stream, Z_DEFAULT_COMPRESSION) != Z_OK) return 0;
+    stream.next_in   = (Bytef*)src;
+    stream.avail_in  = src_len;
+    stream.next_out  = *dst;
+    stream.avail_out = *dst_len;
+    deflate(&stream, Z_FINISH);
+    deflateEnd(&stream);
+    return 1;
 }
 
 static int msg_process_handlers_compare(const void* d1, const size_t l1, const void* d2, const size_t l2)

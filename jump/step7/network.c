@@ -32,6 +32,7 @@ static ssize_t read_msg(int fd, msg_t** msg)
     if (*msg == NULL) return -2;
     rc = read_n(fd, (*msg)->data, len);
 
+    printf("read msg length: %lu\n", len);
     return rc;
 }
 
@@ -263,11 +264,12 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                 if (hash_get(&network.server.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len)) // 是本地局域网的则直接转走
                 {
                     write_n(hash2fd(value), msg, sizeof(msg_t) + msg_data_length(msg));
+                    printf("send msg length: %lu\n", msg_data_length(msg));
                 }
                 else
                 {
                     if (sys) ;
-                    else write_n(localfd, buffer, len);
+                    else printf("write local length: %ld\n", write_n(localfd, buffer, len));
                 }
                 hash_set(&network.server.hash_ip, (void*)(long)ipHdr->saddr, sizeof(ipHdr->saddr), iter.data.key, iter.data.key_len);
             }
@@ -292,8 +294,11 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
             {
                 int fd = hash2fd(value);
                 msg = new_msg(buffer, readen);
-                if (msg) write_n(hash2fd(value), msg, sizeof(msg_t) + msg_data_length(msg));
-                write_n(hash2fd(value), buffer, readen);
+                if (msg)
+                {
+                    write_n(hash2fd(value), msg, sizeof(msg_t) + msg_data_length(msg));
+                    printf("send msg length: %lu\n", msg_data_length(msg));
+                }
             }
         }
     }
@@ -311,7 +316,11 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
         if (readen > 0)
         {
             msg = new_msg(buffer, readen);
-            if (msg) write_n(remotefd, msg, sizeof(msg_t) + msg_data_length(msg));
+            if (msg)
+            {
+                write_n(remotefd, msg, sizeof(msg_t) + msg_data_length(msg));
+                printf("send msg length: %lu\n", msg_data_length(msg));
+            }
         }
     }
     if (FD_ISSET(remotefd, set))
@@ -323,7 +332,7 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
         if (read_msg(remotefd, &msg) > 0 && parse_msg(msg, &sys, &buffer, &len))
         {
             if (sys) ;
-            else write_n(localfd, buffer, len);
+            else printf("write local length: %ld\n", write_n(localfd, buffer, len));
         }
         else
         {
