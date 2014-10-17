@@ -171,6 +171,7 @@ msg_t* new_msg(const void* data, const unsigned short len)
     unsigned int dst_len;
     size_t link_cnt = link_count(&msg_process_handlers);
     int want_free = 0;
+    int compress = 0, encrypt = 0;
 
     if (link_cnt == 0)
     {
@@ -203,11 +204,11 @@ msg_t* new_msg(const void* data, const unsigned short len)
             free_src = 1;
             if (handler->type == MSG_PROCESS_COMPRESS_HANDLER)
             {
-                ret->compress |= handler->id;
+                compress |= handler->id;
             }
             else /* if (handler->type == MSG_PROCESS_ENCRYPT_HANDLER) */
             {
-                ret->encrypt |= handler->id;
+                encrypt |= handler->id;
             }
             iter = link_next(&msg_process_handlers, iter);
         }
@@ -218,14 +219,16 @@ msg_t* new_msg(const void* data, const unsigned short len)
     memcpy(ret->data, dst, dst_len);
     gettimeofday(&tv, NULL);
     ret->syscontrol = 0;
-    ret->ident    = htonl(++this.msg_ident);
-    ret->sec      = htonl(tv.tv_sec);
-    ret->usec     = little32(tv.tv_usec);
-    ret->len      = little16(floor(dst_len / 16));
-    ret->pfx      = little16(dst_len % 16);
-    ret->unused   = 0;
-    ret->checksum = 0;
-    ret->checksum = htons(checksum(ret, sizeof(msg_t) + dst_len));
+    ret->compress   = compress;
+    ret->encrypt    = encrypt;
+    ret->ident      = htonl(++this.msg_ident);
+    ret->sec        = htonl(tv.tv_sec);
+    ret->usec       = little32(tv.tv_usec);
+    ret->len        = little16(floor(dst_len / 16));
+    ret->pfx        = little16(dst_len % 16);
+    ret->unused     = 0;
+    ret->checksum   = 0;
+    ret->checksum   = htons(checksum(ret, sizeof(msg_t) + dst_len));
 end:
     if (want_free) free(dst);
     return ret;
