@@ -123,6 +123,18 @@ int link_exists(link_t* l, const void* data, const size_t len)
     return 0;
 }
 
+void* link_first(link_t* l)
+{
+    if (link_count(l) == 0) return NULL;
+    return l->header->next->data;
+}
+
+void* link_last(link_t* l)
+{
+    if (link_count(l) == 0) return NULL;
+    return l->header->prev->data;
+}
+
 link_iterator_t link_begin(link_t* l)
 {
     link_iterator_t iter;

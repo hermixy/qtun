@@ -44,6 +44,8 @@ extern int link_pop_head(link_t* l);
 extern int link_pop_tail(link_t* l);
 extern void link_clear(link_t* l);
 extern int link_exists(link_t* l, const void* data, const size_t len);
+extern void* link_first(link_t* l);
+extern void* link_last(link_t* l);
 
 extern link_iterator_t link_begin(link_t* l);
 extern link_iterator_t link_rev_begin(link_t* l);

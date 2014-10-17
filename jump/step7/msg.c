@@ -166,39 +166,58 @@ end:
 msg_t* new_msg(const void* data, const unsigned short len)
 {
     struct timeval tv;
-    msg_t* ret = malloc(sizeof(msg_t) + len);
-    link_iterator_t iter = link_begin(&msg_process_handlers);
+    msg_t* ret = NULL;
     void *dst;
-    unsigned int src_len = len, dst_len = len;
+    unsigned int dst_len;
+    size_t link_cnt = link_count(&msg_process_handlers);
+    int want_free = 0;
 
-    if (ret == NULL) goto end;
-    gettimeofday(&tv, NULL);
-
-    ret->syscontrol = 0;
-    memcpy(ret->data, data, len);
-    while (!link_is_end(&msg_process_handlers, iter))
+    if (link_cnt == 0)
     {
-        msg_process_handler_t* handler = (msg_process_handler_t*)iter.data;
-        if (!handler->do_handler(ret->data, src_len, &dst, &dst_len)) goto failed;
-        ret = realloc(ret, sizeof(msg_t) + dst_len);
-        if (ret == NULL)
-        {
-            free(dst);
-            goto failed;
-        }
-        memcpy(ret->data, dst, dst_len);
-        free(dst);
-        src_len = dst_len;
-        if (handler->type == MSG_PROCESS_COMPRESS_HANDLER)
-        {
-            ret->compress |= handler->id;
-        }
-        else /* if (handler->type == MSG_PROCESS_ENCRYPT_HANDLER) */
-        {
-            ret->encrypt |= handler->id;
-        }
-        iter = link_next(&msg_process_handlers, iter);
+        dst = (void*)data;
+        dst_len = len;
     }
+    else if (link_cnt == 1)
+    {
+        msg_process_handler_t* handler = (msg_process_handler_t*)link_first(&msg_process_handlers);
+        if (!handler->do_handler(data, len, &dst, &dst_len)) goto end;
+    }
+    else
+    {
+        link_iterator_t iter;
+        int free_src = 0;
+        void* src = (void*)data;
+        unsigned int src_len = len;
+        iter = link_begin(&msg_process_handlers);
+        while (!link_is_end(&msg_process_handlers, iter))
+        {
+            msg_process_handler_t* handler = (msg_process_handler_t*)iter.data;
+            if (!handler->do_handler(src, src_len, &dst, &dst_len))
+            {
+                if (free_src) free(src);
+                goto end;
+            }
+            if (free_src) free(src);
+            src = dst;
+            src_len = dst_len;
+            free_src = 1;
+            if (handler->type == MSG_PROCESS_COMPRESS_HANDLER)
+            {
+                ret->compress |= handler->id;
+            }
+            else /* if (handler->type == MSG_PROCESS_ENCRYPT_HANDLER) */
+            {
+                ret->encrypt |= handler->id;
+            }
+            iter = link_next(&msg_process_handlers, iter);
+        }
+        want_free = 1;
+    }
+    ret = malloc(sizeof(msg_t) + dst_len);
+    if (ret == NULL) goto end;
+    memcpy(ret->data, dst, dst_len);
+    gettimeofday(&tv, NULL);
+    ret->syscontrol = 0;
     ret->ident    = htonl(++this.msg_ident);
     ret->sec      = htonl(tv.tv_sec);
     ret->usec     = little32(tv.tv_usec);
@@ -208,10 +227,8 @@ msg_t* new_msg(const void* data, const unsigned short len)
     ret->checksum = 0;
     ret->checksum = htons(checksum(ret, sizeof(msg_t) + dst_len));
 end:
+    if (want_free) free(dst);
     return ret;
-failed:
-    free(ret);
-    return NULL;
 }
 
 int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len)
