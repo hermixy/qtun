@@ -182,6 +182,15 @@ msg_t* new_msg(const void* data, const unsigned short len)
     {
         msg_process_handler_t* handler = (msg_process_handler_t*)link_first(&msg_process_handlers);
         if (!handler->do_handler(data, len, &dst, &dst_len)) goto end;
+        want_free = 1;
+        if (handler->type == MSG_PROCESS_COMPRESS_HANDLER)
+        {
+            compress |= handler->id;
+        }
+        else /* if (handler->type == MSG_PROCESS_ENCRYPT_HANDLER) */
+        {
+            encrypt |= handler->id;
+        }
     }
     else
     {
