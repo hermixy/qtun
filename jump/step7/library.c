@@ -9,6 +9,10 @@ int library_init(library_conf_t conf)
 {
     init_msg_process_handler();
 
+    if (conf.use_gzip)
+        if (!append_msg_process_handler(MSG_PROCESS_COMPRESS_HANDLER, MSG_COMPRESS_GZIP_ID, gzip_compress, gzip_decompress))
+            return 0;
+
     if (conf.use_aes)
     {
         if (!append_msg_process_handler(MSG_PROCESS_ENCRYPT_HANDLER, MSG_ENCRYPT_AES_ID, aes_encrypt, aes_decrypt))
@@ -17,10 +21,6 @@ int library_init(library_conf_t conf)
         memcpy(this.aes_iv, conf.aes_iv, sizeof(this.aes_iv));
         this.aes_key_len = conf.aes_key_len;
     }
-
-    if (conf.use_gzip)
-        if (!append_msg_process_handler(MSG_PROCESS_COMPRESS_HANDLER, MSG_COMPRESS_GZIP_ID, gzip_compress, gzip_decompress))
-            return 0;
 
     return 1;
 }
