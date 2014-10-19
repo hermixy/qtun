@@ -155,18 +155,18 @@ int des_decrypt(const void* src, const unsigned int src_len, void** dst, unsigne
     {
     case DES_KEY_SZ:
         DES_set_key((C_Block*)this.des_key[0], &k1);
-        DES_cbc_encrypt(src, *dst, src_len - sizeof(unsigned int), &k1, &iv, DES_DECRYPT);
+        DES_cbc_encrypt(ptr, *dst, src_len - sizeof(unsigned int), &k1, &iv, DES_DECRYPT);
         break;
     case DES_KEY_SZ * 2:
         DES_set_key((C_Block*)this.des_key[0], &k1);
         DES_set_key((C_Block*)this.des_key[1], &k2);
-        DES_ede2_cbc_encrypt(src, *dst, src_len - sizeof(unsigned int), &k1, &k2, &iv, DES_DECRYPT);
+        DES_ede2_cbc_encrypt(ptr, *dst, src_len - sizeof(unsigned int), &k1, &k2, &iv, DES_DECRYPT);
         break;
     default: // DES_KEY_SZ * 3
         DES_set_key((C_Block*)this.des_key[0], &k1);
         DES_set_key((C_Block*)this.des_key[1], &k2);
         DES_set_key((C_Block*)this.des_key[2], &k3);
-        DES_ede3_cbc_encrypt(src, *dst, src_len - sizeof(unsigned int), &k1, &k2, &k3, &iv, DES_DECRYPT);
+        DES_ede3_cbc_encrypt(ptr, *dst, src_len - sizeof(unsigned int), &k1, &k2, &k3, &iv, DES_DECRYPT);
         break;
     }
 
