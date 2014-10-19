@@ -1,17 +1,17 @@
 SET(SOURCE
-    main.h
-    main.c
-    common.h
-    common.c
-    network.h
-    network.c
-    typedef.h
-    hash.h
-    hash.c
-    link.h
-    link.c
-    msg.h
-    msg.c
-    library.h
-    library.c
+    ${CMAKE_CURRENT_LIST_DIR}/main.h
+    ${CMAKE_CURRENT_LIST_DIR}/main.c
+    ${CMAKE_CURRENT_LIST_DIR}/common.h
+    ${CMAKE_CURRENT_LIST_DIR}/common.c
+    ${CMAKE_CURRENT_LIST_DIR}/network.h
+    ${CMAKE_CURRENT_LIST_DIR}/network.c
+    ${CMAKE_CURRENT_LIST_DIR}/typedef.h
+    ${CMAKE_CURRENT_LIST_DIR}/hash.h
+    ${CMAKE_CURRENT_LIST_DIR}/hash.c
+    ${CMAKE_CURRENT_LIST_DIR}/link.h
+    ${CMAKE_CURRENT_LIST_DIR}/link.c
+    ${CMAKE_CURRENT_LIST_DIR}/msg.h
+    ${CMAKE_CURRENT_LIST_DIR}/msg.c
+    ${CMAKE_CURRENT_LIST_DIR}/library.h
+    ${CMAKE_CURRENT_LIST_DIR}/library.c
 )
