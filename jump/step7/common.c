@@ -1,5 +1,5 @@
-#include <linux/swab.h>
 #include <netinet/in.h>
+#include <byteswap.h>
 
 #include "common.h"
 
@@ -67,7 +67,7 @@ struct in_addr hash2ip(void* ip)
 uint32_t little32(uint32_t n)
 {
 #if __BYTE_ORDER == __BIG_ENDIAN
-    return __fswab32(n);
+    return bswap_32(n);
 #else
     return n;
 #endif
@@ -76,7 +76,7 @@ uint32_t little32(uint32_t n)
 uint16_t little16(uint16_t n)
 {
 #if __BYTE_ORDER == __BIG_ENDIAN
-    return __fswab16(n);
+    return bswap_16(n);
 #else
     return n;
 #endif
@@ -85,7 +85,7 @@ uint16_t little16(uint16_t n)
 uint32_t big32(uint32_t n)
 {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-    return __fswab32(n);
+    return bswap_32(n);
 #else
     return n;
 #endif
@@ -94,7 +94,7 @@ uint32_t big32(uint32_t n)
 uint16_t big16(uint16_t n)
 {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-    return __fswab16(n);
+    return bswap_16(n);
 #else
     return n;
 #endif
