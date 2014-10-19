@@ -73,13 +73,13 @@ int main(int argc, char* argv[])
                     return 1;
                 }
                 len = fread(conf.aes_iv, sizeof(char), sizeof(conf.aes_iv), fp);
-                if (len <= 0 || len != sizeof(conf.aes_iv))
+                if (len != sizeof(conf.aes_iv))
                 {
                     fprintf(stderr, "error aes iv\n");
                     return 1;
                 }
                 len = fread(conf.aes_key, sizeof(char), sizeof(conf.aes_key), fp);
-                if (len <= 0 || (len != 16 && len != 24 && len != 32))
+                if (len != 16 && len != 24 && len != 32)
                 {
                     fprintf(stderr, "error aes key file\n");
                     return 1;
@@ -89,6 +89,30 @@ int main(int argc, char* argv[])
             }
             break;
         case 'd':
+            {
+                ssize_t len;
+                conf.use_des = 1;
+                fp = fopen(optarg, "r");
+                if (fp == NULL)
+                {
+                    fprintf(stderr, "can not open des key file\n");
+                    return 1;
+                }
+                len = fread(conf.des_iv, sizeof(char), sizeof(conf.des_iv), fp);
+                if (len != sizeof(conf.des_iv))
+                {
+                    fprintf(stderr, "error des iv\n");
+                    return 1;
+                }
+                len = fread(conf.des_key, sizeof(char), sizeof(conf.des_key), fp);
+                if (len != DES_KEY_SZ && len != DES_KEY_SZ * 2 && len != DES_KEY_SZ * 3)
+                {
+                    fprintf(stderr, "error des key file\n");
+                    return 1;
+                }
+                conf.des_key_len = len;
+                fclose(fp);
+            }
             break;
         case 'g':
             conf.use_gzip = 1;

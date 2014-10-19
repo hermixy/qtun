@@ -22,5 +22,14 @@ int library_init(library_conf_t conf)
         this.aes_key_len = conf.aes_key_len;
     }
 
+    if (conf.use_des)
+    {
+        if (!append_msg_process_handler(MSG_PROCESS_ENCRYPT_HANDLER, MSG_ENCRYPT_DES_ID, des_encrypt, des_decrypt))
+            return 0;
+        memcpy(this.des_key, conf.des_key, sizeof(this.des_key));
+        memcpy(this.des_iv, conf.des_iv, sizeof(this.des_iv));
+        this.des_key_len = conf.des_key_len;
+    }
+
     return 1;
 }

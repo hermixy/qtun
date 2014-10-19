@@ -76,7 +76,7 @@ int aes_encrypt(const void* src, const unsigned int src_len, void** dst, unsigne
     *(unsigned int*)ptr = htonl(src_len);
     ptr += sizeof(unsigned int);
 
-    memcpy(iv, this.aes_iv, sizeof(this.aes_iv));
+    memcpy(iv, this.aes_iv, sizeof(iv));
     AES_set_encrypt_key(this.aes_key, this.aes_key_len, &key);
     AES_cbc_encrypt(src, ptr, *dst_len, &key, iv, AES_ENCRYPT);
     *dst_len += sizeof(unsigned int);
@@ -94,9 +94,81 @@ int aes_decrypt(const void* src, const unsigned int src_len, void** dst, unsigne
     *dst = malloc(src_len - sizeof(unsigned int));
     if (*dst == NULL) return 0;
 
-    memcpy(iv, this.aes_iv, sizeof(this.aes_iv));
+    memcpy(iv, this.aes_iv, sizeof(iv));
     AES_set_decrypt_key(this.aes_key, this.aes_key_len, &key);
     AES_cbc_encrypt(ptr, *dst, src_len - sizeof(unsigned int), &key, iv, AES_DECRYPT);
+
+    return 1;
+}
+
+int des_encrypt(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len)
+{
+    DES_key_schedule k1, k2, k3;
+    DES_cblock iv;
+    size_t left = src_len % DES_KEY_SZ;
+    unsigned char* ptr;
+
+    *dst_len = src_len;
+    if (left) *dst_len += DES_KEY_SZ - left;
+    ptr = malloc(*dst_len + sizeof(unsigned int));
+    if (ptr == NULL) return 0;
+    *dst = ptr;
+    *(unsigned int*)ptr = htonl(src_len);
+    ptr += sizeof(unsigned int);
+
+    memcpy(iv, this.des_iv, sizeof(iv));
+    switch (this.des_key_len)
+    {
+    case DES_KEY_SZ:
+        DES_set_key((C_Block*)this.des_key[0], &k1);
+        DES_cbc_encrypt(src, *dst, *dst_len, &k1, &iv, DES_ENCRYPT);
+        break;
+    case DES_KEY_SZ * 2:
+        DES_set_key((C_Block*)this.des_key[0], &k1);
+        DES_set_key((C_Block*)this.des_key[1], &k2);
+        DES_ede2_cbc_encrypt(src, *dst, *dst_len, &k1, &k2, &iv, DES_ENCRYPT);
+        break;
+    default: // DES_KEY_SZ * 3
+        DES_set_key((C_Block*)this.des_key[0], &k1);
+        DES_set_key((C_Block*)this.des_key[1], &k2);
+        DES_set_key((C_Block*)this.des_key[2], &k3);
+        DES_ede3_cbc_encrypt(src, *dst, *dst_len, &k1, &k2, &k3, &iv, DES_ENCRYPT);
+        break;
+    }
+    *dst_len += sizeof(unsigned int);
+
+    return 1;
+}
+
+int des_decrypt(const void* src, const unsigned int src_len, void** dst, unsigned int* dst_len)
+{
+    DES_key_schedule k1, k2, k3;
+    DES_cblock iv;
+    const unsigned char* ptr = (const unsigned char*)src + sizeof(unsigned int);
+
+    *dst_len = ntohl(*(unsigned int*)src);
+    *dst = malloc(src_len - sizeof(unsigned int));
+    if (*dst == NULL) return 0;
+
+    memcpy(iv, this.des_iv, sizeof(iv));
+    switch (this.des_key_len)
+    {
+    case DES_KEY_SZ:
+        DES_set_key((C_Block*)this.des_key[0], &k1);
+        DES_cbc_encrypt(src, *dst, src_len - sizeof(unsigned int), &k1, &iv, DES_DECRYPT);
+        break;
+    case DES_KEY_SZ * 2:
+        DES_set_key((C_Block*)this.des_key[0], &k1);
+        DES_set_key((C_Block*)this.des_key[1], &k2);
+        DES_ede2_cbc_encrypt(src, *dst, src_len - sizeof(unsigned int), &k1, &k2, &iv, DES_DECRYPT);
+        break;
+    default: // DES_KEY_SZ * 3
+        DES_set_key((C_Block*)this.des_key[0], &k1);
+        DES_set_key((C_Block*)this.des_key[1], &k2);
+        DES_set_key((C_Block*)this.des_key[2], &k3);
+        DES_ede3_cbc_encrypt(src, *dst, src_len - sizeof(unsigned int), &k1, &k2, &k3, &iv, DES_DECRYPT);
+        break;
+    }
 
     return 1;
 }
