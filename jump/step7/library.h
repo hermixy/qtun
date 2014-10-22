@@ -8,7 +8,7 @@ typedef struct
 {
     unsigned int  msg_ident;
 
-    unsigned char aes_key[AES_BLOCK_SIZE];
+    unsigned char aes_key[32];
     unsigned int  aes_key_len;
     unsigned char aes_iv[AES_BLOCK_SIZE];
 
