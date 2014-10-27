@@ -269,7 +269,11 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                 else
                 {
                     if (sys) ;
-                    else printf("write local length: %ld\n", write_n(localfd, buffer, len));
+                    else
+                    {
+                        printf("write local length: %ld\n", write_n(localfd, buffer, len));
+                        free(buffer);
+                    }
                 }
                 hash_set(&network.server.hash_ip, (void*)(long)ipHdr->saddr, sizeof(ipHdr->saddr), iter.data.key, iter.data.key_len);
             }
@@ -333,7 +337,11 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
         if (read_msg(remotefd, &msg) > 0 && parse_msg(msg, &sys, &buffer, &len))
         {
             if (sys) ;
-            else printf("write local length: %ld\n", write_n(localfd, buffer, len));
+            else
+            {
+                printf("write local length: %ld\n", write_n(localfd, buffer, len));
+                free(buffer);
+            }
         }
         else
         {
