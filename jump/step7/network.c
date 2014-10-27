@@ -258,6 +258,8 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
         int fd = hash2fd(iter.data.key);
         if (FD_ISSET(fd, set))
         {
+            msg = NULL;
+            buffer = NULL;
             if (read_msg(fd, &msg) > 0 && parse_msg(msg, &sys, &buffer, &len))
             {
                 ipHdr = (struct iphdr*)buffer;
@@ -271,7 +273,6 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                     if (sys) ;
                     else printf("write local length: %ld\n", write_n(localfd, buffer, len));
                 }
-                free(buffer);
                 hash_set(&network.server.hash_ip, (void*)(long)ipHdr->saddr, sizeof(ipHdr->saddr), iter.data.key, iter.data.key_len);
             }
             else
@@ -279,6 +280,8 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                 close(fd);
                 hash_del(&network.server.hash_fd, iter.data.key, iter.data.key_len);
             }
+            if (msg) free(msg);
+            if (buffer) free(buffer);
         }
         iter = hash_next(&network.server.hash_fd, iter);
     }
@@ -331,11 +334,12 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
         void* buffer;
         unsigned short len;
 
+        msg = NULL;
+        buffer = NULL;
         if (read_msg(remotefd, &msg) > 0 && parse_msg(msg, &sys, &buffer, &len))
         {
             if (sys) ;
             else printf("write local length: %ld\n", write_n(localfd, buffer, len));
-            free(buffer);
         }
         else
         {
@@ -343,6 +347,8 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
             close(remotefd);
             exit(1);
         }
+        if (msg) free(msg);
+        if (buffer) free(buffer);
     }
 }
 
