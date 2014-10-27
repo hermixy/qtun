@@ -296,6 +296,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                 if (msg)
                 {
                     write_n(hash2fd(value), msg, sizeof(msg_t) + msg_data_length(msg));
+                    free(msg);
                     printf("send msg length: %lu\n", msg_data_length(msg));
                 }
             }
@@ -318,6 +319,7 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
             if (msg)
             {
                 write_n(remotefd, msg, sizeof(msg_t) + msg_data_length(msg));
+                free(msg);
                 printf("send msg length: %lu\n", msg_data_length(msg));
             }
         }
