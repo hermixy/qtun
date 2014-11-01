@@ -254,7 +254,7 @@ msg_t* new_sys_msg(const void* data, const unsigned short len)
     ret->unused     = 0;
     ret->checksum   = 0;
     memcpy(ret->data, data, len);
-    ret->checksum   = htons(checksum(ret, sizeof(msg_t) + len));
+    ret->checksum   = checksum(ret, sizeof(msg_t) + len);
 end:
     return ret;
 }
@@ -337,7 +337,7 @@ msg_t* new_msg(const void* data, const unsigned short len)
     ret->pfx        = little16(dst_len % 16);
     ret->unused     = 0;
     ret->checksum   = 0;
-    ret->checksum   = htons(checksum(ret, sizeof(msg_t) + dst_len));
+    ret->checksum   = checksum(ret, sizeof(msg_t) + dst_len);
 end:
     if (want_free) free(dst);
     return ret;
@@ -376,7 +376,7 @@ msg_t* new_login_req_msg(unsigned int ip)
     ret->unused     = 0;
     ret->checksum   = 0;
     memcpy(ret->data, dst, dst_len);
-    ret->checksum   = htons(checksum(ret, sizeof(msg_t) + dst_len));
+    ret->checksum   = checksum(ret, sizeof(msg_t) + dst_len);
 end:
     if (want_free) free(dst);
     return ret;

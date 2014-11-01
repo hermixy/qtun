@@ -32,7 +32,6 @@ static ssize_t read_msg(int fd, msg_t** msg)
     if (*msg == NULL) return -2;
     rc = read_n(fd, (*msg)->data, len);
 
-    (*msg)->checksum = ntohs((*msg)->checksum);
     if (checksum(*msg, sizeof(msg_t) + len))
     {
         fprintf(stderr, "Invalid msg\n");
