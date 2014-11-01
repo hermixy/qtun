@@ -53,8 +53,6 @@ typedef struct
 
 typedef struct
 {
-    unsigned int  type;
-    unsigned char id;
     int (*do_handler)(const void*, const unsigned int, void**, unsigned int*);
     int (*undo_handler)(const void*, const unsigned int, void**, unsigned int*);
 } msg_process_handler_t;
@@ -78,7 +76,7 @@ extern int append_msg_process_handler(
 extern size_t msg_data_length(const msg_t* msg);
 extern msg_t* new_sys_msg(const void* data, const unsigned short len);
 extern msg_t* new_msg(const void* data, const unsigned short len);
-extern msg_t* new_login_req_msg(unsigned int ip);
+extern msg_t* new_login_msg(unsigned int ip, unsigned char request);
 extern int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len);
 
 #endif

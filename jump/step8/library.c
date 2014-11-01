@@ -11,6 +11,10 @@ int library_init(library_conf_t conf)
     ssize_t len;
     init_msg_process_handler();
 
+    this.localip = conf.localip;
+    this.compress = 0;
+    this.encrypt  = 0;
+
     if (conf.use_gzip)
         if (!append_msg_process_handler(MSG_PROCESS_COMPRESS_HANDLER, MSG_COMPRESS_GZIP_ID, gzip_compress, gzip_decompress))
             return 0;

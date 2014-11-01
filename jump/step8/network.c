@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include "common.h"
+#include "library.h"
 #include "msg.h"
 #include "network.h"
 
@@ -37,7 +38,33 @@ static ssize_t read_msg(int fd, msg_t** msg)
         fprintf(stderr, "Invalid msg\n");
         free(*msg);
         *msg = NULL;
-        return -1;
+        return -2;
+    }
+
+    printf("read msg length: %lu\n", len);
+    return rc;
+}
+
+static ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
+{
+    ssize_t rc;
+    size_t len;
+
+    *msg = malloc(sizeof(msg_t));
+    if (*msg == NULL) return -2;
+    rc = read_t(fd, *msg, sizeof(**msg), timeout);
+    if (rc <= 0) return rc;
+    len = msg_data_length(*msg);
+    *msg = realloc(*msg, sizeof(msg_t) + len);
+    if (*msg == NULL) return -2;
+    rc = read_t(fd, (*msg)->data, len, timeout);
+
+    if (checksum(*msg, sizeof(msg_t) + len))
+    {
+        fprintf(stderr, "Invalid msg\n");
+        free(*msg);
+        *msg = NULL;
+        return -2;
     }
 
     printf("read msg length: %lu\n", len);
@@ -138,6 +165,7 @@ int connect_server(char* ip, unsigned short port)
     struct sockaddr_in addr = {0};
     char buffer[1024] = {0};
     ssize_t readen;
+    msg_t* msg;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1)
@@ -163,7 +191,18 @@ int connect_server(char* ip, unsigned short port)
         return -1;
     }
 
-    readen = read_t(fd, buffer, sizeof(buffer), 5);
+    msg = new_login_msg(this.localip, 1);
+    if (msg)
+    {
+        write_n(fd, msg, sizeof(msg_t) + msg_data_length(msg));
+    }
+    else
+    {
+        fprintf(stderr, "Not enough memory\n");
+        close(fd);
+        return -1;
+    }
+    /*readen = read_t(fd, buffer, sizeof(buffer), 5);
     if (readen > 0 && strcmp(SERVER_AUTH_MSG, buffer) == 0)
     {
         pid_t pid = getpid();
@@ -180,7 +219,7 @@ int connect_server(char* ip, unsigned short port)
         fprintf(stderr, "is not allowed server\n");
         close(fd);
         return -1;
-    }
+    }*/
 
     return fd;
 }
@@ -190,9 +229,22 @@ static void accept_and_check(int bindfd)
     int fd = accept(bindfd, NULL, NULL);
     char buffer[sizeof(CLIENT_AUTH_MSG) - 1];
     ssize_t readen;
+    msg_t* msg;
     if (fd == -1) return;
 
-    write_n(fd, SERVER_AUTH_MSG, sizeof(SERVER_AUTH_MSG) - 1);
+    if (read_msg_t(fd, &msg, 5) > 0)
+    {
+        if (msg->compress != this.compress || msg->encrypt != this.encrypt) // 算法不同直接将本地的加密压缩算法返回
+        {
+            msg->compress = this.compress;
+            msg->encrypt = this.encrypt;
+            msg->checksum = 0;
+            msg->checksum = checksum(msg, sizeof(msg_t) + msg_data_length(msg));
+            write_n(fd, msg, sizeof(msg_t) + msg_data_length(msg));
+            return;
+        }
+    }
+    /*write_n(fd, SERVER_AUTH_MSG, sizeof(SERVER_AUTH_MSG) - 1);
     readen = read_t(fd, buffer, sizeof(buffer), 5);
     if (readen <= 0)
     {
@@ -245,7 +297,7 @@ static void accept_and_check(int bindfd)
         str = inet_ntoa(addr.sin_addr);
         fprintf(stderr, "authcheck failed: %s\n", str);
         close(fd);
-    }
+    }*/
 }
 
 static void server_process(int max, fd_set* set, int remotefd, int localfd)

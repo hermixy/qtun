@@ -200,7 +200,7 @@ int des_decrypt(const void* src, const unsigned int src_len, void** dst, unsigne
 static int msg_process_handlers_compare(const void* d1, const size_t l1, const void* d2, const size_t l2)
 {
     const msg_process_handler_t *dst1 = (const msg_process_handler_t*)d1, *dst2 = (const msg_process_handler_t*)d2;
-    return dst1->type == dst2->type && dst1->id == dst2->id;
+    return dst1->do_handler == dst2->do_handler && dst1->undo_handler == dst2->undo_handler;
 }
 
 void init_msg_process_handler()
@@ -222,12 +222,14 @@ int append_msg_process_handler(
     msg_process_handler_t* h = malloc(sizeof(*h));
     int rc;
     if (h == NULL) return 0;
-    h->type = type;
-    h->id = id;
     h->do_handler = do_handler;
     h->undo_handler = undo_handler;
     rc = link_insert_tail(&msg_process_handlers, h, sizeof(*h));
     if (!rc) free(h);
+    if (type == MSG_PROCESS_COMPRESS_HANDLER)
+        this.compress |= id;
+    else /* if (type == MSG_PROCESS_ENCRYPT_HANDLER) */
+        this.encrypt |= id;
     return rc;
 }
 
@@ -259,12 +261,10 @@ end:
     return ret;
 }
 
-static int process_asc(void* src, unsigned int src_len, void** dst, unsigned int* dst_len, int* want_free, int* compress, int* encrypt)
+static int process_asc(void* src, unsigned int src_len, void** dst, unsigned int* dst_len, int* want_free)
 {
     size_t link_cnt = link_count(&msg_process_handlers);
     *want_free = 0;
-    *compress = 0;
-    *encrypt = 0;
 
     if (link_cnt == 0)
     {
@@ -276,14 +276,6 @@ static int process_asc(void* src, unsigned int src_len, void** dst, unsigned int
         msg_process_handler_t* handler = (msg_process_handler_t*)link_first(&msg_process_handlers);
         if (!handler->do_handler(src, src_len, dst, dst_len)) return 0;
         *want_free = 1;
-        if (handler->type == MSG_PROCESS_COMPRESS_HANDLER)
-        {
-            *compress |= handler->id;
-        }
-        else /* if (handler->type == MSG_PROCESS_ENCRYPT_HANDLER) */
-        {
-            *compress |= handler->id;
-        }
     }
     else
     {
@@ -298,14 +290,6 @@ static int process_asc(void* src, unsigned int src_len, void** dst, unsigned int
             src = *dst;
             src_len = *dst_len;
             free_src = 1;
-            if (handler->type == MSG_PROCESS_COMPRESS_HANDLER)
-            {
-                *compress |= handler->id;
-            }
-            else /* if (handler->type == MSG_PROCESS_ENCRYPT_HANDLER) */
-            {
-                *encrypt |= handler->id;
-            }
             iter = link_next(&msg_process_handlers, iter);
             *want_free = 1;
         }
@@ -320,16 +304,15 @@ msg_t* new_msg(const void* data, const unsigned short len)
     void *dst;
     unsigned int dst_len;
     int want_free = 0;
-    int compress = 0, encrypt = 0;
 
-    if (!process_asc((void*)data, (unsigned int)len, &dst, &dst_len, &want_free, &compress, &encrypt)) goto end;
+    if (!process_asc((void*)data, (unsigned int)len, &dst, &dst_len, &want_free)) goto end;
     ret = malloc(sizeof(msg_t) + dst_len);
     if (ret == NULL) goto end;
     memcpy(ret->data, dst, dst_len);
     gettimeofday(&tv, NULL);
     ret->syscontrol = 0;
-    ret->compress   = compress;
-    ret->encrypt    = encrypt;
+    ret->compress   = this.compress;
+    ret->encrypt    = this.encrypt;
     ret->ident      = htonl(++this.msg_ident);
     ret->sec        = htonl(tv.tv_sec);
     ret->usec       = little32(tv.tv_usec);
@@ -343,7 +326,7 @@ end:
     return ret;
 }
 
-msg_t* new_login_req_msg(unsigned int ip)
+msg_t* new_login_msg(unsigned int ip, unsigned char request)
 {
     struct timeval tv;
     msg_t* ret = NULL;
@@ -351,7 +334,6 @@ msg_t* new_login_req_msg(unsigned int ip)
     void* dst;
     unsigned int dst_len;
     int want_free = 0;
-    int compress = 0, encrypt = 0;
     unsigned char mask[2];
 
     memcpy(msg.check, SYS_MSG_CHECK, sizeof(msg.check));
@@ -360,20 +342,25 @@ msg_t* new_login_req_msg(unsigned int ip)
     if (!find_cmd(SYS_LOGIN, mask)) goto end;
     if (mask[0])
     {
-        if (!process_asc((void*)&msg, (unsigned int)sizeof(msg), &dst, &dst_len, &want_free, &compress, &encrypt)) goto end;
+        if (!process_asc((void*)&msg, (unsigned int)sizeof(msg), &dst, &dst_len, &want_free)) goto end;
+    }
+    else
+    {
+        dst = &msg;
+        dst_len = sizeof(msg);
     }
 
     gettimeofday(&tv, NULL);
 
     ret->syscontrol = 1;
-    ret->compress   = 0;
-    ret->encrypt    = 0;
+    ret->compress   = this.compress;
+    ret->encrypt    = this.encrypt;
     ret->ident      = htonl(++this.msg_ident);
     ret->sec        = htonl(tv.tv_sec);
     ret->usec       = little32(tv.tv_usec);
     ret->len        = little16(floor(dst_len / 16));
     ret->pfx        = little16(dst_len % 16);
-    ret->unused     = 0;
+    ret->unused     = MAKE_SYS_OP(SYS_LOGIN, request);
     ret->checksum   = 0;
     memcpy(ret->data, dst, dst_len);
     ret->checksum   = checksum(ret, sizeof(msg_t) + dst_len);
