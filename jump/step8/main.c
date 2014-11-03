@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <openssl/aes.h>
 
 #include <execinfo.h>
@@ -53,11 +54,12 @@ int main(int argc, char* argv[])
     int opt;
     unsigned char n = 0;
     char* ip = NULL;
+    unsigned char netmask = 24;
 
     this.msg_ident = 0;
 
     memset(&conf, 0, sizeof(conf));
-    while ((opt = getopt(argc, argv, "a:d:gn:s:")) != -1)
+    while ((opt = getopt(argc, argv, "a:d:gm:n:s:")) != -1)
     {
         switch (opt)
         {
@@ -77,6 +79,9 @@ int main(int argc, char* argv[])
             break;
         case 's':
             ip = optarg;
+            break;
+        case 'm':
+            netmask = atoi(optarg);
             break;
         default:
             fprintf(stderr, "param error\n");
@@ -103,6 +108,11 @@ int main(int argc, char* argv[])
 
     if (n == 1)
     {
+        if (netmask == 0 || netmask > 31)
+        {
+            fprintf(stderr, "netmask must > 0 and <= 31\n");
+            return 1;
+        }
         sprintf(cmd, "ifconfig %s 10.0.1.%u mtu 1492 up", name, n);
         SYSTEM(cmd);
         sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);

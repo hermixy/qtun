@@ -17,8 +17,6 @@
 #include "msg.h"
 #include "network.h"
 
-network_t network;
-
 static ssize_t read_msg(int fd, msg_t** msg)
 {
     ssize_t rc;
@@ -58,6 +56,7 @@ static ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
     *msg = realloc(*msg, sizeof(msg_t) + len);
     if (*msg == NULL) return -2;
     rc = read_t(fd, (*msg)->data, len, timeout);
+    if (rc <= 0) return rc;
 
     if (checksum(*msg, sizeof(msg_t) + len))
     {
@@ -102,22 +101,6 @@ int bind_and_listen(unsigned short port)
     int fd, rc;
     int opt = 1;
     struct sockaddr_in addr = {0};
-    hash_functor_t functor_fd = {
-        fd_hash,
-        fd_compare,
-        fd_dup,
-        hash_dummy_dup,
-        hash_dummy_free,
-        NULL
-    };
-    hash_functor_t functor_ip = {
-        ip_hash,
-        ip_compare,
-        ip_dup,
-        hash_dummy_dup,
-        hash_dummy_free,
-        NULL
-    };
 
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htons(INADDR_ANY);
@@ -154,8 +137,6 @@ int bind_and_listen(unsigned short port)
         return -1;
     }
 
-    hash_init(&network.server.hash_fd, functor_fd, 11);
-    hash_init(&network.server.hash_ip, functor_ip, 11);
     return fd;
 }
 
@@ -163,8 +144,8 @@ int connect_server(char* ip, unsigned short port)
 {
     int fd, rc;
     struct sockaddr_in addr = {0};
-    char buffer[1024] = {0};
-    ssize_t readen;
+    //char buffer[1024] = {0};
+    //ssize_t readen;
     msg_t* msg;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -224,16 +205,26 @@ int connect_server(char* ip, unsigned short port)
     return fd;
 }
 
+inline static int check_ip_by_mask(unsigned int src, unsigned int dst, unsigned char mask)
+{
+    unsigned int m = LEN2MASK(mask) << (32 - mask);
+    return (src & m) == (dst & m);
+}
+
 static void accept_and_check(int bindfd)
 {
     int fd = accept(bindfd, NULL, NULL);
-    char buffer[sizeof(CLIENT_AUTH_MSG) - 1];
-    ssize_t readen;
-    msg_t* msg;
+    msg_t* msg = NULL;
+    int sys;
+    void* data = NULL;
+    unsigned short len;
     if (fd == -1) return;
 
     if (read_msg_t(fd, &msg, 5) > 0)
     {
+        sys_login_msg_t* login;
+        void* value;
+        size_t value_len;
         if (msg->compress != this.compress || msg->encrypt != this.encrypt) // 算法不同直接将本地的加密压缩算法返回
         {
             msg->compress = this.compress;
@@ -241,63 +232,76 @@ static void accept_and_check(int bindfd)
             msg->checksum = 0;
             msg->checksum = checksum(msg, sizeof(msg_t) + msg_data_length(msg));
             write_n(fd, msg, sizeof(msg_t) + msg_data_length(msg));
-            return;
+            goto end;
         }
-    }
-    /*write_n(fd, SERVER_AUTH_MSG, sizeof(SERVER_AUTH_MSG) - 1);
-    readen = read_t(fd, buffer, sizeof(buffer), 5);
-    if (readen <= 0)
-    {
-        struct sockaddr_in addr;
-        socklen_t len = sizeof(addr);
-        char* str;
-
-        if (getpeername(fd, (struct sockaddr*)&addr, &len) == -1)
+        if (!parse_msg(msg, &sys, &data, &len))
         {
-            perror("getpeername");
+            fprintf(stderr, "parse sys_login_request failed\n");
             close(fd);
-            return;
+            goto end;
         }
-        str = inet_ntoa(addr.sin_addr);
-        fprintf(stderr, "authcheck failed: %s\n", str);
-        close(fd);
-        return;
-    }
-
-    if (strncmp(buffer, CLIENT_AUTH_MSG, sizeof(CLIENT_AUTH_MSG) - 5) == 0)
-    {
-        client_t* client = malloc(sizeof(*client));
-        if (client == NULL)
+        login = (sys_login_msg_t*)data;
+        if (sys != 1 || memcmp(login->check, SYS_MSG_CHECK, sizeof(login->check)) || !check_ip_by_mask(login->ip, this.localip, this.netmask)) // 非法数据包
         {
-            fprintf(stderr, "out of memory\n");
+            fprintf(stderr, "unknown sys_login_request message\n");
             close(fd);
-            return;
+            goto end;
         }
-        client->id = ntohl(*(unsigned int*)&buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(client->id) - 2]);
-        client->fd = fd;
-        if (!hash_set(&network.server.hash_fd, (void*)(long)fd, sizeof(fd), client, sizeof(*client)))
+        if (hash_get(&this.hash_ip, (void*)(long)login->ip, sizeof(login->ip), &value, &value_len)) // IP已被占用
         {
-            fprintf(stderr, "hash set error\n");
-            close(fd);
-            return;
+            unsigned short i;
+            unsigned int localip = login->ip & (LEN2MASK(this.netmask) << (32 - this.netmask));
+            msg_t* new_msg;
+            for (i = 1; i < LEN2MASK(32 - this.netmask); ++i)
+            {
+                unsigned int newip = localip | i;
+                if (!hash_get(&this.hash_ip, (void*)(long)newip, sizeof(localip), &value, &value_len))
+                {
+                    new_msg = new_login_msg(newip, 0);
+                    if (new_msg)
+                    {
+                        write_n(fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
+                        free(new_msg);
+                    }
+                    else
+                    {
+                        fprintf(stderr, "Not enough memory\n");
+                        close(fd);
+                    }
+                    goto end;
+                }
+            }
+            new_msg = new_login_msg(0, 0);
+            if (new_msg)
+            {
+                write_n(fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
+                free(new_msg);
+            }
+            else
+            {
+                fprintf(stderr, "Not enough memory\n");
+                close(fd);
+            }
+        }
+        else
+        {
+            msg->unused = MAKE_SYS_OP(SYS_LOGIN, 0);
+            msg->checksum = 0;
+            msg->checksum = checksum(msg, sizeof(msg_t) + msg_data_length(msg));
+            if (!hash_set(&this.hash_ip, (void*)(long)login->ip, sizeof(login->ip), (void*)(long)fd, sizeof(fd)))
+            {
+                fprintf(stderr, "set to hash_ip error\n");
+                close(fd);
+                goto end;
+            }
+            write_n(fd, msg, sizeof(msg_t) + msg_data_length(msg));
         }
     }
     else
-    {
-        struct sockaddr_in addr;
-        socklen_t len = sizeof(addr);
-        char* str;
-
-        if (getpeername(fd, (struct sockaddr*)&addr, &len) == -1)
-        {
-            perror("getpeername");
-            close(fd);
-            return;
-        }
-        str = inet_ntoa(addr.sin_addr);
-        fprintf(stderr, "authcheck failed: %s\n", str);
-        close(fd);
-    }*/
+        fprintf(stderr, "read sys_login_request message timeouted\n");
+end:
+    if (msg) free(msg);
+    if (data) free(data);
 }
 
 static void server_process(int max, fd_set* set, int remotefd, int localfd)
@@ -309,13 +313,13 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     size_t value_len;
 
     if (FD_ISSET(remotefd, set)) accept_and_check(remotefd);
-    iter = hash_begin(&network.server.hash_fd);
+    iter = hash_begin(&this.hash_ip);
     while (!hash_is_end(iter))
     {
         void* buffer;
         unsigned short len;
         int sys;
-        int fd = hash2fd(iter.data.key);
+        int fd = hash2fd(iter.data.val);
         if (FD_ISSET(fd, set))
         {
             msg = NULL;
@@ -323,7 +327,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
             if (read_msg(fd, &msg) > 0 && parse_msg(msg, &sys, &buffer, &len))
             {
                 ipHdr = (struct iphdr*)buffer;
-                if (hash_get(&network.server.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len)) // 是本地局域网的则直接转走
+                if (hash_get(&this.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len)) // 是本地局域网的则直接转走
                 {
                     write_n(hash2fd(value), msg, sizeof(msg_t) + msg_data_length(msg));
                     printf("send msg length: %lu\n", msg_data_length(msg));
@@ -333,17 +337,11 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                     if (sys) ;
                     else printf("write local length: %ld\n", write_n(localfd, buffer, len));
                 }
-                hash_set(&network.server.hash_ip, (void*)(long)ipHdr->saddr, sizeof(ipHdr->saddr), iter.data.key, iter.data.key_len);
-            }
-            else
-            {
-                close(fd);
-                hash_del(&network.server.hash_fd, iter.data.key, iter.data.key_len);
             }
             if (msg) free(msg);
             if (buffer) free(buffer);
         }
-        iter = hash_next(&network.server.hash_fd, iter);
+        iter = hash_next(&this.hash_ip, iter);
     }
     if (FD_ISSET(localfd, set))
     {
@@ -354,7 +352,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
         if (readen > 0)
         {
             ipHdr = (struct iphdr*)buffer;
-            if (hash_get(&network.server.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len))
+            if (hash_get(&this.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len))
             {
                 msg = new_msg(buffer, readen);
                 if (msg)
@@ -425,13 +423,13 @@ void server_loop(int remotefd, int localfd)
         FD_SET(remotefd, &set);
         FD_SET(localfd, &set);
         max = remotefd > localfd ? remotefd : localfd;
-        iter = hash_begin(&network.server.hash_fd);
+        iter = hash_begin(&this.hash_ip);
         while (!hash_is_end(iter))
         {
-            int fd = hash2fd(iter.data.key);
+            int fd = hash2fd(iter.data.val);
             FD_SET(fd, &set);
             if (fd > max) max = fd;
-            iter = hash_next(&network.server.hash_fd, iter);
+            iter = hash_next(&this.hash_ip, iter);
         }
 
         max = select(max + 1, &set, NULL, NULL, &tv);

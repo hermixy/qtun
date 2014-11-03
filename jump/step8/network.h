@@ -17,24 +17,6 @@
 #define ENCRYPT_WITH_AES   1
 #define ENCRYPT_WITH_DES   2
 
-typedef struct
-{
-    unsigned int id;
-    int          fd;
-} client_t;
-
-typedef union
-{
-    client_t client;
-    struct
-    {
-        hash_t hash_fd;
-        hash_t hash_ip;
-    } server;
-} network_t;
-
-extern network_t network;
-
 extern int tun_open(char name[IFNAMSIZ]);
 extern int bind_and_listen(unsigned short port);
 extern int connect_server(char* ip, unsigned short port);

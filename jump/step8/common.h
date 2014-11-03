@@ -1,9 +1,10 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+#include <stdint.h>
 #include <stdlib.h>
 
-#define LEN2MASK(len) ((1 << len) - 1)
+#define LEN2MASK(len) ((1 << (len)) - 1)
 
 extern unsigned short checksum(void* buffer, size_t len);
 

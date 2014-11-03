@@ -1,5 +1,6 @@
 #include <string.h>
 
+#include "common.h"
 #include "msg.h"
 #include "library.h"
 
@@ -9,11 +10,27 @@ int library_init(library_conf_t conf)
 {
     FILE* fp;
     ssize_t len;
+    hash_functor_t functor_ip = {
+        ip_hash,
+        ip_compare,
+        ip_dup,
+        hash_dummy_dup,
+        hash_dummy_free,
+        NULL
+    };
+
     init_msg_process_handler();
 
     this.localip = conf.localip;
     this.compress = 0;
     this.encrypt  = 0;
+
+    hash_init(&this.hash_ip, functor_ip, 11);
+    if (!hash_set(&this.hash_ip, (void*)(long)conf.localip, sizeof(conf.localip), (void*)(long)0, sizeof(int)))
+    {
+        fprintf(stderr, "Not enough memory\n");
+        return 0;
+    }
 
     if (conf.use_gzip)
         if (!append_msg_process_handler(MSG_PROCESS_COMPRESS_HANDLER, MSG_COMPRESS_GZIP_ID, gzip_compress, gzip_decompress))
