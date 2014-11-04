@@ -181,9 +181,11 @@ int connect_server(char* ip, unsigned short port)
             if (msg->compress != this.compress || msg->encrypt != this.encrypt)
             {
                 fprintf(stderr, "compress algorithm or encrypt algorithm is not same\n");
+                free(msg);
                 goto end;
             }
             if (!parse_login_msg(msg, &ip)) goto end;
+            free(msg);
             if (ip == 0)
             {
                 fprintf(stderr, "Not enough ip address\n");
