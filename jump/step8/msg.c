@@ -352,6 +352,7 @@ msg_t* new_login_msg(unsigned int ip, unsigned char request)
 
     gettimeofday(&tv, NULL);
 
+    ret = malloc(sizeof(msg_t) + dst_len);
     ret->syscontrol = 1;
     ret->compress   = this.compress;
     ret->encrypt    = this.encrypt;
