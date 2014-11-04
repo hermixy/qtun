@@ -21,9 +21,10 @@ int library_init(library_conf_t conf)
 
     init_msg_process_handler();
 
-    this.localip = conf.localip;
+    this.localip  = conf.localip;
     this.compress = 0;
     this.encrypt  = 0;
+    this.netmask  = conf.netmask;
 
     hash_init(&this.hash_ip, functor_ip, 11);
     if (!hash_set(&this.hash_ip, (void*)(long)conf.localip, sizeof(conf.localip), (void*)(long)0, sizeof(int)))

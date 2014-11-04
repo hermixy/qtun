@@ -401,3 +401,32 @@ int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* outpu
     }
     return 1;
 }
+
+int parse_login_msg(const msg_t* input, unsigned int* ip)
+{
+    int sys;
+    void* data;
+    unsigned short len;
+    sys_login_msg_t* login;
+
+    if (!parse_msg(input, &sys, &data, &len))
+    {
+        fprintf(stderr, "parse sys_login_reply failed\n");
+        return 0;
+    }
+    if (!sys)
+    {
+        fprintf(stderr, "Invalid sys_login_reply message\n");
+        return 0;
+    }
+    login = (sys_login_msg_t*)data;
+    if (memcmp(login->check, SYS_MSG_CHECK, sizeof(login->check)))
+    {
+        fprintf(stderr, "Invalid sys_login_reply message\n");
+        return 0;
+    }
+    *ip = login->ip;
+    free(data);
+    return 1;
+}
+

@@ -105,6 +105,7 @@ int main(int argc, char* argv[])
     localfd = tun_open(name);
     if (localfd == -1) return 1;
     fprintf(stdout, "%s opened\n", name);
+    conf.netmask = netmask;
 
     if (n == 1)
     {
@@ -113,11 +114,11 @@ int main(int argc, char* argv[])
             fprintf(stderr, "netmask must > 0 and <= 31\n");
             return 1;
         }
-        sprintf(cmd, "ifconfig %s 10.0.1.%u mtu 1492 up", name, n);
+        sprintf(cmd, "ifconfig %s 10.0.2.%u mtu 1492 up", name, n);
         SYSTEM(cmd);
-        sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
+        sprintf(cmd, "route add -net 10.0.2.0/24 dev %s", name);
         SYSTEM(cmd);
-        sprintf(cmd, "10.0.1.%u", n);
+        sprintf(cmd, "10.0.2.%u", n);
         conf.localip = inet_addr(cmd);
         library_init(conf);
         remotefd = bind_and_listen(6687);
@@ -126,13 +127,13 @@ int main(int argc, char* argv[])
     }
     else
     {
-        sprintf(cmd, "ifconfig %s 10.0.1.%u mtu 2000 up", name, n);
+        sprintf(cmd, "ifconfig %s 10.0.2.%u mtu 2000 up", name, n);
         SYSTEM(cmd);
-        sprintf(cmd, "route add -net 10.0.1.0/24 dev %s", name);
+        sprintf(cmd, "route add -net 10.0.2.0/24 dev %s", name);
         SYSTEM(cmd);
         sprintf(cmd, "route add 8.8.8.8 dev %s", name);
         SYSTEM(cmd);
-        sprintf(cmd, "10.0.1.%u", n);
+        sprintf(cmd, "10.0.2.%u", n);
         conf.localip = inet_addr(cmd);
         library_init(conf);
         remotefd = connect_server(ip, 6687);

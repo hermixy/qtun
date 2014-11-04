@@ -78,5 +78,6 @@ extern msg_t* new_sys_msg(const void* data, const unsigned short len);
 extern msg_t* new_msg(const void* data, const unsigned short len);
 extern msg_t* new_login_msg(unsigned int ip, unsigned char request);
 extern int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len);
+extern int parse_login_msg(const msg_t* input, unsigned int* ip);
 
 #endif

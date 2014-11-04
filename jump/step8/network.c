@@ -144,8 +144,6 @@ int connect_server(char* ip, unsigned short port)
 {
     int fd, rc;
     struct sockaddr_in addr = {0};
-    //char buffer[1024] = {0};
-    //ssize_t readen;
     msg_t* msg;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -176,38 +174,45 @@ int connect_server(char* ip, unsigned short port)
     if (msg)
     {
         write_n(fd, msg, sizeof(msg_t) + msg_data_length(msg));
+        free(msg);
+        if (read_msg_t(fd, &msg, 5) > 0)
+        {
+            unsigned int ip;
+            if (msg->compress != this.compress || msg->encrypt != this.encrypt)
+            {
+                fprintf(stderr, "compress algorithm or encrypt algorithm is not same\n");
+                goto end;
+            }
+            if (!parse_login_msg(msg, &ip)) goto end;
+            if (ip == 0)
+            {
+                fprintf(stderr, "Not enough ip address\n");
+                goto end;
+            }
+            if (ip != this.localip)
+            {
+                struct in_addr a;
+                char saddr[16], daddr[16];
+                a.s_addr = this.localip;
+                strcpy(saddr, inet_ntoa(a));
+                a.s_addr = ip;
+                strcpy(daddr, inet_ntoa(a));
+                fprintf(stderr, "%s is inuse, but %s is not inuse\n", saddr, daddr);
+                goto end;
+            }
+            return fd;
+        }
+        fprintf(stderr, "read sys_login_reply message timeouted\n");
     }
-    else
-    {
-        fprintf(stderr, "Not enough memory\n");
-        close(fd);
-        return -1;
-    }
-    /*readen = read_t(fd, buffer, sizeof(buffer), 5);
-    if (readen > 0 && strcmp(SERVER_AUTH_MSG, buffer) == 0)
-    {
-        pid_t pid = getpid();
-        unsigned int cid;
-        strcpy(buffer, CLIENT_AUTH_MSG);
-        cid = htonl(pid);
-        network.client.id = pid;
-        network.client.fd = fd;
-        memcpy(&buffer[sizeof(CLIENT_AUTH_MSG) - sizeof(cid) - 1], &cid, sizeof(cid));
-        write_n(fd, buffer, sizeof(CLIENT_AUTH_MSG) - 1);
-    }
-    else
-    {
-        fprintf(stderr, "is not allowed server\n");
-        close(fd);
-        return -1;
-    }*/
-
-    return fd;
+    fprintf(stderr, "Not enough memory\n");
+end:
+    close(fd);
+    return -1;
 }
 
 inline static int check_ip_by_mask(unsigned int src, unsigned int dst, unsigned char mask)
 {
-    unsigned int m = LEN2MASK(mask) << (32 - mask);
+    unsigned int m = LEN2MASK(mask);
     return (src & m) == (dst & m);
 }
 
@@ -250,11 +255,11 @@ static void accept_and_check(int bindfd)
         if (hash_get(&this.hash_ip, (void*)(long)login->ip, sizeof(login->ip), &value, &value_len)) // IP已被占用
         {
             unsigned short i;
-            unsigned int localip = login->ip & (LEN2MASK(this.netmask) << (32 - this.netmask));
+            unsigned int localip = login->ip & LEN2MASK(this.netmask);
             msg_t* new_msg;
             for (i = 1; i < LEN2MASK(32 - this.netmask); ++i)
             {
-                unsigned int newip = localip | i;
+                unsigned int newip = (i << this.netmask) | localip;
                 if (!hash_get(&this.hash_ip, (void*)(long)newip, sizeof(localip), &value, &value_len))
                 {
                     new_msg = new_login_msg(newip, 0);
