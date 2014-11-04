@@ -20,4 +20,5 @@
 
 1. blog：http://blog.q-devel.com/
 2. QQ：510134884
-3. email：lwch748@gmail.com
+3. QQ群：374553828
+4. email：lwch748@gmail.com
