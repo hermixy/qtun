@@ -2,6 +2,7 @@
 #include <openssl/aes.h>
 
 #include <execinfo.h>
+#include <getopt.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,6 +43,21 @@ static void crash_sig(int signum)
     exit(1);
 }
 
+static void longopt2shortopt(struct option* long_options, size_t count, char* short_options)
+{
+    size_t i;
+    char* ptr = short_options;
+    for (i = 0; i < count; ++i)
+    {
+        if (long_options[i].val)
+        {
+            *ptr++ = long_options[i].val;
+            if (long_options[i].has_arg) *ptr++ = ':';
+        }
+    }
+    *ptr = 0;
+}
+
 int main(int argc, char* argv[])
 {
     signal(SIGSEGV, crash_sig);
@@ -52,14 +68,32 @@ int main(int argc, char* argv[])
     int localfd, remotefd;
     library_conf_t conf;
     int opt;
-    unsigned char n = 0;
     char* ip = NULL;
-    unsigned char netmask = 24;
+    struct in_addr a;
 
-    this.msg_ident = 0;
+    struct option long_options[] = {
+        {"aes",    1, NULL, 'a'},
+        {"des",    1, NULL, 'd'},
+        {"gzip",   0, NULL, 'g'},
+        {"mask",   1, NULL, 'm'},
+        {"ip",     1, NULL, 'i'},
+        {"server", 1, NULL, 's'},
+        {NULL,     0, NULL,   0}
+    };
+    char short_options[512] = {0};
+    longopt2shortopt(long_options, sizeof(long_options) / sizeof(struct option), short_options);
+
+    this.msg_ident    = 0;
+    conf.localip      = 0;
+    conf.netmask      = 24;
+    conf.use_gzip     = 0;
+    conf.use_aes      = 0;
+    conf.aes_key_file = NULL;
+    conf.use_des      = 0;
+    conf.des_key_file = NULL;
 
     memset(&conf, 0, sizeof(conf));
-    while ((opt = getopt(argc, argv, "a:d:gm:n:s:")) != -1)
+    while ((opt = getopt_long(argc, argv, short_options, long_options, NULL)) != -1)
     {
         switch (opt)
         {
@@ -74,14 +108,14 @@ int main(int argc, char* argv[])
         case 'g':
             conf.use_gzip = 1;
             break;
-        case 'n':
-            n = atoi(optarg);
+        case 'i':
+            conf.localip = inet_addr(optarg);
             break;
         case 's':
             ip = optarg;
             break;
         case 'm':
-            netmask = atoi(optarg);
+            conf.netmask = atoi(optarg);
             break;
         default:
             fprintf(stderr, "param error\n");
@@ -89,15 +123,9 @@ int main(int argc, char* argv[])
         }
     }
 
-    if (n == 0)
+    if (conf.localip == 0)
     {
-        fprintf(stderr, "-n0 is not support\n");
-        return 1;
-    }
-
-    if (n > 1 && ip == NULL)
-    {
-        fprintf(stderr, "have no ip for connect\n");
+        fprintf(stderr, "localip is zero\n");
         return 1;
     }
 
@@ -105,36 +133,28 @@ int main(int argc, char* argv[])
     localfd = tun_open(name);
     if (localfd == -1) return 1;
     fprintf(stdout, "%s opened\n", name);
-    conf.netmask = netmask;
+    a.s_addr = conf.localip;
 
-    if (n == 1)
+    if (ip == NULL)
     {
-        if (netmask == 0 || netmask > 31)
+        if (conf.netmask == 0 || conf.netmask > 31)
         {
             fprintf(stderr, "netmask must > 0 and <= 31\n");
             return 1;
         }
-        sprintf(cmd, "ifconfig %s 10.0.2.%u mtu 1492 up", name, n);
-        SYSTEM(cmd);
-        sprintf(cmd, "route add -net 10.0.2.0/24 dev %s", name);
-        SYSTEM(cmd);
-        sprintf(cmd, "10.0.2.%u", n);
-        conf.localip = inet_addr(cmd);
         library_init(conf);
         remotefd = bind_and_listen(6687);
         if (remotefd == -1) return 1;
+        sprintf(cmd, "ifconfig %s %s up", name, inet_ntoa(a));
+        SYSTEM(cmd);
         server_loop(remotefd, localfd);
     }
     else
     {
-        sprintf(cmd, "ifconfig %s 10.0.2.%u mtu 2000 up", name, n);
-        SYSTEM(cmd);
-        sprintf(cmd, "route add -net 10.0.2.0/24 dev %s", name);
-        SYSTEM(cmd);
-        sprintf(cmd, "10.0.2.%u", n);
-        conf.localip = inet_addr(cmd);
         library_init(conf);
         remotefd = connect_server(ip, 6687);
+        sprintf(cmd, "ifconfig %s %s up", name, inet_ntoa(a));
+        SYSTEM(cmd);
         if (remotefd == -1) return 1;
         client_loop(remotefd, localfd);
     }
