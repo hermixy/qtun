@@ -72,13 +72,13 @@ int main(int argc, char* argv[])
     struct in_addr a;
 
     struct option long_options[] = {
-        {"aes",    1, NULL, 'a'},
-        {"des",    1, NULL, 'd'},
-        {"gzip",   0, NULL, 'g'},
-        {"mask",   1, NULL, 'm'},
-        {"ip",     1, NULL, 'i'},
-        {"server", 1, NULL, 's'},
-        {NULL,     0, NULL,   0}
+        {"aes",     1, NULL, 'a'},
+        {"des",     1, NULL, 'd'},
+        {"gzip",    0, NULL, 'g'},
+        {"mask",    1, NULL, 'm'},
+        {"localip", 1, NULL, 'l'},
+        {"server",  1, NULL, 's'},
+        {NULL,      0, NULL,   0}
     };
     char short_options[512] = {0};
     longopt2shortopt(long_options, sizeof(long_options) / sizeof(struct option), short_options);
@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
         case 'g':
             conf.use_gzip = 1;
             break;
-        case 'i':
+        case 'l':
             conf.localip = inet_addr(optarg);
             break;
         case 's':
