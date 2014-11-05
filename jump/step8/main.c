@@ -153,7 +153,7 @@ int main(int argc, char* argv[])
         library_init(conf);
         remotefd = bind_and_listen(port);
         if (remotefd == -1) return 1;
-        sprintf(cmd, "ifconfig %s %s up", this.dev_name, inet_ntoa(a));
+        sprintf(cmd, "ifconfig %s %s/%u up", this.dev_name, inet_ntoa(a), conf.netmask);
         SYSTEM(cmd);
         server_loop(remotefd, localfd);
     }
