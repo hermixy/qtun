@@ -6,6 +6,16 @@
 
 #define LEN2MASK(len) ((1 << (len)) - 1)
 
+#define SWAP(a, b) \
+({ \
+    typeof(a) _a = (a); \
+    typeof(b) _b = (b); \
+    (void)(&_a == &_b); \
+    _a = a; \
+    a = b; \
+    b = _a; \
+})
+
 extern unsigned short checksum(void* buffer, size_t len);
 
 extern size_t fd_hash(const void* fd, const size_t len);

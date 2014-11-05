@@ -351,9 +351,14 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
         int fd = hash2fd(iter.data.val);
         if (FD_ISSET(fd, set))
         {
+            ssize_t rc;
             msg = NULL;
             buffer = NULL;
-            if (read_msg(fd, &msg) > 0 && parse_msg(msg, &sys, &buffer, &len))
+            rc = read_msg(fd, &msg);
+            if (rc == 0) // TODO: connection closed
+            {
+            }
+            if (rc > 0 && parse_msg(msg, &sys, &buffer, &len))
             {
                 if (sys) ;
                 else printf("write local length: %ld\n", write_n(localfd, buffer, len));

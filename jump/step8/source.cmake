@@ -16,4 +16,6 @@ SET(SOURCE
     ${QTUN_SOURCE_DIR}/msg.c
     ${QTUN_SOURCE_DIR}/library.h
     ${QTUN_SOURCE_DIR}/library.c
+    ${QTUN_SOURCE_DIR}/active_vector.h
+    ${QTUN_SOURCE_DIR}/active_vector.c
 )
