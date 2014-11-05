@@ -63,12 +63,12 @@ int main(int argc, char* argv[])
     signal(SIGSEGV, crash_sig);
     signal(SIGABRT, crash_sig);
 
-    char name[IFNAMSIZ];
     char cmd[1024];
     int localfd, remotefd;
     library_conf_t conf;
     int opt;
     char* ip = NULL;
+    unsigned int port = 6687;
     struct in_addr a;
 
     struct option long_options[] = {
@@ -78,6 +78,7 @@ int main(int argc, char* argv[])
         {"mask",    1, NULL, 'm'},
         {"localip", 1, NULL, 'l'},
         {"server",  1, NULL, 's'},
+        {"port",    1, NULL, 'p'},
         {NULL,      0, NULL,   0}
     };
     char short_options[512] = {0};
@@ -92,7 +93,6 @@ int main(int argc, char* argv[])
     conf.use_des      = 0;
     conf.des_key_file = NULL;
 
-    memset(&conf, 0, sizeof(conf));
     while ((opt = getopt_long(argc, argv, short_options, long_options, NULL)) != -1)
     {
         switch (opt)
@@ -117,6 +117,9 @@ int main(int argc, char* argv[])
         case 'm':
             conf.netmask = atoi(optarg);
             break;
+        case 'p':
+            port = atoi(optarg);
+            break;
         default:
             fprintf(stderr, "param error\n");
             return 1;
@@ -128,11 +131,16 @@ int main(int argc, char* argv[])
         fprintf(stderr, "localip is zero\n");
         return 1;
     }
+    if (port == 0)
+    {
+        fprintf(stderr, "port is zero\n");
+        return 1;
+    }
 
-    memset(name, 0, IFNAMSIZ);
-    localfd = tun_open(name);
+    memset(this.dev_name, 0, IFNAMSIZ);
+    localfd = tun_open(this.dev_name);
     if (localfd == -1) return 1;
-    fprintf(stdout, "%s opened\n", name);
+    fprintf(stdout, "%s opened\n", this.dev_name);
     a.s_addr = conf.localip;
 
     if (ip == NULL)
@@ -143,17 +151,17 @@ int main(int argc, char* argv[])
             return 1;
         }
         library_init(conf);
-        remotefd = bind_and_listen(6687);
+        remotefd = bind_and_listen(port);
         if (remotefd == -1) return 1;
-        sprintf(cmd, "ifconfig %s %s up", name, inet_ntoa(a));
+        sprintf(cmd, "ifconfig %s %s up", this.dev_name, inet_ntoa(a));
         SYSTEM(cmd);
         server_loop(remotefd, localfd);
     }
     else
     {
         library_init(conf);
-        remotefd = connect_server(ip, 6687);
-        sprintf(cmd, "ifconfig %s %s up", name, inet_ntoa(a));
+        remotefd = connect_server(ip, port);
+        sprintf(cmd, "ifconfig %s %s up", this.dev_name, inet_ntoa(a));
         SYSTEM(cmd);
         if (remotefd == -1) return 1;
         client_loop(remotefd, localfd);

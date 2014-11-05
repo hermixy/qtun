@@ -1,8 +1,11 @@
 #ifndef _LIBRARY_H_
 #define _LIBRARY_H_
 
+#include <sys/socket.h>
+#include <linux/if.h>
 #include <openssl/aes.h>
 #include <openssl/des.h>
+
 #include "hash.h"
 
 typedef struct
@@ -10,6 +13,7 @@ typedef struct
     unsigned int  msg_ident;
     unsigned int  localip;
     unsigned char netmask;
+    char          dev_name[IFNAMSIZ];
     hash_t        hash_ip; // ip => fd
 
     unsigned char aes_key[32];

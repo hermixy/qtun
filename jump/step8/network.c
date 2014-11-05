@@ -17,6 +17,14 @@
 #include "msg.h"
 #include "network.h"
 
+#define SYSTEM(cmd) \
+do {\
+    if (system(cmd) == -1) \
+    { \
+        perror("system"); \
+    } \
+} while (0)
+
 static ssize_t read_msg(int fd, msg_t** msg)
 {
     ssize_t rc;
@@ -233,6 +241,7 @@ static void accept_and_check(int bindfd)
         sys_login_msg_t* login;
         void* value;
         size_t value_len;
+        msg_t* new_msg;
         if (msg->compress != this.compress || msg->encrypt != this.encrypt) // 算法不同直接将本地的加密压缩算法返回
         {
             msg->compress = this.compress;
@@ -262,7 +271,6 @@ static void accept_and_check(int bindfd)
         {
             unsigned short i;
             unsigned int localip = login->ip & LEN2MASK(this.netmask);
-            msg_t* new_msg;
             for (i = 1; i < LEN2MASK(32 - this.netmask); ++i)
             {
                 unsigned int newip = (i << this.netmask) | localip;
@@ -296,17 +304,26 @@ static void accept_and_check(int bindfd)
         }
         else
         {
-            msg->unused = MAKE_SYS_OP(SYS_LOGIN, 0);
-            ((sys_login_msg_t*)msg->data)->mask = this.netmask;
-            msg->checksum = 0;
-            msg->checksum = checksum(msg, sizeof(msg_t) + msg_data_length(msg));
-            if (!hash_set(&this.hash_ip, (void*)(long)login->ip, sizeof(login->ip), (void*)(long)fd, sizeof(fd)))
+            char cmd[1024];
+            struct in_addr a = {login->ip};
+            new_msg = new_login_msg(login->ip, this.netmask, 0);
+            if (new_msg == NULL)
             {
-                fprintf(stderr, "set to hash_ip error\n");
+                fprintf(stderr, "Not enough memory\n");
                 close(fd);
                 goto end;
             }
-            write_n(fd, msg, sizeof(msg_t) + msg_data_length(msg));
+            if (!hash_set(&this.hash_ip, (void*)(long)login->ip, sizeof(login->ip), (void*)(long)fd, sizeof(fd)))
+            {
+                fprintf(stderr, "set to hash_ip error\n");
+                free(new_msg);
+                close(fd);
+                goto end;
+            }
+            sprintf(cmd, "route add %s dev %s", inet_ntoa(a), this.dev_name);
+            SYSTEM(cmd);
+            write_n(fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
+            free(new_msg);
         }
     }
     else
