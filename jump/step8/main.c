@@ -131,8 +131,6 @@ int main(int argc, char* argv[])
         SYSTEM(cmd);
         sprintf(cmd, "route add -net 10.0.2.0/24 dev %s", name);
         SYSTEM(cmd);
-        sprintf(cmd, "route add 8.8.8.8 dev %s", name);
-        SYSTEM(cmd);
         sprintf(cmd, "10.0.2.%u", n);
         conf.localip = inet_addr(cmd);
         library_init(conf);

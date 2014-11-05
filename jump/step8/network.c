@@ -258,7 +258,7 @@ static void accept_and_check(int bindfd)
             close(fd);
             goto end;
         }
-        if (hash_get(&this.hash_ip, (void*)(long)login->ip, sizeof(login->ip), &value, &value_len)) // IP已被占用
+        if (login->ip == this.localip || hash_get(&this.hash_ip, (void*)(long)login->ip, sizeof(login->ip), &value, &value_len)) // IP已被占用
         {
             unsigned short i;
             unsigned int localip = login->ip & LEN2MASK(this.netmask);
