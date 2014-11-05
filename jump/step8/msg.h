@@ -20,6 +20,7 @@
 
 #define SYSCONTROL_MASK(op, mask1, mask2) (((op & MSG_OP_MASK) << 2) | ((mask1 & 1) << 1) | (mask2 & 1))
 #define MAKE_SYS_OP(op, req) (((op & MSG_OP_MASK) << 1) | (req & 1))
+#define CHECK_SYS_OP(src, op, req) (((src >> 1) & MSG_OP_MASK) == op && (src & 1) == req)
 
 #define SYS_MSG_CHECK "for sys msg check"
 
@@ -40,8 +41,9 @@ typedef struct
 
 typedef struct
 {
-    unsigned char check[4];
+    unsigned char check[3];
     unsigned int  ip;
+    unsigned char mask;
 } sys_login_msg_t;
 
 typedef struct
@@ -76,8 +78,8 @@ extern int append_msg_process_handler(
 extern size_t msg_data_length(const msg_t* msg);
 extern msg_t* new_sys_msg(const void* data, const unsigned short len);
 extern msg_t* new_msg(const void* data, const unsigned short len);
-extern msg_t* new_login_msg(unsigned int ip, unsigned char request);
+extern msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request);
 extern int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len);
-extern int parse_login_msg(const msg_t* input, unsigned int* ip);
+extern int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* mask);
 
 #endif

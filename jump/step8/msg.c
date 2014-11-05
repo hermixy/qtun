@@ -326,7 +326,7 @@ end:
     return ret;
 }
 
-msg_t* new_login_msg(unsigned int ip, unsigned char request)
+msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request)
 {
     struct timeval tv;
     msg_t* ret = NULL;
@@ -334,13 +334,14 @@ msg_t* new_login_msg(unsigned int ip, unsigned char request)
     void* dst;
     unsigned int dst_len;
     int want_free = 0;
-    unsigned char mask[2];
+    unsigned char cmd_mask[2];
 
     memcpy(msg.check, SYS_MSG_CHECK, sizeof(msg.check));
     msg.ip = ip;
+    msg.mask = mask;
 
-    if (!find_cmd(SYS_LOGIN, mask)) goto end;
-    if (mask[0])
+    if (!find_cmd(SYS_LOGIN, cmd_mask)) goto end;
+    if (cmd_mask[request ? 0 : 1])
     {
         if (!process_asc((void*)&msg, (unsigned int)sizeof(msg), &dst, &dst_len, &want_free)) goto end;
     }
@@ -361,7 +362,7 @@ msg_t* new_login_msg(unsigned int ip, unsigned char request)
     ret->usec       = little32(tv.tv_usec);
     ret->len        = little16(floor(dst_len / 16));
     ret->pfx        = little16(dst_len % 16);
-    ret->unused     = MAKE_SYS_OP(SYS_LOGIN, request);
+    ret->unused     = MAKE_SYS_OP(SYS_LOGIN, request ? 1 : 0);
     ret->checksum   = 0;
     memcpy(ret->data, dst, dst_len);
     ret->checksum   = checksum(ret, sizeof(msg_t) + dst_len);
@@ -402,7 +403,7 @@ int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* outpu
     return 1;
 }
 
-int parse_login_msg(const msg_t* input, unsigned int* ip)
+int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* mask)
 {
     int sys;
     void* data;
@@ -414,18 +415,14 @@ int parse_login_msg(const msg_t* input, unsigned int* ip)
         fprintf(stderr, "parse sys_login_reply failed\n");
         return 0;
     }
-    if (!sys)
-    {
-        fprintf(stderr, "Invalid sys_login_reply message\n");
-        return 0;
-    }
     login = (sys_login_msg_t*)data;
-    if (memcmp(login->check, SYS_MSG_CHECK, sizeof(login->check)))
+    if (!sys || !CHECK_SYS_OP(input->unused, SYS_LOGIN, 0) || memcmp(login->check, SYS_MSG_CHECK, sizeof(login->check)))
     {
         fprintf(stderr, "Invalid sys_login_reply message\n");
         return 0;
     }
     *ip = login->ip;
+    *mask = login->mask;
     free(data);
     return 1;
 }

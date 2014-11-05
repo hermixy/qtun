@@ -170,7 +170,7 @@ int connect_server(char* ip, unsigned short port)
         return -1;
     }
 
-    msg = new_login_msg(this.localip, 1);
+    msg = new_login_msg(this.localip, 0, 1);
     if (msg)
     {
         write_n(fd, msg, sizeof(msg_t) + msg_data_length(msg));
@@ -178,13 +178,14 @@ int connect_server(char* ip, unsigned short port)
         if (read_msg_t(fd, &msg, 5) > 0)
         {
             unsigned int ip;
+            unsigned char mask;
             if (msg->compress != this.compress || msg->encrypt != this.encrypt)
             {
                 fprintf(stderr, "compress algorithm or encrypt algorithm is not same\n");
                 free(msg);
                 goto end;
             }
-            if (!parse_login_msg(msg, &ip)) goto end;
+            if (!parse_login_reply_msg(msg, &ip, &mask)) goto end;
             free(msg);
             if (ip == 0)
             {
@@ -248,7 +249,10 @@ static void accept_and_check(int bindfd)
             goto end;
         }
         login = (sys_login_msg_t*)data;
-        if (sys != 1 || memcmp(login->check, SYS_MSG_CHECK, sizeof(login->check)) || !check_ip_by_mask(login->ip, this.localip, this.netmask)) // 非法数据包
+        if (sys != 1 ||
+            !CHECK_SYS_OP(msg->unused, SYS_LOGIN, 1) ||
+            memcmp(login->check, SYS_MSG_CHECK, sizeof(login->check)) ||
+            !check_ip_by_mask(login->ip, this.localip, this.netmask)) // 非法数据包
         {
             fprintf(stderr, "unknown sys_login_request message\n");
             close(fd);
@@ -264,7 +268,7 @@ static void accept_and_check(int bindfd)
                 unsigned int newip = (i << this.netmask) | localip;
                 if (!hash_get(&this.hash_ip, (void*)(long)newip, sizeof(localip), &value, &value_len))
                 {
-                    new_msg = new_login_msg(newip, 0);
+                    new_msg = new_login_msg(newip, this.netmask, 0);
                     if (new_msg)
                     {
                         write_n(fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
@@ -278,7 +282,7 @@ static void accept_and_check(int bindfd)
                     goto end;
                 }
             }
-            new_msg = new_login_msg(0, 0);
+            new_msg = new_login_msg(0, 0, 0);
             if (new_msg)
             {
                 write_n(fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
@@ -293,6 +297,7 @@ static void accept_and_check(int bindfd)
         else
         {
             msg->unused = MAKE_SYS_OP(SYS_LOGIN, 0);
+            ((sys_login_msg_t*)msg->data)->mask = this.netmask;
             msg->checksum = 0;
             msg->checksum = checksum(msg, sizeof(msg_t) + msg_data_length(msg));
             if (!hash_set(&this.hash_ip, (void*)(long)login->ip, sizeof(login->ip), (void*)(long)fd, sizeof(fd)))
@@ -305,7 +310,7 @@ static void accept_and_check(int bindfd)
         }
     }
     else
-        fprintf(stderr, "read sys_login_request message timeouted\n");
+        fprintf(stderr, "read sys_login_request message error\n");
 end:
     if (msg) free(msg);
     if (data) free(data);
@@ -333,17 +338,8 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
             buffer = NULL;
             if (read_msg(fd, &msg) > 0 && parse_msg(msg, &sys, &buffer, &len))
             {
-                ipHdr = (struct iphdr*)buffer;
-                if (hash_get(&this.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len)) // 是本地局域网的则直接转走
-                {
-                    write_n(hash2fd(value), msg, sizeof(msg_t) + msg_data_length(msg));
-                    printf("send msg length: %lu\n", msg_data_length(msg));
-                }
-                else
-                {
-                    if (sys) ;
-                    else printf("write local length: %ld\n", write_n(localfd, buffer, len));
-                }
+                if (sys) ;
+                else printf("write local length: %ld\n", write_n(localfd, buffer, len));
             }
             if (msg) free(msg);
             if (buffer) free(buffer);
