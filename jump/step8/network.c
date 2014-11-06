@@ -390,7 +390,14 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     }
     while (vector_pop_back(&v, &tmp, &tmp_len))
     {
+        client_t* client;
+        char cmd[1024];
+        struct in_addr a;
+        active_vector_get(&this.clients, (size_t)tmp, (void**)&client, &tmp_len);
         active_vector_del(&this.clients, (size_t)tmp);
+        a.s_addr = client->ip;
+        sprintf(cmd, "route add %s dev %s", inet_ntoa(a), this.dev_name);
+        SYSTEM(cmd);
     }
     vector_free(&v);
     if (FD_ISSET(localfd, set))

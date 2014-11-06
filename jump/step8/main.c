@@ -161,9 +161,9 @@ int main(int argc, char* argv[])
     {
         library_init(conf);
         remotefd = connect_server(ip, port);
+        if (remotefd == -1) return 1;
         sprintf(cmd, "ifconfig %s %s up", this.dev_name, inet_ntoa(a));
         SYSTEM(cmd);
-        if (remotefd == -1) return 1;
         client_loop(remotefd, localfd);
     }
     return 0;
