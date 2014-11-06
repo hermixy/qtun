@@ -353,7 +353,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     vector_t v;
     vector_functor_t f = {
         vector_dummy_dup,
-        vector_dummy_free
+        NULL
     };
     void* tmp;
     size_t tmp_len;
@@ -391,13 +391,16 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     while (vector_pop_back(&v, &tmp, &tmp_len))
     {
         client_t* client;
-        char cmd[1024];
+        char cmd[128];
+        char ip[16];
         struct in_addr a;
         active_vector_get(&this.clients, (size_t)tmp, (void**)&client, &tmp_len);
-        active_vector_del(&this.clients, (size_t)tmp);
         a.s_addr = client->ip;
-        sprintf(cmd, "route add %s dev %s", inet_ntoa(a), this.dev_name);
+        sprintf(ip, "%s", inet_ntoa(a));
+        printf("%s connection closed\n", ip);
+        sprintf(cmd, "route del %s dev %s", ip, this.dev_name);
         SYSTEM(cmd);
+        active_vector_del(&this.clients, (size_t)tmp);
     }
     vector_free(&v);
     if (FD_ISSET(localfd, set))
