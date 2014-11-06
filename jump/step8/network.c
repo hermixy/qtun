@@ -339,7 +339,10 @@ static void accept_and_check(int bindfd)
         }
     }
     else
+    {
         fprintf(stderr, "read sys_login_request message error\n");
+        close(fd);
+    }
 end:
     if (msg) free(msg);
     if (data) free(data);
