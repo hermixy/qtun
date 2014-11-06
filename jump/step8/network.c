@@ -239,8 +239,6 @@ static void accept_and_check(int bindfd)
     if (read_msg_t(fd, &msg, 5) > 0)
     {
         sys_login_msg_t* login;
-        void* value;
-        size_t value_len;
         msg_t* new_msg;
         if (msg->compress != this.compress || msg->encrypt != this.encrypt) // 算法不同直接将本地的加密压缩算法返回
         {
@@ -267,14 +265,14 @@ static void accept_and_check(int bindfd)
             close(fd);
             goto end;
         }
-        if (login->ip == this.localip || hash_get(&this.hash_ip, (void*)(long)login->ip, sizeof(login->ip), &value, &value_len)) // IP已被占用
+        if (login->ip == this.localip || active_vector_exists(&this.clients, compare_clients_by_ip, (void*)(long)login->ip, sizeof(login->ip)) >= 0) // IP已被占用
         {
             unsigned short i;
             unsigned int localip = login->ip & LEN2MASK(this.netmask);
             for (i = 1; i < LEN2MASK(32 - this.netmask); ++i)
             {
                 unsigned int newip = (i << this.netmask) | localip;
-                if (!hash_get(&this.hash_ip, (void*)(long)newip, sizeof(localip), &value, &value_len))
+                if (active_vector_exists(&this.clients, compare_clients_by_ip, (void*)(long)newip, sizeof(newip)) == -1)
                 {
                     new_msg = new_login_msg(newip, this.netmask, 0);
                     if (new_msg)
@@ -306,6 +304,7 @@ static void accept_and_check(int bindfd)
         {
             char cmd[1024];
             struct in_addr a = {login->ip};
+            client_t* client;
             new_msg = new_login_msg(login->ip, this.netmask, 0);
             if (new_msg == NULL)
             {
@@ -313,10 +312,19 @@ static void accept_and_check(int bindfd)
                 close(fd);
                 goto end;
             }
-            if (!hash_set(&this.hash_ip, (void*)(long)login->ip, sizeof(login->ip), (void*)(long)fd, sizeof(fd)))
+            client = malloc(sizeof(*client));
+            if (client == NULL)
+            {
+                fprintf(stderr, "Not enough memory\n");
+                free(new_msg);
+                close(fd);
+                goto end;
+            }
+            if (!active_vector_append(&this.clients, client, sizeof(*client)))
             {
                 fprintf(stderr, "set to hash_ip error\n");
                 free(new_msg);
+                free(client);
                 close(fd);
                 goto end;
             }
@@ -336,37 +344,37 @@ end:
 static void server_process(int max, fd_set* set, int remotefd, int localfd)
 {
     msg_t* msg;
-    hash_iterator_t iter;
+    active_vector_iterator_t iter;
     struct iphdr* ipHdr;
-    void* value;
-    size_t value_len;
 
     if (FD_ISSET(remotefd, set)) accept_and_check(remotefd);
-    iter = hash_begin(&this.hash_ip);
-    while (!hash_is_end(iter))
+    iter = active_vector_begin(&this.clients);
+    while (!active_vector_is_end(iter))
     {
         void* buffer;
         unsigned short len;
         int sys;
-        int fd = hash2fd(iter.data.val);
-        if (FD_ISSET(fd, set))
+        client_t* client = iter.data;
+        if (FD_ISSET(client->fd, set))
         {
             ssize_t rc;
             msg = NULL;
             buffer = NULL;
-            rc = read_msg(fd, &msg);
-            if (rc == 0) // TODO: connection closed
+            rc = read_msg(client->fd, &msg);
+            if (rc == 0)
             {
+                active_vector_del(&this.clients, iter.idx);
             }
-            if (rc > 0 && parse_msg(msg, &sys, &buffer, &len))
+            else if (rc > 0 && parse_msg(msg, &sys, &buffer, &len))
             {
                 if (sys) ;
                 else printf("write local length: %ld\n", write_n(localfd, buffer, len));
+                active_vector_up(&this.clients, iter.idx);
             }
             if (msg) free(msg);
             if (buffer) free(buffer);
         }
-        iter = hash_next(&this.hash_ip, iter);
+        iter = active_vector_next(iter);
     }
     if (FD_ISSET(localfd, set))
     {
@@ -376,13 +384,20 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
         readen = read(localfd, buffer, sizeof(buffer));
         if (readen > 0)
         {
+            client_t client;
+            ssize_t idx;
             ipHdr = (struct iphdr*)buffer;
-            if (hash_get(&this.hash_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr), &value, &value_len))
+            client.ip = ipHdr->daddr;
+            idx = active_vector_lookup(&this.clients, compare_clients_by_ip, &client, sizeof(client));
+            if (idx >= 0)
             {
+                client_t* client;
+                size_t len;
+                active_vector_get(&this.clients, idx, (void**)&client, &len);
                 msg = new_msg(buffer, readen);
                 if (msg)
                 {
-                    write_n(hash2fd(value), msg, sizeof(msg_t) + msg_data_length(msg));
+                    write_n(client->fd, msg, sizeof(msg_t) + msg_data_length(msg));
                     free(msg);
                     printf("send msg length: %lu\n", msg_data_length(msg));
                 }
@@ -442,19 +457,19 @@ void server_loop(int remotefd, int localfd)
     while (1)
     {
         struct timeval tv = {60, 0};
-        hash_iterator_t iter;
+        active_vector_iterator_t iter;
 
         FD_ZERO(&set);
         FD_SET(remotefd, &set);
         FD_SET(localfd, &set);
         max = remotefd > localfd ? remotefd : localfd;
-        iter = hash_begin(&this.hash_ip);
-        while (!hash_is_end(iter))
+        iter = active_vector_begin(&this.clients);
+        while (!active_vector_is_end(iter))
         {
-            int fd = hash2fd(iter.data.val);
+            int fd = ((client_t*)iter.data)->fd;
             FD_SET(fd, &set);
             if (fd > max) max = fd;
-            iter = hash_next(&this.hash_ip, iter);
+            iter = active_vector_next(iter);
         }
 
         max = select(max + 1, &set, NULL, NULL, &tv);

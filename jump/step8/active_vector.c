@@ -84,3 +84,103 @@ ssize_t active_vector_lookup(
     return -1;
 }
 
+extern int active_vector_exists(
+    active_vector_t* v,
+    int (*compare)(const void*, const size_t, const void*, const size_t),
+    const void* data,
+    const size_t len
+)
+{
+    size_t i;
+    for (i = 0; i < v->count; ++i)
+    {
+        if (compare(v->elements[i].data, v->elements[i].len, data, len)) return i;
+    }
+    return -1;
+}
+
+int active_vector_get(active_vector_t* v, size_t idx, void** data, size_t* len)
+{
+    if (idx >= active_vector_count(v)) return 0;
+    *data = v->elements[idx].data;
+    *len = v->elements[idx].len;
+    return 1;
+}
+
+int active_vector_del(active_vector_t* v, size_t idx)
+{
+    if (idx >= active_vector_count(v)) return 0;
+    if (v->functor.free) v->functor.free(v->elements[idx].data, v->elements[idx].len);
+    memmove(&v->elements[idx], &v->elements[idx + 1], sizeof(active_vector_node_t) * (active_vector_count(v) - idx - 1));
+    --v->count;
+    return 1;
+}
+
+inline active_vector_iterator_t active_vector_begin(active_vector_t* v)
+{
+    active_vector_iterator_t iter = {NULL, 0, 0, 0, v};
+    if (active_vector_count(v))
+    {
+        iter.data = v->elements[0].data;
+        iter.len = v->elements[0].len;
+    }
+    return iter;
+}
+
+inline active_vector_iterator_t active_vector_rev_begin(active_vector_t* v)
+{
+    active_vector_iterator_t iter = {NULL, 0, v->count - 1, 1, v};
+    if (active_vector_count(v))
+    {
+        iter.data = v->elements[v->count - 1].data;
+        iter.len = v->elements[v->count - 1].len;
+    }
+    return iter;
+}
+
+active_vector_iterator_t active_vector_prev(active_vector_iterator_t i)
+{
+    i.idx += i.rev ? 1 : -1;
+    if (i.idx >= 0 && i.idx < active_vector_count(i.v))
+    {
+        i.data = i.v->elements[i.idx].data;
+        i.len = i.v->elements[i.idx].len;
+    }
+    else
+    {
+        i.data = NULL;
+        i.len = 0;
+    }
+    return i;
+}
+
+active_vector_iterator_t active_vector_next(active_vector_iterator_t i)
+{
+    i.idx += i.rev ? -1 : 1;
+    if (i.idx >= 0 && i.idx < active_vector_count(i.v))
+    {
+        i.data = i.v->elements[i.idx].data;
+        i.len = i.v->elements[i.idx].len;
+    }
+    else
+    {
+        i.data = NULL;
+        i.len = 0;
+    }
+    return i;
+}
+
+inline void* active_vector_dummy_dup(const void* data, const size_t len)
+{
+    return (void*)data;
+}
+
+inline void active_vector_dummy_free(void* data, size_t len)
+{
+}
+
+inline void active_vector_normal_free(void* data, size_t len)
+{
+    free(data);
+}
+

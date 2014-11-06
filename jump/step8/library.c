@@ -10,13 +10,9 @@ int library_init(library_conf_t conf)
 {
     FILE* fp;
     ssize_t len;
-    hash_functor_t functor_ip = {
-        ip_hash,
-        ip_compare,
-        ip_dup,
-        hash_dummy_dup,
-        hash_dummy_free,
-        NULL
+    active_vector_functor_t functor_clients = {
+        active_vector_dummy_dup,
+        active_vector_normal_free
     };
 
     init_msg_process_handler();
@@ -26,7 +22,7 @@ int library_init(library_conf_t conf)
     this.encrypt  = 0;
     this.netmask  = conf.netmask;
 
-    hash_init(&this.hash_ip, functor_ip, 11);
+    active_vector_init(&this.clients, functor_clients);
 
     if (conf.use_gzip)
         if (!append_msg_process_handler(MSG_PROCESS_COMPRESS_HANDLER, MSG_COMPRESS_GZIP_ID, gzip_compress, gzip_decompress))
@@ -86,3 +82,16 @@ int library_init(library_conf_t conf)
 
     return 1;
 }
+
+inline int compare_clients_by_fd(const void* d1, const size_t l1, const void* d2, const size_t l2)
+{
+    client_t *c1 = (client_t*)d1, *c2 = (client_t*)d2;
+    return c1->fd == c2->fd;
+}
+
+inline int compare_clients_by_ip(const void* d1, const size_t l1, const void* d2, const size_t l2)
+{
+    client_t *c1 = (client_t*)d1, *c2 = (client_t*)d2;
+    return c1->ip == c2->ip;
+}
+
