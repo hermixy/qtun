@@ -18,4 +18,6 @@ SET(SOURCE
     ${QTUN_SOURCE_DIR}/library.c
     ${QTUN_SOURCE_DIR}/active_vector.h
     ${QTUN_SOURCE_DIR}/active_vector.c
+    ${QTUN_SOURCE_DIR}/vector.h
+    ${QTUN_SOURCE_DIR}/vector.c
 )

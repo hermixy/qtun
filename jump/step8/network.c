@@ -15,6 +15,8 @@
 #include "common.h"
 #include "library.h"
 #include "msg.h"
+#include "vector.h"
+
 #include "network.h"
 
 #define SYSTEM(cmd) \
@@ -320,6 +322,8 @@ static void accept_and_check(int bindfd)
                 close(fd);
                 goto end;
             }
+            client->fd = fd;
+            client->ip = login->ip;
             if (!active_vector_append(&this.clients, client, sizeof(*client)))
             {
                 fprintf(stderr, "set to hash_ip error\n");
@@ -346,9 +350,17 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     msg_t* msg;
     active_vector_iterator_t iter;
     struct iphdr* ipHdr;
+    vector_t v;
+    vector_functor_t f = {
+        vector_dummy_dup,
+        vector_dummy_free
+    };
+    void* tmp;
+    size_t tmp_len;
 
     if (FD_ISSET(remotefd, set)) accept_and_check(remotefd);
     iter = active_vector_begin(&this.clients);
+    vector_init(&v, f);
     while (!active_vector_is_end(iter))
     {
         void* buffer;
@@ -363,19 +375,24 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
             rc = read_msg(client->fd, &msg);
             if (rc == 0)
             {
-                active_vector_del(&this.clients, iter.idx);
+                vector_push_back(&v, (void*)(long)active_vector_iterator_idx(iter), sizeof(active_vector_iterator_idx(iter)));
             }
             else if (rc > 0 && parse_msg(msg, &sys, &buffer, &len))
             {
                 if (sys) ;
                 else printf("write local length: %ld\n", write_n(localfd, buffer, len));
-                active_vector_up(&this.clients, iter.idx);
+                active_vector_up(&this.clients, active_vector_iterator_idx(iter));
             }
             if (msg) free(msg);
             if (buffer) free(buffer);
         }
         iter = active_vector_next(iter);
     }
+    while (vector_pop_back(&v, &tmp, &tmp_len))
+    {
+        active_vector_del(&this.clients, (size_t)tmp);
+    }
+    vector_free(&v);
     if (FD_ISSET(localfd, set))
     {
         unsigned char buffer[2048];
