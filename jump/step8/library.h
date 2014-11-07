@@ -33,7 +33,7 @@ typedef struct
     unsigned char   compress;
     unsigned char   encrypt;
 
-    unsigned char   keepalive;
+    unsigned int    keepalive;
 } this_t;
 
 extern this_t this;
