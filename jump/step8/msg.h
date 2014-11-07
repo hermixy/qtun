@@ -21,6 +21,8 @@
 #define SYSCONTROL_MASK(op, mask1, mask2) (((op & MSG_OP_MASK) << 2) | ((mask1 & 1) << 1) | (mask2 & 1))
 #define MAKE_SYS_OP(op, req) (((op & MSG_OP_MASK) << 1) | (req & 1))
 #define CHECK_SYS_OP(src, op, req) (((src >> 1) & MSG_OP_MASK) == op && (src & 1) == req)
+#define GET_SYS_OP(src) ((src >> 1) & MSG_OP_MASK)
+#define IS_SYS_REQUEST(src) (src & 1)
 
 #define SYS_MSG_CHECK "for sys msg check"
 

@@ -361,6 +361,22 @@ end:
     if (data) free(data);
 }
 
+static void server_process_sys(int fd, msg_t* msg, const void* buffer, const size_t len)
+{
+    switch (GET_SYS_OP(msg->unused))
+    {
+    case SYS_PING:
+        if (IS_SYS_REQUEST(msg->unused))
+        {
+            msg_t* new_msg = new_keepalive_msg(0);
+            write_n(fd, new_msg, sizeof(msg_t));
+            printf("reply keepalive message\n");
+            free(new_msg);
+        }
+        break;
+    }
+}
+
 static void server_process(int max, fd_set* set, int remotefd, int localfd)
 {
     msg_t* msg;
@@ -395,7 +411,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
             }
             else if (rc > 0 && parse_msg(msg, &sys, &buffer, &len))
             {
-                if (sys) ;
+                if (sys) server_process_sys(client->fd, msg, buffer, len);
                 else printf("write local length: %ld\n", write_n(localfd, buffer, len));
                 active_vector_up(&this.clients, active_vector_iterator_idx(iter));
             }
