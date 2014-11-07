@@ -20,7 +20,7 @@ typedef struct
     unsigned int    localip;
     unsigned char   netmask;
     char            dev_name[IFNAMSIZ];
-    active_vector_t clients; // ip => fd
+    active_vector_t clients;
 
     unsigned char   aes_key[32];
     unsigned int    aes_key_len;
@@ -32,6 +32,9 @@ typedef struct
 
     unsigned char   compress;
     unsigned char   encrypt;
+
+    unsigned char   keepalive;
+    unsigned int    last_keep;
 } this_t;
 
 extern this_t this;
@@ -48,10 +51,12 @@ typedef struct
 
     int           use_des;
     char*         des_key_file;
+    unsigned char keepalive;
 } library_conf_t;
 
 extern int library_init(library_conf_t conf);
 extern int compare_clients_by_fd(const void* d1, const size_t l1, const void* d2, const size_t l2);
 extern int compare_clients_by_ip(const void* d1, const size_t l1, const void* d2, const size_t l2);
+extern unsigned char netmask();
 
 #endif

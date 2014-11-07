@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "common.h"
@@ -26,6 +27,8 @@ do {\
         perror("system"); \
     } \
 } while (0)
+
+#define KEEPALIVE_TIMEOUT 30
 
 static ssize_t read_msg(int fd, msg_t** msg)
 {
@@ -213,6 +216,7 @@ int connect_server(char* ip, unsigned short port)
                 fprintf(stderr, "%s is inuse, but %s is not inuse\n", saddr, daddr);
                 goto end;
             }
+            this.netmask = mask;
             return fd;
         }
         fprintf(stderr, "read sys_login_reply message timeouted\n");
@@ -414,11 +418,9 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
         readen = read(localfd, buffer, sizeof(buffer));
         if (readen > 0)
         {
-            client_t client;
             ssize_t idx;
             ipHdr = (struct iphdr*)buffer;
-            client.ip = ipHdr->daddr;
-            idx = active_vector_lookup(&this.clients, compare_clients_by_ip, &client, sizeof(client));
+            idx = active_vector_lookup(&this.clients, compare_clients_by_ip, (void*)(long)ipHdr->daddr, sizeof(ipHdr->daddr));
             if (idx >= 0)
             {
                 client_t* client;
@@ -518,6 +520,14 @@ void client_loop(int remotefd, int localfd)
         FD_SET(remotefd, &set);
         FD_SET(localfd, &set);
         max = remotefd > localfd ? remotefd : localfd;
+
+        if (this.keepalive && (time(NULL) - this.last_keep) > KEEPALIVE_TIMEOUT)
+        {
+            msg_t* msg = new_keepalive_msg(1);
+            write_n(remotefd, msg, sizeof(msg_t));
+            printf("send keepalive\n");
+            free(msg);
+        }
 
         max = select(max + 1, &set, NULL, NULL, &tv);
         if (max > 0) client_process(max, &set, remotefd, localfd);

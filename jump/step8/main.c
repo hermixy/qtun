@@ -9,6 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "common.h"
 #include "library.h"
 #include "network.h"
 #include "main.h"
@@ -72,19 +73,19 @@ int main(int argc, char* argv[])
     struct in_addr a;
 
     struct option long_options[] = {
-        {"aes",     1, NULL, 'a'},
-        {"des",     1, NULL, 'd'},
-        {"gzip",    0, NULL, 'g'},
-        {"mask",    1, NULL, 'm'},
-        {"localip", 1, NULL, 'l'},
-        {"server",  1, NULL, 's'},
-        {"port",    1, NULL, 'p'},
-        {NULL,      0, NULL,   0}
+        {"aes",          1, NULL, 'a'},
+        {"des",          1, NULL, 'd'},
+        {"gzip",         0, NULL, 'g'},
+        {"no-keepalive", 0, NULL, 'k'},
+        {"mask",         1, NULL, 'm'},
+        {"localip",      1, NULL, 'l'},
+        {"server",       1, NULL, 's'},
+        {"port",         1, NULL, 'p'},
+        {NULL,           0, NULL,   0}
     };
     char short_options[512] = {0};
     longopt2shortopt(long_options, sizeof(long_options) / sizeof(struct option), short_options);
 
-    this.msg_ident    = 0;
     conf.localip      = 0;
     conf.netmask      = 24;
     conf.use_gzip     = 0;
@@ -92,6 +93,7 @@ int main(int argc, char* argv[])
     conf.aes_key_file = NULL;
     conf.use_des      = 0;
     conf.des_key_file = NULL;
+    conf.keepalive    = 1;
 
     while ((opt = getopt_long(argc, argv, short_options, long_options, NULL)) != -1)
     {
@@ -107,6 +109,9 @@ int main(int argc, char* argv[])
             break;
         case 'g':
             conf.use_gzip = 1;
+            break;
+        case 'k':
+            conf.keepalive = 0;
             break;
         case 'l':
             conf.localip = inet_addr(optarg);
@@ -159,10 +164,15 @@ int main(int argc, char* argv[])
     }
     else
     {
+        unsigned char mask;
         library_init(conf);
         remotefd = connect_server(ip, port);
         if (remotefd == -1) return 1;
         sprintf(cmd, "ifconfig %s %s up", this.dev_name, inet_ntoa(a));
+        SYSTEM(cmd);
+        mask = netmask();
+        a.s_addr = conf.localip & LEN2MASK(mask);
+        sprintf(cmd, "route add -net %s/%u dev %s", inet_ntoa(a), mask, this.dev_name);
         SYSTEM(cmd);
         client_loop(remotefd, localfd);
     }

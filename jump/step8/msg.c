@@ -371,6 +371,28 @@ end:
     return ret;
 }
 
+msg_t* new_keepalive_msg(unsigned char request)
+{
+    struct timeval tv;
+    msg_t* ret = malloc(sizeof(msg_t));
+    if (ret == NULL) goto end;
+    gettimeofday(&tv, NULL);
+
+    ret->syscontrol = 1;
+    ret->compress   = 0;
+    ret->encrypt    = 0;
+    ret->ident      = htonl(++this.msg_ident);
+    ret->sec        = htonl(tv.tv_sec);
+    ret->usec       = little32(tv.tv_usec);
+    ret->len        = 0;
+    ret->pfx        = 0;
+    ret->unused     = MAKE_SYS_OP(SYS_PING, request ? 1 : 0);
+    ret->checksum   = 0;
+    ret->checksum   = checksum(ret, sizeof(msg_t));
+end:
+    return ret;
+}
+
 int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len)
 {
     unsigned short src_len = msg_data_length(input);

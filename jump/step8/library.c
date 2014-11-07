@@ -17,10 +17,12 @@ int library_init(library_conf_t conf)
 
     init_msg_process_handler();
 
+    this.msg_ident = 0;
     this.localip  = conf.localip;
     this.compress = 0;
     this.encrypt  = 0;
     this.netmask  = conf.netmask;
+    this.last_keep = 0;
 
     active_vector_init(&this.clients, functor_clients);
 
@@ -93,5 +95,10 @@ inline int compare_clients_by_ip(const void* d1, const size_t l1, const void* d2
 {
     client_t *c1 = (client_t*)d1, *c2 = (client_t*)d2;
     return c1->ip == c2->ip;
+}
+
+inline unsigned char netmask()
+{
+    return this.netmask;
 }
 
