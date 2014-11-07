@@ -43,6 +43,11 @@ static ssize_t read_msg(int fd, msg_t** msg)
     *msg = realloc(*msg, sizeof(msg_t) + len);
     if (*msg == NULL) return -2;
     rc = read_n(fd, (*msg)->data, len);
+    if (rc <= 0 && len)
+    {
+        free(*msg);
+        return rc;
+    }
 
     if (checksum(*msg, sizeof(msg_t) + len))
     {
@@ -53,7 +58,7 @@ static ssize_t read_msg(int fd, msg_t** msg)
     }
 
     printf("read msg length: %lu\n", len);
-    return rc;
+    return rc + sizeof(msg_t);
 }
 
 static ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
@@ -69,7 +74,11 @@ static ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
     *msg = realloc(*msg, sizeof(msg_t) + len);
     if (*msg == NULL) return -2;
     rc = read_t(fd, (*msg)->data, len, timeout);
-    if (rc <= 0) return rc;
+    if (rc <= 0 && len)
+    {
+        free(*msg);
+        return rc;
+    }
 
     if (checksum(*msg, sizeof(msg_t) + len))
     {
@@ -80,7 +89,7 @@ static ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
     }
 
     printf("read msg length: %lu\n", len);
-    return rc;
+    return rc + sizeof(msg_t);
 }
 
 int tun_open(char name[IFNAMSIZ])
