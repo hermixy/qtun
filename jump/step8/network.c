@@ -28,7 +28,7 @@ do {\
     } \
 } while (0)
 
-#define KEEPALIVE_TIMEOUT 30
+#define KEEPALIVE_TIMEOUT 10
 
 static ssize_t read_msg(int fd, msg_t** msg)
 {
@@ -530,12 +530,12 @@ void client_loop(int remotefd, int localfd)
         FD_SET(localfd, &set);
         max = remotefd > localfd ? remotefd : localfd;
 
-        if (this.keepalive && (time(NULL) - this.last_keep) > KEEPALIVE_TIMEOUT)
+        if ((time(NULL) - this.keepalive) > KEEPALIVE_TIMEOUT)
         {
             msg_t* msg = new_keepalive_msg(1);
             write_n(remotefd, msg, sizeof(msg_t));
             printf("send keepalive message\n");
-            this.last_keep = time(NULL);
+            this.keepalive = time(NULL);
             free(msg);
         }
 

@@ -34,7 +34,6 @@ typedef struct
     unsigned char   encrypt;
 
     unsigned char   keepalive;
-    unsigned int    last_keep;
 } this_t;
 
 extern this_t this;

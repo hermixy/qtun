@@ -76,7 +76,6 @@ int main(int argc, char* argv[])
         {"aes",          1, NULL, 'a'},
         {"des",          1, NULL, 'd'},
         {"gzip",         0, NULL, 'g'},
-        {"no-keepalive", 0, NULL, 'k'},
         {"mask",         1, NULL, 'm'},
         {"localip",      1, NULL, 'l'},
         {"server",       1, NULL, 's'},
@@ -109,9 +108,6 @@ int main(int argc, char* argv[])
             break;
         case 'g':
             conf.use_gzip = 1;
-            break;
-        case 'k':
-            conf.keepalive = 0;
             break;
         case 'l':
             conf.localip = inet_addr(optarg);
