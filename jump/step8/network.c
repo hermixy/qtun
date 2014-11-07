@@ -515,7 +515,7 @@ void client_loop(int remotefd, int localfd)
     int max;
     while (1)
     {
-        struct timeval tv = {60, 0};
+        struct timeval tv = {KEEPALIVE_TIMEOUT, 0};
         FD_ZERO(&set);
         FD_SET(remotefd, &set);
         FD_SET(localfd, &set);
@@ -525,7 +525,8 @@ void client_loop(int remotefd, int localfd)
         {
             msg_t* msg = new_keepalive_msg(1);
             write_n(remotefd, msg, sizeof(msg_t));
-            printf("send keepalive\n");
+            printf("send keepalive message\n");
+            this.last_keep = time(NULL);
             free(msg);
         }
 

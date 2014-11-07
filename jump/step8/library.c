@@ -22,6 +22,7 @@ int library_init(library_conf_t conf)
     this.compress = 0;
     this.encrypt  = 0;
     this.netmask  = conf.netmask;
+    this.keepalive = conf.keepalive;
     this.last_keep = 0;
 
     active_vector_init(&this.clients, functor_clients);
