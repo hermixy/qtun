@@ -12,6 +12,7 @@ typedef struct
 {
     int          fd;
     unsigned int ip;
+    unsigned int keepalive;
 } client_t;
 
 typedef struct
@@ -34,6 +35,7 @@ typedef struct
     unsigned char   encrypt;
 
     unsigned int    keepalive;
+    unsigned char   keepalive_replyed;
 } this_t;
 
 extern this_t this;

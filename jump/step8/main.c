@@ -14,15 +14,6 @@
 #include "network.h"
 #include "main.h"
 
-#define SYSTEM(cmd) \
-do {\
-    if (system(cmd) == -1) \
-    { \
-        perror("system"); \
-        exit(1); \
-    } \
-} while (0)
-
 static void crash_sig(int signum)
 {
     void* array[10];
@@ -155,7 +146,7 @@ int main(int argc, char* argv[])
         remotefd = bind_and_listen(port);
         if (remotefd == -1) return 1;
         sprintf(cmd, "ifconfig %s %s/%u up", this.dev_name, inet_ntoa(a), conf.netmask);
-        SYSTEM(cmd);
+        SYSTEM_EXIT(cmd);
         server_loop(remotefd, localfd);
     }
     else
@@ -165,11 +156,11 @@ int main(int argc, char* argv[])
         remotefd = connect_server(ip, port);
         if (remotefd == -1) return 1;
         sprintf(cmd, "ifconfig %s %s up", this.dev_name, inet_ntoa(a));
-        SYSTEM(cmd);
+        SYSTEM_EXIT(cmd);
         mask = netmask();
         a.s_addr = conf.localip & LEN2MASK(mask);
         sprintf(cmd, "route add -net %s/%u dev %s", inet_ntoa(a), mask, this.dev_name);
-        SYSTEM(cmd);
+        SYSTEM_EXIT(cmd);
         client_loop(remotefd, localfd);
     }
     return 0;

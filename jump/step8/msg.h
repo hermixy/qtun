@@ -23,6 +23,7 @@
 #define CHECK_SYS_OP(src, op, req) (((src >> 1) & MSG_OP_MASK) == op && (src & 1) == req)
 #define GET_SYS_OP(src) ((src >> 1) & MSG_OP_MASK)
 #define IS_SYS_REQUEST(src) (src & 1)
+#define IS_SYS_REPLY(src) ((src & 1) == 0)
 
 #define SYS_MSG_CHECK "for sys msg check"
 

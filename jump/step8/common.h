@@ -16,6 +16,23 @@
     b = _a; \
 })
 
+#define SYSTEM_NORMAL(cmd) \
+do {\
+    if (system(cmd) == -1) \
+    { \
+        perror("system"); \
+    } \
+} while (0)
+
+#define SYSTEM_EXIT(cmd) \
+do {\
+    if (system(cmd) == -1) \
+    { \
+        perror("system"); \
+        exit(1); \
+    } \
+} while (0)
+
 extern unsigned short checksum(void* buffer, size_t len);
 
 extern size_t fd_hash(const void* fd, const size_t len);
