@@ -8,9 +8,6 @@
 #include "link.h"
 #include "msg.h"
 
-#define SERVER_AUTH_MSG "Who are you"
-#define CLIENT_AUTH_MSG "I am 0000"
-
 #define UNCOMPRESSED       0
 #define COMPRESS_WITH_GZIP 1
 

@@ -5,7 +5,6 @@
 
 #define SYS_LOGIN                    1 // req带本地虚拟IP，服务端收到req时查看IP是否存在，并挑一个未被使用的IP返回
 #define SYS_PING                     2 // 不带data
-#define SYS_ARP                      3 // req中count为0，rep返回IP列表
 
 #define MSG_PROCESS_COMPRESS_HANDLER 1
 #define MSG_PROCESS_ENCRYPT_HANDLER  2
@@ -48,13 +47,6 @@ typedef struct
     unsigned int  ip;
     unsigned char mask;
 } sys_login_msg_t;
-
-typedef struct
-{
-    unsigned char  check[2];
-    unsigned short count;
-    unsigned int   ips[];
-} sys_arp_msg_t;
 
 typedef struct
 {

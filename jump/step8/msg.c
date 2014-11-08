@@ -19,7 +19,6 @@ static unsigned char syscontrol_cmds[] = {
     /* op, request_mask, reply_mask */
     SYSCONTROL_MASK(SYS_LOGIN, 1, 1),
     SYSCONTROL_MASK(SYS_PING,  0, 0),
-    SYSCONTROL_MASK(SYS_ARP,   0, 1),
 };
 
 inline int find_cmd(unsigned char op, unsigned char masks[2])
