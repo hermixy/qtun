@@ -159,6 +159,7 @@ void client_loop(int remotefd, int localfd)
             write_n(remotefd, msg, sizeof(msg_t));
             printf("send keepalive message\n");
             this.keepalive = time(NULL);
+            this.keepalive_replyed = 0;
             free(msg);
         }
 

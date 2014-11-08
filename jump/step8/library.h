@@ -52,7 +52,6 @@ typedef struct
 
     int           use_des;
     char*         des_key_file;
-    unsigned char keepalive;
 } library_conf_t;
 
 extern int library_init(library_conf_t conf);

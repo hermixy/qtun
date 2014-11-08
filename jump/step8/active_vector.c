@@ -111,8 +111,7 @@ int active_vector_del(active_vector_t* v, size_t idx)
 {
     if (idx >= active_vector_count(v)) return 0;
     if (v->functor.free) v->functor.free(v->elements[idx].data, v->elements[idx].len);
-    memmove(&v->elements[idx], &v->elements[idx + 1], sizeof(active_vector_node_t) * (active_vector_count(v) - idx - 1));
-    --v->count;
+    if (--v->count) memmove(&v->elements[idx], &v->elements[idx + 1], sizeof(active_vector_node_t) * (active_vector_count(v) - idx - 1));
     return 1;
 }
 

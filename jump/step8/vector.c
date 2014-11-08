@@ -86,7 +86,7 @@ int vector_pop_head(vector_t* v, void** data, size_t* len)
     if (v->count == 0) return 0;
     *data = v->elements[0].data;
     *len = v->elements[0].len;
-    memmove(&v->elements, &v->elements[1], sizeof(vector_node_t) * v->count);
+    memmove(v->elements, v->elements + 1, sizeof(vector_node_t) * v->count);
     --v->count;
     return 1;
 }

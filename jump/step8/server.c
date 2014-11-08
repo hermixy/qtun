@@ -197,11 +197,11 @@ static void server_process_sys(client_t* client, msg_t* msg, const void* buffer,
     }
 }
 
-static void remove_clients(vector_t v, const char* pfx)
+static void remove_clients(vector_t* v, const char* pfx)
 {
     void* tmp;
     size_t tmp_len;
-    while (vector_pop_back(&v, &tmp, &tmp_len))
+    while (vector_pop_back(v, &tmp, &tmp_len))
     {
         client_t* client;
         char cmd[128];
@@ -258,7 +258,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
         }
         iter = active_vector_next(iter);
     }
-    remove_clients(v, "closed by");
+    remove_clients(&v, "closed by");
     vector_free(&v);
     if (FD_ISSET(localfd, set))
     {
@@ -327,7 +327,7 @@ void server_loop(int remotefd, int localfd)
                 vector_push_back(&v, (void*)(long)active_vector_iterator_idx(iter), sizeof(active_vector_iterator_idx(iter)));
             iter = active_vector_next(iter);
         }
-        remove_clients(v, "keepalive timeouted");
+        remove_clients(&v, "keepalive timeouted");
     }
     vector_free(&v);
 }

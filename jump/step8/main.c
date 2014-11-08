@@ -83,7 +83,6 @@ int main(int argc, char* argv[])
     conf.aes_key_file = NULL;
     conf.use_des      = 0;
     conf.des_key_file = NULL;
-    conf.keepalive    = 1;
 
     while ((opt = getopt_long(argc, argv, short_options, long_options, NULL)) != -1)
     {
