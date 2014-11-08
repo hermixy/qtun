@@ -4,7 +4,9 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
+#include "common.h"
 #include "network.h"
 
 ssize_t read_msg(int fd, msg_t** msg)
