@@ -156,7 +156,7 @@ ssize_t read_t(int fd, void* buf, size_t count, double timeout)
     size_t left = count;
     FD_ZERO(&set);
     FD_SET(fd, &set);
-    while (tv.tv_sec && tv.tv_usec)
+    while (tv.tv_sec || tv.tv_usec)
     {
         ssize_t readen;
         rc = select(fd + 1, &set, NULL, NULL, &tv);
