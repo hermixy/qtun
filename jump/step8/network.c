@@ -170,7 +170,11 @@ ssize_t read_t(int fd, void* buf, size_t count, double timeout)
         default:
             readen = read(fd, ptr, left);
             if (readen <= 0) return readen;
+            left -= readen;
+            if (left == 0) return count;
             break;
         }
     }
+    errno = EAGAIN;
+    return -1;
 }
