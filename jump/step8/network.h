@@ -27,8 +27,8 @@ extern ssize_t write_n(int fd, const void* buf, size_t count);
 extern ssize_t read_t(int fd, void* buf, size_t count, double timeout);
 
 #define LOGIN_TIMEOUT      5
-#define KEEPALIVE_INTERVAL 10
-#define KEEPALIVE_TIMEOUT  5
-#define KEEPALIVE_LIMIT    13 // 10 * 4 / 3
+#define KEEPALIVE_INTERVAL 30
+#define KEEPALIVE_TIMEOUT  10
+#define KEEPALIVE_LIMIT    40 // 10 * 4 / 3
 
 #endif

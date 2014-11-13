@@ -98,6 +98,7 @@ static void remove_clients(vector_t* v, const char* pfx)
         a.s_addr = client->ip;
         sprintf(ip, "%s", inet_ntoa(a));
         printf("%s: %s\n", pfx, ip);
+        close(client->fd);
         active_vector_del(&this.clients, (size_t)tmp);
     }
 }
