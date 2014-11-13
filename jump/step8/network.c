@@ -152,7 +152,7 @@ ssize_t read_t(int fd, void* buf, size_t count, double timeout)
     fd_set set;
     struct timeval tv = {(long)timeout, (long)(timeout * 1000000) % 1000000};
     int rc;
-    void* ptr;
+    void* ptr = buf;
     size_t left = count;
     FD_ZERO(&set);
     FD_SET(fd, &set);
@@ -169,7 +169,8 @@ ssize_t read_t(int fd, void* buf, size_t count, double timeout)
             return -1;
         default:
             readen = read(fd, ptr, left);
-            if (readen <= 0) return readen;
+            if (readen < 0) return readen;
+            ptr += readen;
             left -= readen;
             if (left == 0) return count;
             break;
