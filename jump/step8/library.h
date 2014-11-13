@@ -8,11 +8,16 @@
 
 #include "active_vector.h"
 
+#define CLIENT_STATUS_UNKNOWN    0
+#define CLIENT_STATUS_CHECKLOGIN 1
+#define CLIENT_STATUS_NORMAL     255
+
 typedef struct
 {
-    int          fd;
-    unsigned int ip;
-    unsigned int keepalive;
+    int           fd;
+    unsigned int  ip;
+    unsigned char status;
+    unsigned int  keepalive;
 } client_t;
 
 typedef struct

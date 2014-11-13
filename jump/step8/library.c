@@ -88,15 +88,16 @@ int library_init(library_conf_t conf)
 
 inline int compare_clients_by_fd(const void* d1, const size_t l1, const void* d2, const size_t l2)
 {
-    client_t *c1 = (client_t*)d1, *c2 = (client_t*)d2;
-    return c1->fd == c2->fd;
+    client_t *c1 = (client_t*)d1;
+    int fd = (long)d2;
+    return c1->fd == fd;
 }
 
 inline int compare_clients_by_ip(const void* d1, const size_t l1, const void* d2, const size_t l2)
 {
     client_t* client = (client_t*)d1;
     unsigned int ip = (unsigned long)d2;
-    return client->ip == ip;
+    return client->status == CLIENT_STATUS_NORMAL && client->ip == ip;
 }
 
 inline unsigned char netmask()
