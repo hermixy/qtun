@@ -17,7 +17,12 @@ ssize_t read_msg(int fd, msg_t** msg)
     *msg = malloc(sizeof(msg_t));
     if (*msg == NULL) return -2;
     rc = read_n(fd, *msg, sizeof(**msg));
-    if (rc <= 0) return rc;
+    if (rc <= 0)
+    {
+        free(*msg);
+        *msg = NULL;
+        return rc;
+    }
     len = msg_data_length(*msg);
     *msg = realloc(*msg, sizeof(msg_t) + len);
     if (*msg == NULL) return -2;
@@ -25,6 +30,7 @@ ssize_t read_msg(int fd, msg_t** msg)
     if (rc <= 0 && len)
     {
         free(*msg);
+        *msg = NULL;
         return rc;
     }
 
@@ -48,7 +54,12 @@ ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
     *msg = malloc(sizeof(msg_t));
     if (*msg == NULL) return -2;
     rc = read_t(fd, *msg, sizeof(**msg), timeout);
-    if (rc <= 0) return rc;
+    if (rc <= 0)
+    {
+        free(*msg);
+        *msg = NULL;
+        return rc;
+    }
     len = msg_data_length(*msg);
     *msg = realloc(*msg, sizeof(msg_t) + len);
     if (*msg == NULL) return -2;
@@ -56,6 +67,7 @@ ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
     if (rc <= 0 && len)
     {
         free(*msg);
+        *msg = NULL;
         return rc;
     }
 
