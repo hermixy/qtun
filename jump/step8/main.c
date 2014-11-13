@@ -146,6 +146,8 @@ int main(int argc, char* argv[])
         if (remotefd == -1) return 1;
         sprintf(cmd, "ifconfig %s %s/%u up", this.dev_name, inet_ntoa(a), conf.netmask);
         SYSTEM_EXIT(cmd);
+        sprintf(cmd, "route add -net %s/%u dev %s", inet_ntoa(a), conf.netmask, this.dev_name);
+        SYSTEM_EXIT(cmd);
         server_loop(remotefd, localfd);
     }
     else

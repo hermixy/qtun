@@ -92,15 +92,12 @@ static void remove_clients(vector_t* v, const char* pfx)
     while (vector_pop_back(v, &tmp, &tmp_len))
     {
         client_t* client;
-        char cmd[128];
         char ip[16];
         struct in_addr a;
         active_vector_get(&this.clients, (size_t)tmp, (void**)&client, &tmp_len);
         a.s_addr = client->ip;
         sprintf(ip, "%s", inet_ntoa(a));
         printf("%s: %s\n", pfx, ip);
-        sprintf(cmd, "route del %s dev %s", ip, this.dev_name);
-        SYSTEM_NORMAL(cmd);
         active_vector_del(&this.clients, (size_t)tmp);
     }
 }
@@ -201,7 +198,6 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
     }
     else
     {
-        char cmd[1024];
         struct in_addr a = {login->ip};
         new_msg = new_login_msg(login->ip, this.netmask, 0);
         if (new_msg == NULL)
@@ -213,8 +209,6 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         client->ip = login->ip;
         client->status = CLIENT_STATUS_NORMAL;
         client->keepalive = time(NULL);
-        sprintf(cmd, "route add %s dev %s", inet_ntoa(a), this.dev_name);
-        SYSTEM_NORMAL(cmd);
         write_n(client->fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
         free(new_msg);
     }
