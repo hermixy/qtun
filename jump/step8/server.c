@@ -198,7 +198,6 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
     }
     else
     {
-        struct in_addr a = {login->ip};
         new_msg = new_login_msg(login->ip, this.netmask, 0);
         if (new_msg == NULL)
         {
