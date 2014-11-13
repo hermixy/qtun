@@ -213,14 +213,6 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         client->ip = login->ip;
         client->status = CLIENT_STATUS_NORMAL;
         client->keepalive = time(NULL);
-        if (!active_vector_append(&this.clients, client, sizeof(*client)))
-        {
-            fprintf(stderr, "set to hash_ip error\n");
-            free(new_msg);
-            free(client);
-            close_client(for_del, idx);
-            goto end;
-        }
         sprintf(cmd, "route add %s dev %s", inet_ntoa(a), this.dev_name);
         SYSTEM_NORMAL(cmd);
         write_n(client->fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
