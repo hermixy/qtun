@@ -160,12 +160,13 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
                     {
                         this.client.status = (this.client.status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
                         this.client.want = len;
-                        this.client.buffer = this.client.read = realloc(this.client.buffer, this.client.want);
+                        this.client.buffer = realloc(this.client.buffer, this.client.want);
                         if (this.client.buffer == NULL)
                         {
                             fprintf(stderr, "Not enough memory\n");
                             exit(1);
                         }
+                        this.client.read = ((msg_t*)this.client.buffer)->data;
                     }
                     else process_msg((msg_t*)this.client.buffer, localfd);
                 }

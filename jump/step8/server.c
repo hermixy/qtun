@@ -284,12 +284,13 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                         {
                             client->status = (client->status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
                             client->want = len;
-                            client->buffer = client->read = realloc(client->buffer, client->want);
+                            client->buffer = realloc(client->buffer, client->want);
                             if (client->buffer == NULL)
                             {
                                 fprintf(stderr, "Not enough memory\n");
                                 vector_push_back(&v, (void*)(long)active_vector_iterator_idx(iter), sizeof(active_vector_iterator_idx(iter)));
                             }
+                            client->read = ((msg_t*)client->buffer)->data;
                         }
                         else process_msg(client, (msg_t*)client->buffer, localfd, &v, active_vector_iterator_idx(iter));
                     }
