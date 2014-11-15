@@ -269,6 +269,8 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
             ssize_t rc = read_pre(client->fd, client->read, client->want);
             if (rc <= 0)
             {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) goto end;
+                perror("read");
                 vector_push_back(&v, (void*)(long)active_vector_iterator_idx(iter), sizeof(active_vector_iterator_idx(iter)));
             }
             else
@@ -298,6 +300,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                 }
             }
         }
+end:
         iter = active_vector_next(iter);
     }
     remove_clients(&v, "closed");
@@ -343,7 +346,7 @@ void server_loop(int remotefd, int localfd)
     vector_init(&v, f);
     while (1)
     {
-        struct timeval tv = {3, 0};
+        struct timeval tv = {1, 0};
         active_vector_iterator_t iter;
 
         FD_ZERO(&set);

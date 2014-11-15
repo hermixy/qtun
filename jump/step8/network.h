@@ -28,7 +28,7 @@ extern ssize_t read_pre(int fd, void* buf, size_t count);
 
 #define LOGIN_TIMEOUT      5
 #define KEEPALIVE_INTERVAL 30
-#define KEEPALIVE_TIMEOUT  10
+#define KEEPALIVE_TIMEOUT  25
 #define KEEPALIVE_LIMIT    40 // 10 * 4 / 3
 
 #endif

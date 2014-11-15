@@ -144,7 +144,9 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
         ssize_t rc = read_pre(remotefd, this.client.read, this.client.want);
         if (rc <= 0)
         {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) return;
             fprintf(stderr, "read error\n");
+            perror("read");
             exit(1);
         }
         else
@@ -173,25 +175,6 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
                 else process_msg((msg_t*)this.client.buffer, localfd);
             }
         }
-        /*int sys;
-        void* buffer;
-        unsigned short len;
-
-        msg = NULL;
-        buffer = NULL;
-        if (read_msg(remotefd, &msg) > 0 && parse_msg(msg, &sys, &buffer, &len))
-        {
-            if (sys) client_process_sys(msg, buffer, len);
-            else printf("write local length: %ld\n", write_n(localfd, buffer, len));
-        }
-        else
-        {
-            fprintf(stderr, "read error\n");
-            close(remotefd);
-            exit(1);
-        }
-        if (msg) free(msg);
-        if (buffer) free(buffer);*/
     }
 }
 
@@ -209,7 +192,7 @@ void client_loop(int remotefd, int localfd)
     }
     while (1)
     {
-        struct timeval tv = {3, 0};
+        struct timeval tv = {1, 0};
         FD_ZERO(&set);
         FD_SET(remotefd, &set);
         FD_SET(localfd, &set);
