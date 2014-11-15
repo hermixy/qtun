@@ -142,7 +142,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
     void* data = NULL;
     unsigned short len;
 
-    if (client->status != CLIENT_STATUS_CHECKLOGIN)
+    if (!IS_CLIENT_STATUS_CHECKLOGIN(client->status))
     {
         fprintf(stderr, "Invalid status, want(%d) current(%d)\n", CLIENT_STATUS_CHECKLOGIN, client->status);
         close_client(for_del, idx);
