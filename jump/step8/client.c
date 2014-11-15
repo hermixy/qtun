@@ -97,6 +97,28 @@ static void client_process_sys(msg_t* msg, const void* buffer, const size_t len)
     }
 }
 
+static void process_msg(msg_t* msg, int localfd)
+{
+    void* buffer = NULL;
+    unsigned short len;
+    int sys;
+
+    if (parse_msg(msg, &sys, &buffer, &len))
+    {
+        if (sys) client_process_sys(msg, buffer, len);
+        else printf("write local length: %ld\n", write_n(localfd, buffer, len));
+    }
+    else
+    {
+        fprintf(stderr, "Parse message error\n");
+        return;
+    }
+    if (buffer) free(buffer);
+    this.client.status = (this.client.status & ~CLIENT_STATUS_WAITING_BODY) | CLIENT_STATUS_WAITING_HEADER;
+    this.client.want = sizeof(msg_t);
+    this.client.read = this.client.buffer;
+}
+
 static void client_process(int max, fd_set* set, int remotefd, int localfd)
 {
     msg_t* msg;
@@ -119,7 +141,38 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
     }
     if (FD_ISSET(remotefd, set))
     {
-        int sys;
+        ssize_t rc = read_pre(remotefd, this.client.read, this.client.want);
+        if (rc <= 0)
+        {
+            fprintf(stderr, "read error\n");
+            exit(1);
+        }
+        else
+        {
+            this.client.read += rc;
+            this.client.want -= rc;
+            if (this.client.want == 0)
+            {
+                if (IS_CLIENT_STATUS_WAITING_HEADER(this.client.status))
+                {
+                    size_t len = msg_data_length((msg_t*)this.client.buffer);
+                    if (len)
+                    {
+                        this.client.status = (this.client.status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
+                        this.client.want = len;
+                        this.client.buffer = this.client.read = realloc(this.client.buffer, this.client.want);
+                        if (this.client.buffer == NULL)
+                        {
+                            fprintf(stderr, "Not enough memory\n");
+                            exit(1);
+                        }
+                    }
+                    else process_msg((msg_t*)this.client.buffer, localfd);
+                }
+                else process_msg((msg_t*)this.client.buffer, localfd);
+            }
+        }
+        /*int sys;
         void* buffer;
         unsigned short len;
 
@@ -137,7 +190,7 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
             exit(1);
         }
         if (msg) free(msg);
-        if (buffer) free(buffer);
+        if (buffer) free(buffer);*/
     }
 }
 
@@ -145,6 +198,14 @@ void client_loop(int remotefd, int localfd)
 {
     fd_set set;
     int max;
+    this.client.status = CLIENT_STATUS_NORMAL | CLIENT_STATUS_WAITING_HEADER;
+    this.client.want = sizeof(msg_t);
+    this.client.buffer = this.client.read = malloc(this.client.want);
+    if (this.client.buffer == NULL)
+    {
+        fprintf(stderr, "Not enough memory\n");
+        return;
+    }
     while (1)
     {
         struct timeval tv = {3, 0};

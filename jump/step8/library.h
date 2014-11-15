@@ -36,7 +36,6 @@ typedef struct
     unsigned int    localip;
     unsigned char   netmask;
     char            dev_name[IFNAMSIZ];
-    active_vector_t clients;
 
     unsigned char   aes_key[32];
     unsigned int    aes_key_len;
@@ -49,6 +48,11 @@ typedef struct
     unsigned char   compress;
     unsigned char   encrypt;
 
+    // for server
+    active_vector_t clients;
+
+    // for client
+    client_t        client;
     unsigned int    keepalive;
     unsigned char   keepalive_replyed;
 } this_t;

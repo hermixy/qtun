@@ -20,7 +20,6 @@ extern int bind_and_listen(unsigned short port);
 extern int connect_server(char* ip, unsigned short port);
 extern void server_loop(int remotefd, int localfd);
 extern void client_loop(int remotefd, int localfd);
-extern ssize_t read_msg(int fd, msg_t** msg);
 extern ssize_t read_msg_t(int fd, msg_t** msg, double timeout);
 extern ssize_t read_n(int fd, void* buf, size_t count);
 extern ssize_t write_n(int fd, const void* buf, size_t count);

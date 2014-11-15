@@ -76,10 +76,19 @@ static void accept_and_check(int bindfd)
 
     client->fd = fd;
     client->keepalive = time(NULL);
-    client->status = CLIENT_STATUS_CHECKLOGIN;
+    client->status = CLIENT_STATUS_CHECKLOGIN | CLIENT_STATUS_WAITING_HEADER;
+    client->want = sizeof(msg_t);
+    client->buffer = client->read = malloc(client->want);
+    if (client->buffer == NULL)
+    {
+        fprintf(stderr, "Not enough memory\n");
+        free(client);
+        close(fd);
+        return;
+    }
     if (!active_vector_append(&this.clients, client, sizeof(*client)))
     {
-        fprintf(stderr, "set to hash_ip error\n");
+        fprintf(stderr, "append to clients error\n");
         free(client);
         close(fd);
     }
@@ -216,6 +225,28 @@ end:
     if (data) free(data);
 }
 
+static void process_msg(client_t* client, msg_t* msg, int localfd, vector_t* for_del, size_t idx)
+{
+    void* buffer = NULL;
+    unsigned short len;
+    int sys;
+
+    if (msg->syscontrol && CHECK_SYS_OP(msg->unused, SYS_LOGIN, 1))
+    {
+        server_process_login(client, msg, idx, for_del);
+    }
+    else if (parse_msg(msg, &sys, &buffer, &len))
+    {
+        if (sys) server_process_sys(client, msg, buffer, len);
+        else printf("write local length: %ld\n", write_n(localfd, buffer, len));
+        active_vector_up(&this.clients, idx);
+    }
+    if (buffer) free(buffer);
+    client->status = (client->status & ~CLIENT_STATUS_WAITING_BODY) | CLIENT_STATUS_WAITING_HEADER;
+    client->want = sizeof(msg_t);
+    client->read = client->buffer;
+}
+
 static void server_process(int max, fd_set* set, int remotefd, int localfd)
 {
     msg_t* msg;
@@ -232,32 +263,39 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     vector_init(&v, f);
     while (!active_vector_is_end(iter))
     {
-        void* buffer;
-        unsigned short len;
-        int sys;
         client_t* client = iter.data;
         if (FD_ISSET(client->fd, set))
         {
-            ssize_t rc;
-            msg = NULL;
-            buffer = NULL;
-            rc = read_msg(client->fd, &msg);
-            if (rc == 0)
+            ssize_t rc = read_pre(client->fd, client->read, client->want);
+            if (rc <= 0)
             {
                 vector_push_back(&v, (void*)(long)active_vector_iterator_idx(iter), sizeof(active_vector_iterator_idx(iter)));
             }
-            else if (rc > 0 && msg->syscontrol && CHECK_SYS_OP(msg->unused, SYS_LOGIN, 1))
+            else
             {
-                server_process_login(client, msg, active_vector_iterator_idx(iter), &v);
+                client->read += rc;
+                client->want -= rc;
+                if (client->want == 0)
+                {
+                    if (IS_CLIENT_STATUS_WAITING_HEADER(client->status))
+                    {
+                        size_t len = msg_data_length((msg_t*)client->buffer);
+                        if (len)
+                        {
+                            client->status = (client->status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
+                            client->want = len;
+                            client->buffer = client->read = realloc(client->buffer, client->want);
+                            if (client->buffer == NULL)
+                            {
+                                fprintf(stderr, "Not enough memory\n");
+                                vector_push_back(&v, (void*)(long)active_vector_iterator_idx(iter), sizeof(active_vector_iterator_idx(iter)));
+                            }
+                        }
+                        else process_msg(client, (msg_t*)client->buffer, localfd, &v, active_vector_iterator_idx(iter));
+                    }
+                    else process_msg(client, (msg_t*)client->buffer, localfd, &v, active_vector_iterator_idx(iter));
+                }
             }
-            else if (rc > 0 && parse_msg(msg, &sys, &buffer, &len))
-            {
-                if (sys) server_process_sys(client, msg, buffer, len);
-                else printf("write local length: %ld\n", write_n(localfd, buffer, len));
-                active_vector_up(&this.clients, active_vector_iterator_idx(iter));
-            }
-            if (msg) free(msg);
-            if (buffer) free(buffer);
         }
         iter = active_vector_next(iter);
     }
@@ -327,16 +365,15 @@ void server_loop(int remotefd, int localfd)
         while (!active_vector_is_end(iter))
         {
             client_t* client = (client_t*)iter.data;
-            switch (client->status)
+            if (IS_CLIENT_STATUS_CHECKLOGIN(client->status))
             {
-            case CLIENT_STATUS_CHECKLOGIN:
                 if ((time(NULL) - client->keepalive) > LOGIN_TIMEOUT)
                     vector_push_back(&v, (void*)(long)active_vector_iterator_idx(iter), sizeof(active_vector_iterator_idx(iter)));
-                break;
-            case CLIENT_STATUS_NORMAL:
+            }
+            else if (IS_CLIENT_STATUS_NORMAL(client->status))
+            {
                 if ((time(NULL) - ((client_t*)iter.data)->keepalive) > KEEPALIVE_LIMIT)
                     vector_push_back(&v, (void*)(long)active_vector_iterator_idx(iter), sizeof(active_vector_iterator_idx(iter)));
-                break;
             }
             iter = active_vector_next(iter);
         }
