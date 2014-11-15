@@ -54,6 +54,7 @@ int main(int argc, char* argv[])
 {
     signal(SIGSEGV, crash_sig);
     signal(SIGABRT, crash_sig);
+    signal(SIGPIPE, SIG_IGN);
 
     char cmd[1024];
     int localfd, remotefd;
