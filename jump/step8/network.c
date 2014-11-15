@@ -179,3 +179,9 @@ ssize_t read_t(int fd, void* buf, size_t count, double timeout)
     errno = EAGAIN;
     return -1;
 }
+
+inline ssize_t read_pre(int fd, void* buf, size_t count)
+{
+    return read(fd, buf, count);
+}
+

@@ -8,16 +8,26 @@
 
 #include "active_vector.h"
 
-#define CLIENT_STATUS_UNKNOWN    0
-#define CLIENT_STATUS_CHECKLOGIN 1
-#define CLIENT_STATUS_NORMAL     255
+#define CLIENT_STATUS_UNKNOWN        0
+#define CLIENT_STATUS_CHECKLOGIN     1
+#define CLIENT_STATUS_NORMAL         2
+#define CLIENT_STATUS_WAITING_HEADER 64
+#define CLIENT_STATUS_WAITING_BODY   128
+
+#define IS_CLIENT_STATUS_CHECKLOGIN(status)     (status & CLIENT_STATUS_CHECKLOGIN)
+#define IS_CLIENT_STATUS_NORMAL(status)         (status & CLIENT_STATUS_NORMAL)
+#define IS_CLIENT_STATUS_WAITING_HEADER(status) (status & CLIENT_STATUS_WAITING_HEADER)
+#define IS_CLIENT_STATUS_WAITING_BODY(status)   (status & CLIENT_STATUS_WAITING_BODY)
 
 typedef struct
 {
-    int           fd;
-    unsigned int  ip;
-    unsigned char status;
-    unsigned int  keepalive;
+    int            fd;
+    unsigned int   ip;
+    unsigned char  status;
+    unsigned char* buffer;
+    unsigned char* read;
+    size_t         want;
+    unsigned int   keepalive;
 } client_t;
 
 typedef struct
