@@ -97,7 +97,7 @@ inline int compare_clients_by_ip(const void* d1, const size_t l1, const void* d2
 {
     client_t* client = (client_t*)d1;
     unsigned int ip = (unsigned long)d2;
-    return client->status == CLIENT_STATUS_NORMAL && client->ip == ip;
+    return IS_CLIENT_STATUS_NORMAL(client->status) && client->ip == ip;
 }
 
 inline unsigned char netmask()
