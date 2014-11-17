@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <linux/ip.h>
+#include <errno.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
