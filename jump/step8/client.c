@@ -198,6 +198,7 @@ void client_loop(int remotefd, int localfd)
         fprintf(stderr, "Not enough memory\n");
         return;
     }
+    this.keepalive_replyed = 1;
     while (1)
     {
         struct timeval tv = {1, 0};
@@ -206,7 +207,7 @@ void client_loop(int remotefd, int localfd)
         FD_SET(localfd, &set);
         max = remotefd > localfd ? remotefd : localfd;
 
-        if ((time(NULL) - this.keepalive) > KEEPALIVE_INTERVAL)
+        if (this.keepalive_replyed && (time(NULL) - this.keepalive) > KEEPALIVE_INTERVAL)
         {
             msg_t* msg = new_keepalive_msg(1);
             write_n(remotefd, msg, sizeof(msg_t));
