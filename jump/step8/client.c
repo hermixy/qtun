@@ -192,6 +192,7 @@ void client_loop(int remotefd, int localfd)
     this.client.status = CLIENT_STATUS_NORMAL | CLIENT_STATUS_WAITING_HEADER;
     this.client.want = sizeof(msg_t);
     this.client.buffer = this.client.read = malloc(this.client.want);
+    int keepalive_send = 0;
     if (this.client.buffer == NULL)
     {
         fprintf(stderr, "Not enough memory\n");
@@ -213,12 +214,13 @@ void client_loop(int remotefd, int localfd)
             this.keepalive = time(NULL);
             this.keepalive_replyed = 0;
             free(msg);
+            keepalive_send = 1;
         }
 
         max = select(max + 1, &set, NULL, NULL, &tv);
         if (max > 0) client_process(max, &set, remotefd, localfd);
 
-        if (!this.keepalive_replyed && (time(NULL) - this.keepalive) > KEEPALIVE_TIMEOUT)
+        if (keepalive_send && !this.keepalive_replyed && (time(NULL) - this.keepalive) > KEEPALIVE_TIMEOUT)
         {
             fprintf(stderr, "keepalive reply timeouted, connection closed\n");
             exit(1);
