@@ -74,6 +74,7 @@ int connect_server(char* ip, unsigned short port)
                 goto end;
             }
             this.netmask = mask;
+            this.keepalive = time(NULL);
             return fd;
         }
         fprintf(stderr, "read sys_login_reply message timeouted\n");
@@ -143,7 +144,12 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
     if (FD_ISSET(remotefd, set))
     {
         ssize_t rc = read_pre(remotefd, this.client.read, this.client.want);
-        if (rc <= 0)
+        if (rc == 0)
+        {
+            fprintf(stderr, "connection closed\n");
+            exit(1);
+        }
+        else if (rc < 0)
         {
             if (errno == EAGAIN || errno == EWOULDBLOCK) return;
             fprintf(stderr, "read error\n");
