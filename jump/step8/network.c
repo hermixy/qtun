@@ -109,25 +109,6 @@ int tun_open(char name[IFNAMSIZ])
     return fd;
 }
 
-ssize_t read_n(int fd, void* buf, size_t count)
-{
-    char* ptr = buf;
-    size_t left = count;
-    while (left)
-    {
-        ssize_t readen = read(fd, ptr, left);
-        if (readen == 0) return 0;
-        else if (readen == -1)
-        {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
-            return -1;
-        }
-        ptr  += readen;
-        left -= readen;
-    }
-    return count;
-}
-
 ssize_t write_n(int fd, const void* buf, size_t count)
 {
     const char* ptr = buf;
