@@ -9,43 +9,6 @@
 #include "common.h"
 #include "network.h"
 
-ssize_t read_msg(int fd, msg_t** msg)
-{
-    ssize_t rc;
-    size_t len;
-
-    *msg = malloc(sizeof(msg_t));
-    if (*msg == NULL) return -2;
-    rc = read_t(fd, *msg, sizeof(**msg), 300);
-    if (rc <= 0)
-    {
-        free(*msg);
-        *msg = NULL;
-        return rc;
-    }
-    len = msg_data_length(*msg);
-    *msg = realloc(*msg, sizeof(msg_t) + len);
-    if (*msg == NULL) return -2;
-    rc = read_t(fd, (*msg)->data, len, 300);
-    if (rc <= 0 && len)
-    {
-        free(*msg);
-        *msg = NULL;
-        return rc;
-    }
-
-    if (checksum(*msg, sizeof(msg_t) + len))
-    {
-        fprintf(stderr, "Invalid msg\n");
-        free(*msg);
-        *msg = NULL;
-        return -2;
-    }
-
-    printf("read msg length: %lu\n", len);
-    return rc + sizeof(msg_t);
-}
-
 ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
 {
     ssize_t rc;
