@@ -155,16 +155,39 @@ int main(int argc, char* argv[])
     else
     {
         unsigned char mask;
+        int retry_count;
+        time_t retry_start;
+        int inited = 0;
         library_init(conf);
-        remotefd = connect_server(ip, port);
-        if (remotefd == -1) return 1;
-        sprintf(cmd, "ifconfig %s %s up", this.dev_name, inet_ntoa(a));
-        SYSTEM_EXIT(cmd);
-        mask = netmask();
-        a.s_addr = conf.localip & LEN2MASK(mask);
-        sprintf(cmd, "route add -net %s/%u dev %s", inet_ntoa(a), mask, this.dev_name);
-        SYSTEM_EXIT(cmd);
-        client_loop(remotefd, localfd);
+
+        while (retry_count < 3)
+        {
+            remotefd = connect_server(ip, port);
+            if (remotefd == -1)
+            {
+                ++retry_count;
+                sleep(5);
+                continue;
+            }
+            if (!inited)
+            {
+                sprintf(cmd, "ifconfig %s %s up", this.dev_name, inet_ntoa(a));
+                SYSTEM_EXIT(cmd);
+                mask = netmask();
+                a.s_addr = conf.localip & LEN2MASK(mask);
+                sprintf(cmd, "route add -net %s/%u dev %s", inet_ntoa(a), mask, this.dev_name);
+                SYSTEM_EXIT(cmd);
+                inited = 1;
+            }
+            client_loop(remotefd, localfd);
+            close(remotefd);
+            if (time(NULL) - retry_start > 60)
+            {
+                retry_count = 0;
+                retry_start = time(NULL);
+            }
+            else ++retry_count;
+        }
     }
     return 0;
 }

@@ -10,6 +10,10 @@
 
 #include "network.h"
 
+#define RETURN_OK                 0
+#define RETURN_CONNECTION_CLOSED -1
+#define RETURN_READ_ERROR        -2
+
 int connect_server(char* ip, unsigned short port)
 {
     int fd, rc;
@@ -121,7 +125,7 @@ static void process_msg(msg_t* msg, int localfd)
     this.client.read = this.client.buffer;
 }
 
-static void client_process(int max, fd_set* set, int remotefd, int localfd)
+static int client_process(int max, fd_set* set, int remotefd, int localfd)
 {
     msg_t* msg;
     if (FD_ISSET(localfd, set))
@@ -147,14 +151,14 @@ static void client_process(int max, fd_set* set, int remotefd, int localfd)
         if (rc == 0)
         {
             fprintf(stderr, "connection closed\n");
-            exit(1);
+            return RETURN_CONNECTION_CLOSED;
         }
         else if (rc < 0)
         {
             if (errno == EAGAIN || errno == EWOULDBLOCK) return;
             fprintf(stderr, "read error\n");
             perror("read");
-            exit(1);
+            return RETURN_READ_ERROR;
         }
         else
         {
@@ -193,6 +197,7 @@ void client_loop(int remotefd, int localfd)
     this.client.want = sizeof(msg_t);
     this.client.buffer = this.client.read = malloc(this.client.want);
     int keepalive_send = 0;
+    int rc;
     if (this.client.buffer == NULL)
     {
         fprintf(stderr, "Not enough memory\n");
@@ -219,12 +224,21 @@ void client_loop(int remotefd, int localfd)
         }
 
         max = select(max + 1, &set, NULL, NULL, &tv);
-        if (max > 0) client_process(max, &set, remotefd, localfd);
+        if (max > 0)
+        {
+            rc = client_process(max, &set, remotefd, localfd);
+            switch (rc)
+            {
+            case RETURN_CONNECTION_CLOSED:
+            case RETURN_READ_ERROR:
+                return;
+            }
+        }
 
         if (keepalive_send && !this.keepalive_replyed && (time(NULL) - this.keepalive) > KEEPALIVE_TIMEOUT)
         {
             fprintf(stderr, "keepalive reply timeouted, connection closed\n");
-            exit(1);
+            return;
         }
     }
 }
