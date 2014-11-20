@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -19,6 +20,7 @@ int connect_server(char* ip, unsigned short port)
     int fd, rc;
     struct sockaddr_in addr = {0};
     msg_t* msg;
+    int flag = 1;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1)
@@ -42,6 +44,11 @@ int connect_server(char* ip, unsigned short port)
         perror("connect");
         close(fd);
         return -1;
+    }
+
+    if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1)
+    {
+        perror("setsockopt");
     }
 
     msg = new_login_msg(this.localip, 0, 1);

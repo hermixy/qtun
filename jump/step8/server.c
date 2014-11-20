@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <linux/ip.h>
+#include <netinet/tcp.h>
 #include <errno.h>
 #include <string.h>
 #include <time.h>
@@ -65,7 +66,13 @@ static void accept_and_check(int bindfd)
 {
     int fd = accept(bindfd, NULL, NULL);
     client_t* client;
+    int flag = 1;
     if (fd == -1) return;
+
+    if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1)
+    {
+        perror("setsockopt");
+    }
 
     client = malloc(sizeof(*client));
     if (client == NULL)
