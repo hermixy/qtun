@@ -181,6 +181,7 @@ int main(int argc, char* argv[])
             }
             client_loop(remotefd, localfd);
             close(remotefd);
+            fprintf(stderr, "retry\n");
             if (time(NULL) - retry_start > 60)
             {
                 retry_count = 0;
