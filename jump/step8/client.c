@@ -162,7 +162,7 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
         }
         else if (rc < 0)
         {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) return;
+            if (errno == EAGAIN || errno == EWOULDBLOCK) return RETURN_OK;
             fprintf(stderr, "read error\n");
             perror("read");
             return RETURN_READ_ERROR;
@@ -194,6 +194,7 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
             }
         }
     }
+    return RETURN_OK;
 }
 
 void client_loop(int remotefd, int localfd)
