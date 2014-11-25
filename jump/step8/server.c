@@ -186,7 +186,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         for (i = 1; i < LEN2MASK(32 - this.netmask); ++i)
         {
             unsigned int newip = (i << this.netmask) | localip;
-            if (active_vector_exists(&this.clients, compare_clients_by_ip, (void*)(long)newip, sizeof(newip)) == -1)
+            if (active_vector_exists(&this.clients, compare_clients_by_ip, (void*)(long)newip, sizeof(newip)) == -1 && newip != this.localip)
             {
                 new_msg = new_login_msg(newip, this.netmask, 0);
                 if (new_msg)
