@@ -89,6 +89,7 @@ int connect_server(char* ip, unsigned short port)
             return fd;
         }
         fprintf(stderr, "read sys_login_reply message timeouted\n");
+        goto end;
     }
     fprintf(stderr, "Not enough memory\n");
 end:
