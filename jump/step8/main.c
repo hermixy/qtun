@@ -156,12 +156,12 @@ int main(int argc, char* argv[])
     else
     {
         unsigned char mask;
-        int retry_count;
+        int retry_count = 0;
         time_t retry_start;
         int inited = 0;
         library_init(conf);
 
-        while (retry_count < 3)
+        while (retry_count < 10)
         {
             remotefd = connect_server(ip, port);
             if (remotefd == -1)
