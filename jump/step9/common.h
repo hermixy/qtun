@@ -16,6 +16,22 @@
     b = _a; \
 })
 
+#define MIN(a, b) \
+({ \
+    typeof(a) _a = (a); \
+    typeof(b) _b = (b); \
+    (void)(&_a == &_b); \
+    a < b ? a : b; \
+})
+
+#define MAX(a, b) \
+({ \
+    typeof(a) _a = (a); \
+    typeof(b) _b = (b); \
+    (void)(&_a == &_b); \
+    a > b ? a : b; \
+})
+
 #define SYSTEM_NORMAL(cmd) \
 do {\
     if (system(cmd) == -1) \

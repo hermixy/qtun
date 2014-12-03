@@ -17,6 +17,9 @@ SET(SOURCE
     ${QTUN_SOURCE_DIR}/struct/hash.c
     ${QTUN_SOURCE_DIR}/struct/link.h
     ${QTUN_SOURCE_DIR}/struct/link.c
+    ${QTUN_SOURCE_DIR}/struct/pool.h
+    ${QTUN_SOURCE_DIR}/struct/pool.c
+    ${QTUN_SOURCE_DIR}/struct/typedef.h
     ${QTUN_SOURCE_DIR}/struct/vector.h
     ${QTUN_SOURCE_DIR}/struct/vector.c
 
@@ -24,5 +27,4 @@ SET(SOURCE
     ${QTUN_SOURCE_DIR}/common.c
     ${QTUN_SOURCE_DIR}/library.h
     ${QTUN_SOURCE_DIR}/library.c
-    ${QTUN_SOURCE_DIR}/typedef.h
 )
