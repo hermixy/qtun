@@ -221,16 +221,17 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
     }
     else
     {
+        unsigned int remote_ip = login->ip;
         pool_room_free(&this.pool, room_id);
         data = NULL;
-        new_msg = new_login_msg(login->ip, this.netmask, 0);
+        new_msg = new_login_msg(remote_ip, this.netmask, 0);
         if (new_msg == NULL)
         {
             fprintf(stderr, "Not enough memory\n");
             close_client(for_del, idx);
             goto end;
         }
-        client->ip = login->ip;
+        client->ip = remote_ip;
         client->status = CLIENT_STATUS_NORMAL;
         client->keepalive = time(NULL);
         write_n(client->fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
