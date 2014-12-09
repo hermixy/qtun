@@ -189,6 +189,8 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
             unsigned int newip = (i << this.netmask) | localip;
             if (active_vector_exists(&this.clients, compare_clients_by_ip, (void*)(long)newip, sizeof(newip)) == -1 && newip != this.localip)
             {
+                pool_room_free(&this.pool, room_id);
+                data = NULL;
                 new_msg = new_login_msg(newip, this.netmask, 0);
                 if (new_msg)
                 {
@@ -203,6 +205,8 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
                 goto end;
             }
         }
+        pool_room_free(&this.pool, room_id);
+        data = NULL;
         new_msg = new_login_msg(0, 0, 0);
         if (new_msg)
         {
@@ -217,6 +221,8 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
     }
     else
     {
+        pool_room_free(&this.pool, room_id);
+        data = NULL;
         new_msg = new_login_msg(login->ip, this.netmask, 0);
         if (new_msg == NULL)
         {
