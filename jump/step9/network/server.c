@@ -86,7 +86,7 @@ static void accept_and_check(int bindfd)
     client->keepalive = time(NULL);
     client->status = CLIENT_STATUS_CHECKLOGIN | CLIENT_STATUS_WAITING_HEADER;
     client->want = sizeof(msg_t);
-    client->buffer = client->read = malloc(client->want);
+    client->buffer = pool_room_alloc(&this.pool, RECV_ROOM_IDX, client->want);
     if (client->buffer == NULL)
     {
         fprintf(stderr, "Not enough memory\n");
@@ -294,7 +294,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                         {
                             client->status = (client->status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
                             client->want = len;
-                            client->buffer = realloc(client->buffer, sizeof(msg_t) + client->want);
+                            client->buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t) + client->want);
                             if (client->buffer == NULL)
                             {
                                 fprintf(stderr, "Not enough memory\n");

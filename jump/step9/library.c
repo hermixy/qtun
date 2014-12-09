@@ -26,6 +26,7 @@ int library_init(library_conf_t conf)
     this.keepalive_replyed = 0;
 
     active_vector_init(&this.clients, functor_clients);
+    pool_init(&this.pool);
 
     if (conf.use_gzip)
         if (!append_msg_process_handler(MSG_PROCESS_COMPRESS_HANDLER, MSG_COMPRESS_GZIP_ID, gzip_compress, gzip_decompress))

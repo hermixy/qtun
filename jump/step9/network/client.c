@@ -181,7 +181,7 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
                     {
                         this.client.status = (this.client.status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
                         this.client.want = len;
-                        this.client.buffer = realloc(this.client.buffer, sizeof(msg_t) + this.client.want);
+                        this.client.buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t) + this.client.want);
                         if (this.client.buffer == NULL)
                         {
                             fprintf(stderr, "Not enough memory\n");
@@ -204,7 +204,7 @@ void client_loop(int remotefd, int localfd)
     int max;
     this.client.status = CLIENT_STATUS_NORMAL | CLIENT_STATUS_WAITING_HEADER;
     this.client.want = sizeof(msg_t);
-    this.client.buffer = this.client.read = malloc(this.client.want);
+    this.client.buffer = this.client.read = pool_room_alloc(&this.pool, RECV_ROOM_IDX, this.client.want);
     int keepalive_send = 0;
     int rc;
     if (this.client.buffer == NULL)

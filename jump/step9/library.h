@@ -6,6 +6,7 @@
 #include <openssl/aes.h>
 #include <openssl/des.h>
 
+#include "pool.h"
 #include "active_vector.h"
 
 #define CLIENT_STATUS_UNKNOWN        0
@@ -18,6 +19,9 @@
 #define IS_CLIENT_STATUS_NORMAL(status)         (status & CLIENT_STATUS_NORMAL)
 #define IS_CLIENT_STATUS_WAITING_HEADER(status) (status & CLIENT_STATUS_WAITING_HEADER)
 #define IS_CLIENT_STATUS_WAITING_BODY(status)   (status & CLIENT_STATUS_WAITING_BODY)
+
+#define RECV_ROOM_IDX 0
+#define SEND_ROOM_IDX 1
 
 typedef struct
 {
@@ -47,6 +51,8 @@ typedef struct
 
     unsigned char   compress;
     unsigned char   encrypt;
+
+    pool_t          pool;
 
     // for server
     active_vector_t clients;
