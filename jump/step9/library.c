@@ -29,12 +29,12 @@ int library_init(library_conf_t conf)
     pool_init(&this.pool);
 
     if (conf.use_gzip)
-        if (!append_msg_process_handler(MSG_PROCESS_COMPRESS_HANDLER, MSG_COMPRESS_GZIP_ID, gzip_compress, gzip_decompress))
+        if (!append_msg_process_handler(MSG_PROCESS_COMPRESS_HANDLER, MSG_COMPRESS_GZIP_ID, GZIP_ROOM_IDX, gzip_compress, gzip_decompress))
             return 0;
 
     if (conf.use_aes)
     {
-        if (!append_msg_process_handler(MSG_PROCESS_ENCRYPT_HANDLER, MSG_ENCRYPT_AES_ID, aes_encrypt, aes_decrypt))
+        if (!append_msg_process_handler(MSG_PROCESS_ENCRYPT_HANDLER, MSG_ENCRYPT_AES_ID, AES_ROOM_IDX, aes_encrypt, aes_decrypt))
             return 0;
         fp = fopen(conf.aes_key_file, "r");
         if (fp == NULL)
@@ -60,7 +60,7 @@ int library_init(library_conf_t conf)
 
     if (conf.use_des)
     {
-        if (!append_msg_process_handler(MSG_PROCESS_ENCRYPT_HANDLER, MSG_ENCRYPT_DES_ID, des_encrypt, des_decrypt))
+        if (!append_msg_process_handler(MSG_PROCESS_ENCRYPT_HANDLER, MSG_ENCRYPT_DES_ID, DES_ROOM_IDX, des_encrypt, des_decrypt))
             return 0;
         fp = fopen(conf.des_key_file, "r");
         if (fp == NULL)

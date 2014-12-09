@@ -52,6 +52,7 @@ typedef struct
 {
     int (*do_handler)(const void*, const unsigned int, void**, unsigned int*);
     int (*undo_handler)(const void*, const unsigned int, void**, unsigned int*);
+    size_t room_id;
 } msg_process_handler_t;
 
 extern link_t msg_process_handlers;
@@ -67,15 +68,15 @@ extern void init_msg_process_handler();
 extern int append_msg_process_handler(
     int type,
     int id,
+    size_t room_id,
     int (*do_handler)(const void*, const unsigned int, void**, unsigned int*),
     int (*undo_handler)(const void*, const unsigned int, void**, unsigned int*)
 );
 extern size_t msg_data_length(const msg_t* msg);
-extern msg_t* new_sys_msg(const void* data, const unsigned short len);
 extern msg_t* new_msg(const void* data, const unsigned short len);
 extern msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request);
 extern msg_t* new_keepalive_msg(unsigned char request);
-extern int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len);
+extern int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len, size_t* room_id);
 extern int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* mask);
 
 #endif

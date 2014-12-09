@@ -149,6 +149,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
     int sys;
     void* data = NULL;
     unsigned short len;
+    size_t room_id;
 
     if (!IS_CLIENT_STATUS_CHECKLOGIN(client->status))
     {
@@ -165,7 +166,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         write_n(client->fd, msg, sizeof(msg_t) + msg_data_length(msg));
         goto end;
     }
-    if (!parse_msg(msg, &sys, &data, &len))
+    if (!parse_msg(msg, &sys, &data, &len, &room_id))
     {
         fprintf(stderr, "parse sys_login_request failed\n");
         close_client(for_del, idx);
@@ -230,7 +231,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         free(new_msg);
     }
 end:
-    if (data) free(data);
+    if (data) pool_room_free(&this.pool, room_id);
 }
 
 static void process_msg(client_t* client, msg_t* msg, int localfd, vector_t* for_del, size_t idx)
@@ -238,18 +239,19 @@ static void process_msg(client_t* client, msg_t* msg, int localfd, vector_t* for
     void* buffer = NULL;
     unsigned short len;
     int sys;
+    size_t room_id;
 
     if (msg->syscontrol && CHECK_SYS_OP(msg->unused, SYS_LOGIN, 1))
     {
         server_process_login(client, msg, idx, for_del);
     }
-    else if (parse_msg(msg, &sys, &buffer, &len))
+    else if (parse_msg(msg, &sys, &buffer, &len, &room_id))
     {
         if (sys) server_process_sys(client, msg, buffer, len);
         else printf("write local length: %ld\n", write_n(localfd, buffer, len));
         active_vector_up(&this.clients, idx);
     }
-    if (buffer) free(buffer);
+    if (buffer) pool_room_free(&this.pool, room_id);
     client->status = (client->status & ~CLIENT_STATUS_WAITING_BODY) | CLIENT_STATUS_WAITING_HEADER;
     client->want = sizeof(msg_t);
     client->read = client->buffer;

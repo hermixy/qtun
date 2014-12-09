@@ -55,7 +55,18 @@ static void* _pool_room_alloc(pool_t* p, size_t idx, size_t len)
     capacity = MAX(p->room[idx].capacity << 1, len);
     if (capacity > CAPACITY_LIMIT) capacity = len;
     p->room[idx].ptr = realloc(p->room[idx].ptr, capacity);
-    if (p->room[idx].ptr == NULL) return NULL;
+    if (p->room[idx].ptr == NULL)
+    {
+        capacity = MIN(capacity, len);
+        pool_gc(p);
+        p->room[idx].ptr = malloc(capacity);
+        if (p->room[idx].ptr == NULL)
+        {
+            p->room[idx].length = p->room[idx].capacity = 0;
+            p->room[idx].used = 0;
+            return NULL;
+        }
+    }
     p->room[idx].length = len;
     p->room[idx].capacity = capacity;
     p->room[idx].used = 1;

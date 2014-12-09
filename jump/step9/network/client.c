@@ -116,8 +116,9 @@ static void process_msg(msg_t* msg, int localfd)
     void* buffer = NULL;
     unsigned short len;
     int sys;
+    size_t room_id;
 
-    if (parse_msg(msg, &sys, &buffer, &len))
+    if (parse_msg(msg, &sys, &buffer, &len, &room_id))
     {
         if (sys) client_process_sys(msg, buffer, len);
         else printf("write local length: %ld\n", write_n(localfd, buffer, len));
@@ -127,7 +128,7 @@ static void process_msg(msg_t* msg, int localfd)
         fprintf(stderr, "Parse message error\n");
         return;
     }
-    if (buffer) free(buffer);
+    if (buffer) pool_room_free(&this.pool, room_id);
     this.client.status = (this.client.status & ~CLIENT_STATUS_WAITING_BODY) | CLIENT_STATUS_WAITING_HEADER;
     this.client.want = sizeof(msg_t);
     this.client.read = this.client.buffer;

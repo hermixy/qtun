@@ -21,7 +21,10 @@
 #define IS_CLIENT_STATUS_WAITING_BODY(status)   (status & CLIENT_STATUS_WAITING_BODY)
 
 #define RECV_ROOM_IDX 0
-#define SEND_ROOM_IDX 1
+#define GZIP_ROOM_IDX 1
+#define AES_ROOM_IDX  2
+#define DES_ROOM_IDX  3
+#define TMP_ROOM_IDX  (ROOM_COUNT - 1)
 
 typedef struct
 {

@@ -8,7 +8,8 @@
 
 #include "common.h"
 #include "library.h"
-#include "main.h"
+#include "pool.h"
+
 #include "msg.h"
 
 link_t msg_process_handlers;
@@ -43,7 +44,7 @@ int gzip_compress(const void* src, const unsigned int src_len, void** dst, unsig
     unsigned char* ptr;
 
     dlen = compressBound(src_len) + sizeof(unsigned int);
-    ptr = malloc(dlen);
+    ptr = pool_room_alloc(&this.pool, GZIP_ROOM_IDX, dlen);
     if (ptr == NULL) return 0;
     *dst = ptr;
     *(unsigned int*)ptr = htonl(src_len);
@@ -69,7 +70,7 @@ int gzip_decompress(const void* src, const unsigned int src_len, void** dst, uns
 
     *dst_len = ntohl(*(unsigned int*)src);
     src = (const unsigned char*)src + sizeof(unsigned int);
-    *dst = malloc(*dst_len);
+    *dst = pool_room_alloc(&this.pool, GZIP_ROOM_IDX, *dst_len);
     if (*dst == NULL) return 0;
     stream.zalloc = NULL;
     stream.zfree  = NULL;
@@ -93,7 +94,7 @@ int aes_encrypt(const void* src, const unsigned int src_len, void** dst, unsigne
 
     *dst_len = src_len;
     if (left) *dst_len += AES_BLOCK_SIZE - left;
-    ptr = malloc(*dst_len + sizeof(unsigned int));
+    ptr = pool_room_alloc(&this.pool, AES_ROOM_IDX, *dst_len + sizeof(unsigned int));
     if (ptr == NULL) return 0;
     *dst = ptr;
     *(unsigned int*)ptr = htonl(src_len);
@@ -114,7 +115,7 @@ int aes_decrypt(const void* src, const unsigned int src_len, void** dst, unsigne
     const unsigned char* ptr = (const unsigned char*)src + sizeof(unsigned int);
 
     *dst_len = ntohl(*(unsigned int*)src);
-    *dst = malloc(src_len - sizeof(unsigned int));
+    *dst = pool_room_alloc(&this.pool, AES_ROOM_IDX, src_len - sizeof(unsigned int));
     if (*dst == NULL) return 0;
 
     memcpy(iv, this.aes_iv, sizeof(iv));
@@ -133,7 +134,7 @@ int des_encrypt(const void* src, const unsigned int src_len, void** dst, unsigne
 
     *dst_len = src_len;
     if (left) *dst_len += DES_KEY_SZ - left;
-    ptr = malloc(*dst_len + sizeof(unsigned int));
+    ptr = pool_room_alloc(&this.pool, DES_ROOM_IDX, *dst_len + sizeof(unsigned int));
     if (ptr == NULL) return 0;
     *dst = ptr;
     *(unsigned int*)ptr = htonl(src_len);
@@ -170,7 +171,7 @@ int des_decrypt(const void* src, const unsigned int src_len, void** dst, unsigne
     const unsigned char* ptr = (const unsigned char*)src + sizeof(unsigned int);
 
     *dst_len = ntohl(*(unsigned int*)src);
-    *dst = malloc(src_len - sizeof(unsigned int));
+    *dst = pool_room_alloc(&this.pool, DES_ROOM_IDX, src_len - sizeof(unsigned int));
     if (*dst == NULL) return 0;
 
     memcpy(iv, this.des_iv, sizeof(iv));
@@ -215,6 +216,7 @@ void init_msg_process_handler()
 int append_msg_process_handler(
     int type,
     int id,
+    size_t room_id,
     int (*do_handler)(const void*, const unsigned int, void**, unsigned int*),
     int (*undo_handler)(const void*, const unsigned int, void**, unsigned int*))
 {
@@ -223,6 +225,7 @@ int append_msg_process_handler(
     if (h == NULL) return 0;
     h->do_handler = do_handler;
     h->undo_handler = undo_handler;
+    h->room_id = room_id;
     rc = link_insert_tail(&msg_process_handlers, h, sizeof(*h));
     if (!rc) free(h);
     if (type == MSG_PROCESS_COMPRESS_HANDLER)
@@ -237,30 +240,7 @@ size_t msg_data_length(const msg_t* msg)
     return little2host16(msg->len) * 16 + little2host16(msg->pfx);
 }
 
-msg_t* new_sys_msg(const void* data, const unsigned short len)
-{
-    struct timeval tv;
-    msg_t* ret = malloc(sizeof(msg_t) + len);
-    if (ret == NULL) goto end;
-    gettimeofday(&tv, NULL);
-
-    ret->syscontrol = 1;
-    ret->compress   = 0;
-    ret->encrypt    = 0;
-    ret->ident      = htonl(++this.msg_ident);
-    ret->sec        = htonl(tv.tv_sec);
-    ret->usec       = little32(tv.tv_usec);
-    ret->len        = little16(floor(len / 16));
-    ret->pfx        = little16(len % 16);
-    ret->unused     = 0;
-    ret->checksum   = 0;
-    memcpy(ret->data, data, len);
-    ret->checksum   = checksum(ret, sizeof(msg_t) + len);
-end:
-    return ret;
-}
-
-static int process_asc(void* src, unsigned int src_len, void** dst, unsigned int* dst_len, int* want_free)
+static int process_asc(void* src, unsigned int src_len, void** dst, unsigned int* dst_len, int* want_free, size_t* room_id)
 {
     size_t link_cnt = link_count(&msg_process_handlers);
     *want_free = 0;
@@ -275,6 +255,7 @@ static int process_asc(void* src, unsigned int src_len, void** dst, unsigned int
         msg_process_handler_t* handler = (msg_process_handler_t*)link_first(&msg_process_handlers);
         if (!handler->do_handler(src, src_len, dst, dst_len)) return 0;
         *want_free = 1;
+        *room_id = handler->room_id;
     }
     else
     {
@@ -285,12 +266,13 @@ static int process_asc(void* src, unsigned int src_len, void** dst, unsigned int
         {
             msg_process_handler_t* handler = (msg_process_handler_t*)iter.data;
             if (!handler->do_handler(src, src_len, dst, dst_len)) return 0;
-            if (free_src) free(src);
+            if (free_src) pool_room_free(&this.pool, *room_id);
             src = *dst;
             src_len = *dst_len;
             free_src = 1;
             iter = link_next(&msg_process_handlers, iter);
             *want_free = 1;
+            *room_id = handler->room_id;
         }
     }
     return 1;
@@ -303,8 +285,9 @@ msg_t* new_msg(const void* data, const unsigned short len)
     void *dst;
     unsigned int dst_len;
     int want_free = 0;
+    size_t room_id;
 
-    if (!process_asc((void*)data, (unsigned int)len, &dst, &dst_len, &want_free)) goto end;
+    if (!process_asc((void*)data, (unsigned int)len, &dst, &dst_len, &want_free, &room_id)) goto end;
     ret = malloc(sizeof(msg_t) + dst_len);
     if (ret == NULL) goto end;
     memcpy(ret->data, dst, dst_len);
@@ -321,7 +304,7 @@ msg_t* new_msg(const void* data, const unsigned short len)
     ret->checksum   = 0;
     ret->checksum   = checksum(ret, sizeof(msg_t) + dst_len);
 end:
-    if (want_free) free(dst);
+    if (want_free) pool_room_free(&this.pool, room_id);
     return ret;
 }
 
@@ -333,6 +316,7 @@ msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request)
     void* dst;
     unsigned int dst_len;
     int want_free = 0;
+    size_t room_id;
     unsigned char cmd_mask[2];
 
     memcpy(msg.check, SYS_MSG_CHECK, sizeof(msg.check));
@@ -342,7 +326,7 @@ msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request)
     if (!find_cmd(SYS_LOGIN, cmd_mask)) goto end;
     if (cmd_mask[request ? 0 : 1])
     {
-        if (!process_asc((void*)&msg, (unsigned int)sizeof(msg), &dst, &dst_len, &want_free)) goto end;
+        if (!process_asc((void*)&msg, (unsigned int)sizeof(msg), &dst, &dst_len, &want_free, &room_id)) goto end;
     }
     else
     {
@@ -366,7 +350,7 @@ msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request)
     memcpy(ret->data, dst, dst_len);
     ret->checksum   = checksum(ret, sizeof(msg_t) + dst_len);
 end:
-    if (want_free) free(dst);
+    if (want_free) pool_room_free(&this.pool, room_id);
     return ret;
 }
 
@@ -392,7 +376,7 @@ end:
     return ret;
 }
 
-int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len)
+int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len, size_t* room_id)
 {
     unsigned short src_len = msg_data_length(input);
     link_iterator_t iter = link_rev_begin(&msg_process_handlers);
@@ -400,7 +384,8 @@ int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* outpu
 
     *sys = input->syscontrol;
     *output_len = src_len;
-    *output = malloc(src_len);
+    *room_id = TMP_ROOM_IDX;
+    *output = pool_room_alloc(&this.pool, *room_id, src_len);
     if (*output == NULL) return 0;
     memcpy(*output, input->data, src_len);
     if (input->compress == 0 && input->encrypt == 0) return 1;
@@ -413,12 +398,15 @@ int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* outpu
 
         if (!handler->undo_handler(i, src_len, &o, &ol))
         {
-            free(*output);
+            *output = NULL;
+            *output_len = 0;
+            pool_room_free(&this.pool, *room_id);
             return 0;
         }
-        free(*output);
+        pool_room_free(&this.pool, *room_id);
         i = *output = o;
         src_len = *output_len = ol;
+        *room_id = handler->room_id;
         iter = link_next(&msg_process_handlers, iter);
     }
     return 1;
@@ -430,8 +418,9 @@ int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* m
     void* data;
     unsigned short len;
     sys_login_msg_t* login;
+    size_t room_id;
 
-    if (!parse_msg(input, &sys, &data, &len))
+    if (!parse_msg(input, &sys, &data, &len, &room_id))
     {
         fprintf(stderr, "parse sys_login_reply failed\n");
         return 0;
@@ -444,7 +433,7 @@ int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* m
     }
     *ip = login->ip;
     *mask = login->mask;
-    free(data);
+    pool_room_free(&this.pool, room_id);
     return 1;
 }
 
