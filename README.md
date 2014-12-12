@@ -15,6 +15,7 @@
 5. [Jump The Great Firewall【step5 简陋的翻墙】](http://blog.q-devel.com/jump-the-great-firewall-step5/)
 6. [Jump The Great Firewall【step6 支持多客户端】](http://blog.q-devel.com/jump-the-great-firewall-step6/)
 7. [Jump The Great Firewall【step7 支持加密压缩】](http://blog.q-devel.com/jump-the-great-firewall-step7/)
+8. [Jump The Great Firewall【step8 系统消息与活跃表】](http://blog.q-devel.com/jump-the-great-firewall-step8/)
 
 # 关于
 
