@@ -55,7 +55,7 @@ int connect_server(char* ip, unsigned short port)
     if (msg)
     {
         write_n(fd, msg, sizeof(msg_t) + msg_data_length(msg));
-        free(msg);
+        pool_room_free(&this.pool, MSG_ROOM_IDX);
         if (read_msg_t(fd, &msg, 5) > 0)
         {
             unsigned int ip;
@@ -63,11 +63,11 @@ int connect_server(char* ip, unsigned short port)
             if (msg->compress != this.compress || msg->encrypt != this.encrypt)
             {
                 fprintf(stderr, "compress algorithm or encrypt algorithm is not same\n");
-                free(msg);
+                pool_room_free(&this.pool, RECV_ROOM_IDX);
                 goto end;
             }
             if (!parse_login_reply_msg(msg, &ip, &mask)) goto end;
-            free(msg);
+            pool_room_free(&this.pool, RECV_ROOM_IDX);
             if (ip == 0)
             {
                 fprintf(stderr, "Not enough ip address\n");
@@ -149,7 +149,7 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
             if (msg)
             {
                 write_n(remotefd, msg, sizeof(msg_t) + msg_data_length(msg));
-                free(msg);
+                pool_room_free(&this.pool, MSG_ROOM_IDX);
                 printf("send msg length: %lu\n", msg_data_length(msg));
             }
         }
@@ -229,7 +229,7 @@ void client_loop(int remotefd, int localfd)
             printf("send keepalive message\n");
             this.keepalive = time(NULL);
             this.keepalive_replyed = 0;
-            free(msg);
+            pool_room_free(&this.pool, MSG_ROOM_IDX);
             keepalive_send = 1;
         }
 

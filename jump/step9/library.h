@@ -24,6 +24,7 @@
 #define GZIP_ROOM_IDX 1
 #define AES_ROOM_IDX  2
 #define DES_ROOM_IDX  3
+#define MSG_ROOM_IDX  4
 #define TMP_ROOM_IDX  (ROOM_COUNT - 1)
 
 typedef struct

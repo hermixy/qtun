@@ -136,7 +136,7 @@ static void server_process_sys(client_t* client, msg_t* msg, const void* buffer,
             msg_t* new_msg = new_keepalive_msg(0);
             write_n(client->fd, new_msg, sizeof(msg_t));
             printf("reply keepalive message\n");
-            free(new_msg);
+            pool_room_free(&this.pool, MSG_ROOM_IDX);
         }
         break;
     }
@@ -195,7 +195,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
                 if (new_msg)
                 {
                     write_n(client->fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
-                    free(new_msg);
+                    pool_room_free(&this.pool, MSG_ROOM_IDX);
                 }
                 else
                 {
@@ -211,7 +211,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         if (new_msg)
         {
             write_n(client->fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
-            free(new_msg);
+            pool_room_free(&this.pool, MSG_ROOM_IDX);
         }
         else
         {
@@ -235,7 +235,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         client->status = CLIENT_STATUS_NORMAL;
         client->keepalive = time(NULL);
         write_n(client->fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
-        free(new_msg);
+        pool_room_free(&this.pool, MSG_ROOM_IDX);
     }
 end:
     if (data) pool_room_free(&this.pool, room_id);
@@ -342,7 +342,7 @@ end:
                 if (msg)
                 {
                     write_n(client->fd, msg, sizeof(msg_t) + msg_data_length(msg));
-                    free(msg);
+                    pool_room_free(&this.pool, MSG_ROOM_IDX);
                     printf("send msg length: %lu\n", msg_data_length(msg));
                 }
             }

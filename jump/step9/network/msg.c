@@ -288,7 +288,7 @@ msg_t* new_msg(const void* data, const unsigned short len)
     size_t room_id;
 
     if (!process_asc((void*)data, (unsigned int)len, &dst, &dst_len, &want_free, &room_id)) goto end;
-    ret = malloc(sizeof(msg_t) + dst_len);
+    ret = pool_room_alloc(&this.pool, MSG_ROOM_IDX, sizeof(msg_t) + dst_len);
     if (ret == NULL) goto end;
     memcpy(ret->data, dst, dst_len);
     gettimeofday(&tv, NULL);
@@ -336,7 +336,7 @@ msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request)
 
     gettimeofday(&tv, NULL);
 
-    ret = malloc(sizeof(msg_t) + dst_len);
+    ret = pool_room_alloc(&this.pool, MSG_ROOM_IDX, sizeof(msg_t) + dst_len);
     ret->syscontrol = 1;
     ret->compress   = this.compress;
     ret->encrypt    = this.encrypt;
@@ -357,7 +357,7 @@ end:
 msg_t* new_keepalive_msg(unsigned char request)
 {
     struct timeval tv;
-    msg_t* ret = malloc(sizeof(msg_t));
+    msg_t* ret = pool_room_alloc(&this.pool, MSG_ROOM_IDX, sizeof(msg_t));
     if (ret == NULL) goto end;
     gettimeofday(&tv, NULL);
 

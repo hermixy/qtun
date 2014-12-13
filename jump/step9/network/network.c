@@ -7,6 +7,8 @@
 #include <unistd.h>
 
 #include "common.h"
+#include "library.h"
+
 #include "network.h"
 
 ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
@@ -14,7 +16,7 @@ ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
     ssize_t rc;
     size_t len;
 
-    *msg = malloc(sizeof(msg_t));
+    *msg = pool_room_alloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t));
     if (*msg == NULL) return -2;
     rc = read_t(fd, *msg, sizeof(**msg), timeout);
     if (rc <= 0)
@@ -24,7 +26,7 @@ ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
         return rc;
     }
     len = msg_data_length(*msg);
-    *msg = realloc(*msg, sizeof(msg_t) + len);
+    *msg = pool_room_realloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t) + len);
     if (*msg == NULL) return -2;
     rc = read_t(fd, (*msg)->data, len, timeout);
     if (rc <= 0 && len)
