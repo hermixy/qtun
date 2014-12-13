@@ -156,17 +156,14 @@ int main(int argc, char* argv[])
     else
     {
         unsigned char mask;
-        int retry_count = 0;
-        time_t retry_start;
         int inited = 0;
         library_init(conf);
 
-        while (retry_count < 10)
+        while (1)
         {
             remotefd = connect_server(ip, port);
             if (remotefd == -1)
             {
-                ++retry_count;
                 sleep(5);
                 continue;
             }
@@ -183,12 +180,6 @@ int main(int argc, char* argv[])
             client_loop(remotefd, localfd);
             close(remotefd);
             fprintf(stderr, "retry\n");
-            if (time(NULL) - retry_start > 60)
-            {
-                retry_count = 0;
-                retry_start = time(NULL);
-            }
-            else ++retry_count;
         }
     }
     return 0;
