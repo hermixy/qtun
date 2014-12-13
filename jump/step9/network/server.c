@@ -86,7 +86,7 @@ static void accept_and_check(int bindfd)
     client->keepalive = time(NULL);
     client->status = CLIENT_STATUS_CHECKLOGIN | CLIENT_STATUS_WAITING_HEADER;
     client->want = sizeof(msg_t);
-    client->buffer = client->read = pool_room_alloc(&this.pool, RECV_ROOM_IDX, client->want);
+    client->buffer = client->read = pool_room_realloc(&this.pool, RECV_ROOM_IDX, client->want);
     if (client->buffer == NULL)
     {
         fprintf(stderr, "Not enough memory\n");

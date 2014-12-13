@@ -241,6 +241,7 @@ void client_loop(int remotefd, int localfd)
             {
             case RETURN_CONNECTION_CLOSED:
             case RETURN_READ_ERROR:
+                pool_room_free(&this.pool, RECV_ROOM_IDX);
                 return;
             }
         }
@@ -248,6 +249,7 @@ void client_loop(int remotefd, int localfd)
         if (keepalive_send && !this.keepalive_replyed && (time(NULL) - this.keepalive) > KEEPALIVE_TIMEOUT)
         {
             fprintf(stderr, "keepalive reply timeouted, connection closed\n");
+            pool_room_free(&this.pool, RECV_ROOM_IDX);
             return;
         }
     }
