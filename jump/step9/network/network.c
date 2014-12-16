@@ -21,7 +21,7 @@ ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
     rc = read_t(fd, *msg, sizeof(**msg), timeout);
     if (rc <= 0)
     {
-        free(*msg);
+        pool_room_free(&this.pool, RECV_ROOM_IDX);
         *msg = NULL;
         return rc;
     }
@@ -31,7 +31,7 @@ ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
     rc = read_t(fd, (*msg)->data, len, timeout);
     if (rc <= 0 && len)
     {
-        free(*msg);
+        pool_room_free(&this.pool, RECV_ROOM_IDX);
         *msg = NULL;
         return rc;
     }
@@ -39,7 +39,7 @@ ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
     if (checksum(*msg, sizeof(msg_t) + len))
     {
         fprintf(stderr, "Invalid msg\n");
-        free(*msg);
+        pool_room_free(&this.pool, RECV_ROOM_IDX);
         *msg = NULL;
         return -2;
     }
