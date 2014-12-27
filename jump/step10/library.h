@@ -43,6 +43,7 @@ typedef struct
     unsigned int    msg_ident;
     unsigned int    localip;
     unsigned char   netmask;
+    unsigned char   log_level;
     char            dev_name[IFNAMSIZ];
 
     unsigned char   aes_key[32];
@@ -73,6 +74,7 @@ typedef struct
 {
     unsigned int  localip;
     unsigned char netmask;
+    unsigned char log_level;
 
     int           use_gzip;
 

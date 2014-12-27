@@ -19,10 +19,11 @@ int library_init(library_conf_t conf)
     init_msg_process_handler();
 
     this.msg_ident = 0;
-    this.localip  = conf.localip;
-    this.compress = 0;
-    this.encrypt  = 0;
-    this.netmask  = conf.netmask;
+    this.localip   = conf.localip;
+    this.log_level = conf.log_level;
+    this.compress  = 0;
+    this.encrypt   = 0;
+    this.netmask   = conf.netmask;
     this.keepalive = 0;
     this.keepalive_replyed = 0;
 

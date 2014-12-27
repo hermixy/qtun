@@ -74,6 +74,7 @@ int main(int argc, char* argv[])
         {"localip",      1, NULL, 'l'},
         {"server",       1, NULL, 's'},
         {"port",         1, NULL, 'p'},
+        {"log-level",    1, NULL, 'v'},
         {NULL,           0, NULL,   0}
     };
     char short_options[512] = {0};
@@ -114,6 +115,9 @@ int main(int argc, char* argv[])
             break;
         case 'p':
             port = atoi(optarg);
+            break;
+        case 'v':
+            conf.log_level = atoi(optarg);
             break;
         default:
             syslog(LOG_ERR, "param error");
