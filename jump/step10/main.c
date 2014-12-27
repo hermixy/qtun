@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
             }
             client_loop(remotefd, localfd);
             close(remotefd);
-            SYSLOG(LOG_WARNING, "retry\n");
+            SYSLOG(LOG_WARNING, "retry");
         }
     }
     closelog();

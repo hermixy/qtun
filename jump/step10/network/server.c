@@ -347,7 +347,8 @@ end:
                 {
                     write_n(client->fd, msg, sizeof(msg_t) + msg_data_length(msg));
                     pool_room_free(&this.pool, MSG_ROOM_IDX);
-                    SYSLOG(LOG_INFO, "send msg length: %lu", msg_data_length(msg));
+                    size_t len = msg_data_length(msg);
+                    SYSLOG(LOG_INFO, "send msg length: %lu", len);
                 }
             }
         }

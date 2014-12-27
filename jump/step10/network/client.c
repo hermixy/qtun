@@ -121,7 +121,11 @@ static void process_msg(msg_t* msg, int localfd)
     if (parse_msg(msg, &sys, &buffer, &len, &room_id))
     {
         if (sys) client_process_sys(msg, buffer, len);
-        else SYSLOG(LOG_INFO, "write local length: %ld", write_n(localfd, buffer, len));
+        else
+        {
+            ssize_t written = write_n(localfd, buffer, len);
+            SYSLOG(LOG_INFO, "write local length: %ld", written);
+        }
     }
     else
     {
@@ -148,11 +152,11 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
             msg = new_msg(buffer, readen);
             if (msg)
             {
-                ssize_t written;
+                size_t len;
                 write_n(remotefd, msg, sizeof(msg_t) + msg_data_length(msg));
                 pool_room_free(&this.pool, MSG_ROOM_IDX);
-                written = msg_data_length(msg);
-                SYSLOG(LOG_INFO, "send msg length: %lu", written);
+                len = msg_data_length(msg);
+                SYSLOG(LOG_INFO, "send msg length: %lu", len);
             }
         }
     }
