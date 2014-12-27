@@ -255,7 +255,11 @@ static void process_msg(client_t* client, msg_t* msg, int localfd, vector_t* for
     else if (parse_msg(msg, &sys, &buffer, &len, &room_id))
     {
         if (sys) server_process_sys(client, msg, buffer, len);
-        else SYSLOG(LOG_INFO, "write local length: %ld", write_n(localfd, buffer, len));
+        else
+        {
+            ssize_t written = write_n(localfd, buffer, len);
+            SYSLOG(LOG_INFO, "write local length: %ld", written);
+        }
         active_vector_up(&this.clients, idx);
     }
     if (buffer) pool_room_free(&this.pool, room_id);

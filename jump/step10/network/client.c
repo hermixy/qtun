@@ -148,9 +148,11 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
             msg = new_msg(buffer, readen);
             if (msg)
             {
+                ssize_t written;
                 write_n(remotefd, msg, sizeof(msg_t) + msg_data_length(msg));
                 pool_room_free(&this.pool, MSG_ROOM_IDX);
-                SYSLOG(LOG_INFO, "send msg length: %lu", msg_data_length(msg));
+                written = msg_data_length(msg);
+                SYSLOG(LOG_INFO, "send msg length: %lu", written);
             }
         }
     }

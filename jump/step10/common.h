@@ -52,7 +52,10 @@ do {\
     } \
 } while (0)
 
-#define SYSLOG(level, arg...) if (this.log_level >= level) syslog(level, ##arg)
+#define SYSLOG(level, arg...) \
+do { \
+if (this.log_level >= level) syslog(level, ##arg); \
+} while(0)
 
 extern unsigned short checksum(void* buffer, size_t len);
 

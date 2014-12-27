@@ -77,6 +77,7 @@ int main(int argc, char* argv[])
         {NULL,           0, NULL,   0}
     };
     char short_options[512] = {0};
+    int log_level = -1;
     longopt2shortopt(long_options, sizeof(long_options) / sizeof(struct option), short_options);
     openlog(argv[0], LOG_PERROR | LOG_CONS | LOG_PID, LOG_LOCAL0);
 
@@ -116,7 +117,7 @@ int main(int argc, char* argv[])
             port = atoi(optarg);
             break;
         case 'v':
-            conf.log_level = atoi(optarg);
+            log_level = atoi(optarg);
             break;
         default:
             syslog(LOG_ERR, "param error");
@@ -140,6 +141,8 @@ int main(int argc, char* argv[])
     if (localfd == -1) return 1;
     syslog(LOG_INFO, "%s opened\n", this.dev_name);
     a.s_addr = conf.localip;
+    if (log_level == -1) log_level = LOG_WARNING;
+    conf.log_level = log_level;
 
     if (ip == NULL)
     {
