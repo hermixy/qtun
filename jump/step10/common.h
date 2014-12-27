@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <syslog.h>
+
+#include "library.h"
 
 #define LEN2MASK(len) ((1 << (len)) - 1)
 
@@ -48,6 +51,8 @@ do {\
         exit(1); \
     } \
 } while (0)
+
+#define SYSLOG(level, arg...) if (this.log_level >= level) syslog(level, ##arg)
 
 extern unsigned short checksum(void* buffer, size_t len);
 

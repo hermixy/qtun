@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -34,7 +33,7 @@ int connect_server(char* ip, unsigned short port)
     addr.sin_port = htons(port);
     if (inet_aton(ip, &addr.sin_addr) == 0)
     {
-        syslog(LOG_ERR, "Convert ip address error!");
+        SYSLOG(LOG_ERR, "Convert ip address error!");
         close(fd);
         return -1;
     }
@@ -63,7 +62,7 @@ int connect_server(char* ip, unsigned short port)
             unsigned char mask;
             if (msg->compress != this.compress || msg->encrypt != this.encrypt)
             {
-                syslog(LOG_ERR, "compress algorithm or encrypt algorithm is not same");
+                SYSLOG(LOG_ERR, "compress algorithm or encrypt algorithm is not same");
                 pool_room_free(&this.pool, RECV_ROOM_IDX);
                 goto end;
             }
@@ -71,7 +70,7 @@ int connect_server(char* ip, unsigned short port)
             pool_room_free(&this.pool, RECV_ROOM_IDX);
             if (ip == 0)
             {
-                syslog(LOG_ERR, "Not enough ip address");
+                SYSLOG(LOG_ERR, "Not enough ip address");
                 goto end;
             }
             if (ip != this.localip)
@@ -82,17 +81,17 @@ int connect_server(char* ip, unsigned short port)
                 strcpy(saddr, inet_ntoa(a));
                 a.s_addr = ip;
                 strcpy(daddr, inet_ntoa(a));
-                syslog(LOG_ERR, "%s is inuse, but %s is not inuse", saddr, daddr);
+                SYSLOG(LOG_ERR, "%s is inuse, but %s is not inuse", saddr, daddr);
                 goto end;
             }
             this.netmask = mask;
             this.keepalive = time(NULL);
             return fd;
         }
-        syslog(LOG_ERR, "read sys_login_reply message timeouted");
+        SYSLOG(LOG_ERR, "read sys_login_reply message timeouted");
         goto end;
     }
-    syslog(LOG_ERR, "Can not create login message");
+    SYSLOG(LOG_ERR, "Can not create login message");
 end:
     close(fd);
     return -1;
@@ -106,7 +105,7 @@ static void client_process_sys(msg_t* msg, const void* buffer, const size_t len)
         if (IS_SYS_REPLY(msg->unused))
         {
             this.keepalive_replyed = 1;
-            syslog(LOG_INFO, "reply keepalive message received");
+            SYSLOG(LOG_INFO, "reply keepalive message received");
         }
         break;
     }
@@ -122,11 +121,11 @@ static void process_msg(msg_t* msg, int localfd)
     if (parse_msg(msg, &sys, &buffer, &len, &room_id))
     {
         if (sys) client_process_sys(msg, buffer, len);
-        else syslog(LOG_INFO, "write local length: %ld", write_n(localfd, buffer, len));
+        else SYSLOG(LOG_INFO, "write local length: %ld", write_n(localfd, buffer, len));
     }
     else
     {
-        syslog(LOG_WARNING, "Parse message error");
+        SYSLOG(LOG_WARNING, "Parse message error");
         return;
     }
     if (buffer) pool_room_free(&this.pool, room_id);
@@ -151,7 +150,7 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
             {
                 write_n(remotefd, msg, sizeof(msg_t) + msg_data_length(msg));
                 pool_room_free(&this.pool, MSG_ROOM_IDX);
-                syslog(LOG_INFO, "send msg length: %lu", msg_data_length(msg));
+                SYSLOG(LOG_INFO, "send msg length: %lu", msg_data_length(msg));
             }
         }
     }
@@ -160,7 +159,7 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
         ssize_t rc = read_pre(remotefd, this.client.read, this.client.want);
         if (rc == 0)
         {
-            syslog(LOG_ERR, "connection closed");
+            SYSLOG(LOG_ERR, "connection closed");
             return RETURN_CONNECTION_CLOSED;
         }
         else if (rc < 0)
@@ -185,7 +184,7 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
                         this.client.buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t) + this.client.want);
                         if (this.client.buffer == NULL)
                         {
-                            syslog(LOG_ERR, "Not enough memory");
+                            SYSLOG(LOG_ERR, "Not enough memory");
                             exit(1);
                         }
                         this.client.read = ((msg_t*)this.client.buffer)->data;
@@ -210,7 +209,7 @@ void client_loop(int remotefd, int localfd)
     int rc;
     if (this.client.buffer == NULL)
     {
-        syslog(LOG_ERR, "Not enough memory");
+        SYSLOG(LOG_ERR, "Not enough memory");
         return;
     }
     this.keepalive_replyed = 1;
@@ -226,7 +225,7 @@ void client_loop(int remotefd, int localfd)
         {
             msg_t* msg = new_keepalive_msg(1);
             write_n(remotefd, msg, sizeof(msg_t));
-            syslog(LOG_INFO, "send keepalive message");
+            SYSLOG(LOG_INFO, "send keepalive message");
             this.keepalive = time(NULL);
             this.keepalive_replyed = 0;
             pool_room_free(&this.pool, MSG_ROOM_IDX);
@@ -248,7 +247,7 @@ void client_loop(int remotefd, int localfd)
 
         if (keepalive_send && !this.keepalive_replyed && (time(NULL) - this.keepalive) > KEEPALIVE_TIMEOUT)
         {
-            syslog(LOG_INFO, "keepalive reply timeouted, connection closed");
+            SYSLOG(LOG_INFO, "keepalive reply timeouted, connection closed");
             pool_room_free(&this.pool, RECV_ROOM_IDX);
             return;
         }

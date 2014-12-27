@@ -1,5 +1,4 @@
 #include <string.h>
-#include <syslog.h>
 
 #include "common.h"
 #include "msg.h"
@@ -41,19 +40,19 @@ int library_init(library_conf_t conf)
         fp = fopen(conf.aes_key_file, "r");
         if (fp == NULL)
         {
-            syslog(LOG_ERR, "can not open aes key file");
+            SYSLOG(LOG_ERR, "can not open aes key file");
             return 0;
         }
         len = fread(this.aes_iv, sizeof(char), sizeof(this.aes_iv), fp);
         if (len != sizeof(this.aes_iv))
         {
-            syslog(LOG_ERR, "error aes iv");
+            SYSLOG(LOG_ERR, "error aes iv");
             return 0;
         }
         len = fread(this.aes_key, sizeof(char), sizeof(this.aes_key), fp);
         if (len != 16 && len != 24 && len != 32)
         {
-            syslog(LOG_ERR, "error aes key file");
+            SYSLOG(LOG_ERR, "error aes key file");
             return 0;
         }
         this.aes_key_len = len << 3;
@@ -67,19 +66,19 @@ int library_init(library_conf_t conf)
         fp = fopen(conf.des_key_file, "r");
         if (fp == NULL)
         {
-            syslog(LOG_ERR, "can not open des key file");
+            SYSLOG(LOG_ERR, "can not open des key file");
             return 0;
         }
         len = fread(this.des_iv, sizeof(char), sizeof(this.des_iv), fp);
         if (len != sizeof(this.des_iv))
         {
-            syslog(LOG_ERR, "error des iv");
+            SYSLOG(LOG_ERR, "error des iv");
             return 0;
         }
         len = fread(this.des_key, sizeof(char), sizeof(this.des_key), fp);
         if (len != DES_KEY_SZ && len != DES_KEY_SZ * 2 && len != DES_KEY_SZ * 3)
         {
-            syslog(LOG_ERR, "error des key file");
+            SYSLOG(LOG_ERR, "error des key file");
             return 1;
         }
         this.des_key_len = len;

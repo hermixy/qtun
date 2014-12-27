@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -185,7 +184,7 @@ int main(int argc, char* argv[])
             }
             client_loop(remotefd, localfd);
             close(remotefd);
-            syslog(LOG_WARNING, "retry\n");
+            SYSLOG(LOG_WARNING, "retry\n");
         }
     }
     closelog();

@@ -3,7 +3,6 @@
 #include <netinet/tcp.h>
 #include <errno.h>
 #include <string.h>
-#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -78,7 +77,7 @@ static void accept_and_check(int bindfd)
     client = malloc(sizeof(*client));
     if (client == NULL)
     {
-        syslog(LOG_ERR, "Not enough memory");
+        SYSLOG(LOG_ERR, "Not enough memory");
         close(fd);
         return;
     }
@@ -90,14 +89,14 @@ static void accept_and_check(int bindfd)
     client->buffer = client->read = pool_room_realloc(&this.pool, RECV_ROOM_IDX, client->want);
     if (client->buffer == NULL)
     {
-        syslog(LOG_ERR, "Not enough memory");
+        SYSLOG(LOG_ERR, "Not enough memory");
         free(client);
         close(fd);
         return;
     }
     if (!active_vector_append(&this.clients, client, sizeof(*client)))
     {
-        syslog(LOG_ERR, "append to clients error");
+        SYSLOG(LOG_ERR, "append to clients error");
         free(client);
         close(fd);
     }
@@ -115,7 +114,7 @@ static void remove_clients(vector_t* v, const char* pfx)
         active_vector_get(&this.clients, (size_t)tmp, (void**)&client, &tmp_len);
         a.s_addr = client->ip;
         sprintf(ip, "%s", inet_ntoa(a));
-        syslog(LOG_INFO, "%s: %s", pfx, ip);
+        SYSLOG(LOG_INFO, "%s: %s", pfx, ip);
         close(client->fd);
         active_vector_del(&this.clients, (size_t)tmp);
     }
@@ -136,7 +135,7 @@ static void server_process_sys(client_t* client, msg_t* msg, const void* buffer,
             client->keepalive = time(NULL);
             msg_t* new_msg = new_keepalive_msg(0);
             write_n(client->fd, new_msg, sizeof(msg_t));
-            syslog(LOG_INFO, "reply keepalive message");
+            SYSLOG(LOG_INFO, "reply keepalive message");
             pool_room_free(&this.pool, MSG_ROOM_IDX);
         }
         break;
@@ -154,7 +153,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
 
     if (!IS_CLIENT_STATUS_CHECKLOGIN(client->status))
     {
-        syslog(LOG_ERR, "Invalid status, want(%d) current(%d)", CLIENT_STATUS_CHECKLOGIN, client->status);
+        SYSLOG(LOG_ERR, "Invalid status, want(%d) current(%d)", CLIENT_STATUS_CHECKLOGIN, client->status);
         close_client(for_del, idx);
         goto end;
     }
@@ -169,7 +168,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
     }
     if (!parse_msg(msg, &sys, &data, &len, &room_id))
     {
-        syslog(LOG_ERR, "parse sys_login_request failed");
+        SYSLOG(LOG_ERR, "parse sys_login_request failed");
         close_client(for_del, idx);
         goto end;
     }
@@ -177,7 +176,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
     if (memcmp(login->check, SYS_MSG_CHECK, sizeof(login->check)) ||
         !check_ip_by_mask(login->ip, this.localip, this.netmask)) // 非法数据包
     {
-        syslog(LOG_ERR, "unknown sys_login_request message");
+        SYSLOG(LOG_ERR, "unknown sys_login_request message");
         close_client(for_del, idx);
         goto end;
     }
@@ -200,7 +199,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
                 }
                 else
                 {
-                    syslog(LOG_ERR, "Can not create login message");
+                    SYSLOG(LOG_ERR, "Can not create login message");
                     close_client(for_del, idx);
                 }
                 goto end;
@@ -216,7 +215,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         }
         else
         {
-            syslog(LOG_ERR, "Can not create login message");
+            SYSLOG(LOG_ERR, "Can not create login message");
             close_client(for_del, idx);
         }
     }
@@ -228,7 +227,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         new_msg = new_login_msg(remote_ip, this.netmask, 0);
         if (new_msg == NULL)
         {
-            syslog(LOG_ERR, "Can not create login message");
+            SYSLOG(LOG_ERR, "Can not create login message");
             close_client(for_del, idx);
             goto end;
         }
@@ -256,7 +255,7 @@ static void process_msg(client_t* client, msg_t* msg, int localfd, vector_t* for
     else if (parse_msg(msg, &sys, &buffer, &len, &room_id))
     {
         if (sys) server_process_sys(client, msg, buffer, len);
-        else syslog(LOG_INFO, "write local length: %ld", write_n(localfd, buffer, len));
+        else SYSLOG(LOG_INFO, "write local length: %ld", write_n(localfd, buffer, len));
         active_vector_up(&this.clients, idx);
     }
     if (buffer) pool_room_free(&this.pool, room_id);
@@ -307,7 +306,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                             client->buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t) + client->want);
                             if (client->buffer == NULL)
                             {
-                                syslog(LOG_ERR, "Not enough memory");
+                                SYSLOG(LOG_ERR, "Not enough memory");
                                 vector_push_back(&v, (void*)(long)active_vector_iterator_idx(iter), sizeof(active_vector_iterator_idx(iter)));
                             }
                             client->read = ((msg_t*)client->buffer)->data;
@@ -344,7 +343,7 @@ end:
                 {
                     write_n(client->fd, msg, sizeof(msg_t) + msg_data_length(msg));
                     pool_room_free(&this.pool, MSG_ROOM_IDX);
-                    syslog(LOG_INFO, "send msg length: %lu", msg_data_length(msg));
+                    SYSLOG(LOG_INFO, "send msg length: %lu", msg_data_length(msg));
                 }
             }
         }

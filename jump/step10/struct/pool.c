@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <syslog.h>
 
 #include "common.h"
 #include "pool.h"
@@ -79,7 +78,7 @@ void* pool_room_alloc(pool_t* p, size_t idx, size_t len)
     if (idx >= ROOM_COUNT) return NULL;
     if (p->room[idx].used)
     {
-        syslog(LOG_ERR, "using used room: %lu", idx);
+        SYSLOG(LOG_ERR, "using used room: %lu", idx);
         return NULL;
     }
     return _pool_room_alloc(p, idx, len);

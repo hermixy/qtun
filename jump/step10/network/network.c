@@ -4,7 +4,6 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include <syslog.h>
 #include <unistd.h>
 
 #include "common.h"
@@ -39,13 +38,13 @@ ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
 
     if (checksum(*msg, sizeof(msg_t) + len))
     {
-        syslog(LOG_ERR, "Invalid msg");
+        SYSLOG(LOG_ERR, "Invalid msg");
         pool_room_free(&this.pool, RECV_ROOM_IDX);
         *msg = NULL;
         return -2;
     }
 
-    syslog(LOG_INFO, "read msg length: %lu", len);
+    SYSLOG(LOG_INFO, "read msg length: %lu", len);
     return rc + sizeof(msg_t);
 }
 

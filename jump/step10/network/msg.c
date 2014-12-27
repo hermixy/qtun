@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <syslog.h>
 #include <zlib.h>
 
 #include "common.h"
@@ -423,13 +422,13 @@ int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* m
 
     if (!parse_msg(input, &sys, &data, &len, &room_id))
     {
-        syslog(LOG_ERR, "parse sys_login_reply failed");
+        SYSLOG(LOG_ERR, "parse sys_login_reply failed");
         return 0;
     }
     login = (sys_login_msg_t*)data;
     if (!sys || !CHECK_SYS_OP(input->unused, SYS_LOGIN, 0) || memcmp(login->check, SYS_MSG_CHECK, sizeof(login->check)))
     {
-        syslog(LOG_ERR, "Invalid sys_login_reply message");
+        SYSLOG(LOG_ERR, "Invalid sys_login_reply message");
         return 0;
     }
     *ip = login->ip;
