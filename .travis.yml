@@ -1,0 +1,10 @@
+language: c
+compiler:
+    - gcc
+script: cd src/ && cmake . && make
+notifications:
+    recipients:
+        - lwch748@gmail.com
+    email:
+        on_success: change
+        on_failure: always
