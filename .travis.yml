@@ -1,10 +1,10 @@
+os:
+    - linux
+    - osx
 language: c
 compiler:
     - gcc
     - clang
-os:
-    - linux
-    - osx
 script: cd src/ && cmake . && make
 notifications:
     recipients:
