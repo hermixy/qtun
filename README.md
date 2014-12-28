@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/lwch/qtun.svg?branch=master)](https://travis-ci.org/lwch/qtun)
+
 # 网络模型与协议
 
 1. [OSI模型](http://blog.q-devel.com/osi%e6%a8%a1%e5%9e%8b/)
