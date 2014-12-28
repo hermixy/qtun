@@ -22,7 +22,7 @@ static unsigned char syscontrol_cmds[] = {
     SYSCONTROL_MASK(SYS_PING,  0, 0),
 };
 
-inline int find_cmd(unsigned char op, unsigned char masks[2])
+inline static int find_cmd(unsigned char op, unsigned char masks[2])
 {
     size_t i;
     for (i = 0; i < sizeof(syscontrol_cmds); ++i)
