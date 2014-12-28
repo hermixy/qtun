@@ -2,6 +2,9 @@ language: c
 compiler:
     - gcc
     - clang
+before_script:
+    - sudo apt-get update -q
+    - sudo apt-get install liblua5.1-0-dev
 script: cd src/ && cmake . && make
 notifications:
     recipients:
