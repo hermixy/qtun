@@ -36,7 +36,7 @@ typedef struct
     unsigned int   usec   : 20;    // 精确到微秒，little-endian
     unsigned short len    : 12;    // 长度 = len * 16 + pfx
     unsigned char  pfx    : 4;     // pfx
-    unsigned char  unused : 4;     // for sys msg
+    unsigned char  sys    : 4;     // for sys msg
     unsigned short checksum;       // 校验和
     unsigned char  data[];         // 数据
 } msg_t;

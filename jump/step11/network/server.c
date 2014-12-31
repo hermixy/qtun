@@ -127,10 +127,10 @@ inline static void close_client(vector_t* for_del, size_t idx)
 
 static void server_process_sys(client_t* client, msg_t* msg, const void* buffer, const size_t len)
 {
-    switch (GET_SYS_OP(msg->unused))
+    switch (GET_SYS_OP(msg->sys))
     {
     case SYS_PING:
-        if (IS_SYS_REQUEST(msg->unused))
+        if (IS_SYS_REQUEST(msg->sys))
         {
             client->keepalive = time(NULL);
             msg_t* new_msg = new_keepalive_msg(0);
@@ -248,7 +248,7 @@ static void process_msg(client_t* client, msg_t* msg, int localfd, vector_t* for
     int sys;
     size_t room_id;
 
-    if (msg->syscontrol && CHECK_SYS_OP(msg->unused, SYS_LOGIN, 1))
+    if (msg->syscontrol && CHECK_SYS_OP(msg->sys, SYS_LOGIN, 1))
     {
         server_process_login(client, msg, idx, for_del);
     }

@@ -300,7 +300,7 @@ msg_t* new_msg(const void* data, const unsigned short len)
     ret->usec       = little32(tv.tv_usec);
     ret->len        = little16(floor(dst_len / 16));
     ret->pfx        = little16(dst_len % 16);
-    ret->unused     = 0;
+    ret->sys        = 0;
     ret->checksum   = 0;
     ret->checksum   = checksum(ret, sizeof(msg_t) + dst_len);
 end:
@@ -345,7 +345,7 @@ msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request)
     ret->usec       = little32(tv.tv_usec);
     ret->len        = little16(floor(dst_len / 16));
     ret->pfx        = little16(dst_len % 16);
-    ret->unused     = MAKE_SYS_OP(SYS_LOGIN, request ? 1 : 0);
+    ret->sys        = MAKE_SYS_OP(SYS_LOGIN, request ? 1 : 0);
     ret->checksum   = 0;
     memcpy(ret->data, dst, dst_len);
     ret->checksum   = checksum(ret, sizeof(msg_t) + dst_len);
@@ -369,7 +369,7 @@ msg_t* new_keepalive_msg(unsigned char request)
     ret->usec       = little32(tv.tv_usec);
     ret->len        = 0;
     ret->pfx        = 0;
-    ret->unused     = MAKE_SYS_OP(SYS_PING, request ? 1 : 0);
+    ret->sys        = MAKE_SYS_OP(SYS_PING, request ? 1 : 0);
     ret->checksum   = 0;
     ret->checksum   = checksum(ret, sizeof(msg_t));
 end:
@@ -426,7 +426,7 @@ int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* m
         return 0;
     }
     login = (sys_login_msg_t*)data;
-    if (!sys || !CHECK_SYS_OP(input->unused, SYS_LOGIN, 0) || memcmp(login->check, SYS_MSG_CHECK, sizeof(login->check)))
+    if (!sys || !CHECK_SYS_OP(input->sys, SYS_LOGIN, 0) || memcmp(login->check, SYS_MSG_CHECK, sizeof(login->check)))
     {
         SYSLOG(LOG_ERR, "Invalid sys_login_reply message");
         return 0;

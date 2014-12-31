@@ -99,10 +99,10 @@ end:
 
 static void client_process_sys(msg_t* msg, const void* buffer, const size_t len)
 {
-    switch (GET_SYS_OP(msg->unused))
+    switch (GET_SYS_OP(msg->sys))
     {
     case SYS_PING:
-        if (IS_SYS_REPLY(msg->unused))
+        if (IS_SYS_REPLY(msg->sys))
         {
             this.keepalive_replyed = 1;
             SYSLOG(LOG_INFO, "reply keepalive message received");
