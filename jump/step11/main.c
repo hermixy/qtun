@@ -74,15 +74,17 @@ int main(int argc, char* argv[])
         {"server",       1, NULL, 's'},
         {"port",         1, NULL, 'p'},
         {"log-level",    1, NULL, 'v'},
+        {"mtu",          1, NULL, 't'},
         {NULL,           0, NULL,   0}
     };
     char short_options[512] = {0};
-    int log_level = -1;
     longopt2shortopt(long_options, sizeof(long_options) / sizeof(struct option), short_options);
     openlog(argv[0], LOG_PERROR | LOG_CONS | LOG_PID, LOG_LOCAL0);
 
     conf.localip      = 0;
     conf.netmask      = 24;
+    conf.log_level    = LOG_WARNING;
+    conf.mtu          = 1400;
     conf.use_gzip     = 0;
     conf.use_aes      = 0;
     conf.aes_key_file = NULL;
@@ -117,7 +119,10 @@ int main(int argc, char* argv[])
             port = atoi(optarg);
             break;
         case 'v':
-            log_level = atoi(optarg);
+            conf.log_level = atoi(optarg);
+            break;
+        case 't':
+            conf.mtu = atoi(optarg);
             break;
         default:
             syslog(LOG_ERR, "param error");
@@ -141,8 +146,6 @@ int main(int argc, char* argv[])
     if (localfd == -1) return 1;
     syslog(LOG_INFO, "%s opened\n", this.dev_name);
     a.s_addr = conf.localip;
-    if (log_level == -1) log_level = LOG_WARNING;
-    conf.log_level = log_level;
 
     if (ip == NULL)
     {

@@ -7,6 +7,7 @@
 #include <openssl/des.h>
 
 #include "pool.h"
+#include "group_pool.h"
 #include "active_vector.h"
 
 #define CLIENT_STATUS_UNKNOWN        0
@@ -53,11 +54,13 @@ typedef struct
     DES_cblock      des_key[3];
     unsigned int    des_key_len;
     unsigned char   des_iv[DES_KEY_SZ];
+    unsigned short  mtu;
 
     unsigned char   compress;
     unsigned char   encrypt;
 
     pool_t          pool;
+    group_pool_t    group_pool;
 
     // for server
     active_vector_t clients;
@@ -72,9 +75,10 @@ extern this_t this;
 
 typedef struct
 {
-    unsigned int  localip;
-    unsigned char netmask;
-    unsigned char log_level;
+    unsigned int   localip;
+    unsigned char  netmask;
+    unsigned char  log_level;
+    unsigned short mtu;
 
     int           use_gzip;
 

@@ -20,6 +20,7 @@ int library_init(library_conf_t conf)
     this.msg_ident = 0;
     this.localip   = conf.localip;
     this.log_level = conf.log_level;
+    this.mtu       = conf.mtu;
     this.compress  = 0;
     this.encrypt   = 0;
     this.netmask   = conf.netmask;
@@ -28,6 +29,7 @@ int library_init(library_conf_t conf)
 
     active_vector_init(&this.clients, functor_clients);
     pool_init(&this.pool);
+    group_pool_init(&this.group_pool);
 
     if (conf.use_gzip)
         if (!append_msg_process_handler(MSG_PROCESS_COMPRESS_HANDLER, MSG_COMPRESS_GZIP_ID, GZIP_ROOM_IDX, gzip_compress, gzip_decompress))

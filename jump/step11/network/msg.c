@@ -240,7 +240,7 @@ size_t msg_data_length(const msg_t* msg)
     return little2host16(msg->len) * 16 + little2host16(msg->pfx);
 }
 
-static int process_asc(void* src, unsigned int src_len, void** dst, unsigned int* dst_len, int* want_free, size_t* room_id)
+int process_asc(void* src, unsigned int src_len, void** dst, unsigned int* dst_len, int* want_free, size_t* room_id)
 {
     size_t link_cnt = link_count(&msg_process_handlers);
     *want_free = 0;

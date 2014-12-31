@@ -81,6 +81,7 @@ extern int append_msg_process_handler(
     int (*undo_handler)(const void*, const unsigned int, void**, unsigned int*)
 );
 extern size_t msg_data_length(const msg_t* msg);
+extern int process_asc(void* src, unsigned int src_len, void** dst, unsigned int* dst_len, int* want_free, size_t* room_id);
 extern msg_t* new_msg(const void* data, const unsigned short len);
 extern msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request);
 extern msg_t* new_keepalive_msg(unsigned char request);
