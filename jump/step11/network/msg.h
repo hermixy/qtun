@@ -37,15 +37,23 @@ typedef struct
     unsigned short len    : 12;    // 长度 = len * 16 + pfx
     unsigned char  pfx    : 4;     // pfx
     unsigned char  sys    : 4;     // for sys msg
+    struct
+    {
+        unsigned char unused : 1;  // 未使用
+        unsigned char clip   : 1;  // 是否需要分片
+        unsigned char last   : 1;  // 是否是最后一个分片
+        unsigned short idx   : 13; // 分片位置
+    } zone;
     unsigned short checksum;       // 校验和
     unsigned char  data[];         // 数据
 } msg_t;
 
 typedef struct
 {
-    unsigned char check[3];
-    unsigned int  ip;
-    unsigned char mask;
+    unsigned char  check[3];
+    unsigned int   ip;
+    unsigned char  mask;
+    unsigned short mtu;
 } sys_login_msg_t;
 
 typedef struct

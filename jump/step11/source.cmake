@@ -6,6 +6,8 @@ SET(SOURCE
 
     ${QTUN_SOURCE_DIR}/network/msg.h
     ${QTUN_SOURCE_DIR}/network/msg.c
+    ${QTUN_SOURCE_DIR}/network/msg_group.h
+    ${QTUN_SOURCE_DIR}/network/msg_group.c
     ${QTUN_SOURCE_DIR}/network/network.h
     ${QTUN_SOURCE_DIR}/network/network.c
     ${QTUN_SOURCE_DIR}/network/server.c
@@ -19,6 +21,8 @@ SET(SOURCE
     ${QTUN_SOURCE_DIR}/struct/link.c
     ${QTUN_SOURCE_DIR}/struct/pool.h
     ${QTUN_SOURCE_DIR}/struct/pool.c
+    ${QTUN_SOURCE_DIR}/struct/group_pool.h
+    ${QTUN_SOURCE_DIR}/struct/group_pool.c
     ${QTUN_SOURCE_DIR}/struct/typedef.h
     ${QTUN_SOURCE_DIR}/struct/vector.h
     ${QTUN_SOURCE_DIR}/struct/vector.c
