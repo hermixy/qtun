@@ -1,3 +1,5 @@
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
 #include <string.h>
 
 #include "common.h"
@@ -17,14 +19,15 @@ int library_init(library_conf_t conf)
 
     init_msg_process_handler();
 
-    this.msg_ident = 0;
-    this.localip   = conf.localip;
-    this.log_level = conf.log_level;
-    this.mtu       = conf.mtu;
-    this.compress  = 0;
-    this.encrypt   = 0;
-    this.netmask   = conf.netmask;
-    this.keepalive = 0;
+    this.msg_ident  = 0;
+    this.localip    = conf.localip;
+    this.log_level  = conf.log_level;
+    this.mtu        = conf.mtu;
+    this.max_length = conf.mtu - sizeof(msg_t) - sizeof(struct iphdr) - sizeof(struct tcphdr);
+    this.compress   = 0;
+    this.encrypt    = 0;
+    this.netmask    = conf.netmask;
+    this.keepalive  = 0;
     this.keepalive_replyed = 0;
 
     active_vector_init(&this.clients, functor_clients);

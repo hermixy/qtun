@@ -55,6 +55,7 @@ typedef struct
     unsigned int    des_key_len;
     unsigned char   des_iv[DES_KEY_SZ];
     unsigned short  mtu;
+    unsigned short  max_length;
 
     unsigned char   compress;
     unsigned char   encrypt;

@@ -6,6 +6,7 @@
 typedef struct
 {
     msg_t** elements;
+    size_t  idx;
     size_t  count;
 } msg_group_t;
 

@@ -270,7 +270,7 @@ static void process_msg(client_t* client, msg_t* msg, int localfd, vector_t* for
 
 static void server_process(int max, fd_set* set, int remotefd, int localfd)
 {
-    msg_t* msg;
+    msg_group_t* group;
     active_vector_iterator_t iter;
     struct iphdr* ipHdr;
     vector_t v;
@@ -342,13 +342,12 @@ end:
                 client_t* client;
                 size_t len;
                 active_vector_get(&this.clients, idx, (void**)&client, &len);
-                msg = new_msg(buffer, readen);
-                if (msg)
+                group = new_msg_group(buffer, readen);
+                if (group)
                 {
-                    write_n(client->fd, msg, sizeof(msg_t) + msg_data_length(msg));
-                    pool_room_free(&this.pool, MSG_ROOM_IDX);
-                    size_t len = msg_data_length(msg);
-                    SYSLOG(LOG_INFO, "send msg length: %lu", len);
+                    ssize_t written = send_msg_group(client->fd, group);
+                    msg_group_free(group);
+                    SYSLOG(LOG_INFO, "send msg length: %ld", written);
                 }
             }
         }

@@ -13,7 +13,7 @@
 static int no_clip(msg_group_t* g, struct timeval tv, const void* data, const unsigned int len)
 {
     msg_t* msg;
-    if (len > this.mtu) return 0;
+    if (len > this.max_length) return 0;
     msg = group_pool_room_alloc(&this.group_pool, len);
     if (msg == NULL) return 0;
     g->elements = group_pool_room_alloc(&this.group_pool, sizeof(msg_t*));
@@ -23,7 +23,7 @@ static int no_clip(msg_group_t* g, struct timeval tv, const void* data, const un
     msg->syscontrol  = 0;
     msg->compress    = this.compress;
     msg->encrypt     = this.encrypt;
-    msg->ident       = htonl(++this.msg_ident);
+    msg->ident       = htonl(g->idx);
     msg->sec         = htonl(tv.tv_sec);
     msg->usec        = little32(tv.tv_usec);
     msg->len         = little16(floor(len / 16));
@@ -73,7 +73,8 @@ msg_group_t* new_msg_group(const void* data, const unsigned short len)
     if (!process_asc((void*)data, (unsigned int)len, &dst, &dst_len, &want_free, &room_id)) goto end;
     ret = group_pool_room_alloc(&this.group_pool, sizeof(msg_group_t));
     if (ret == NULL) goto end;
-    if (dst_len <= this.mtu)
+    ret->idx = ++this.msg_ident;
+    if (dst_len <= this.max_length)
     {
         if (!no_clip(ret, tv, dst, dst_len)) goto end;
     }
@@ -83,7 +84,7 @@ msg_group_t* new_msg_group(const void* data, const unsigned short len)
         unsigned int usec;
         unsigned short len;
         unsigned char pfx;
-        ret->count = ceil((double)dst_len / this.mtu);
+        ret->count = ceil((double)dst_len / this.max_length);
         ret->elements = group_pool_room_alloc(&this.group_pool, sizeof(msg_t*) * ret->count);
         if (ret->elements == NULL) goto end;
         memset(ret->elements, 0, sizeof(msg_t*) * ret->count);
@@ -96,14 +97,14 @@ msg_group_t* new_msg_group(const void* data, const unsigned short len)
         pfx = little16(dst_len % 16);
         while (left)
         {
-            unsigned int length = left > this.mtu ? this.mtu : left;
+            unsigned int length = left > this.max_length ? this.max_length : left;
             msg_t* msg = group_pool_room_alloc(&this.group_pool, sizeof(msg_t) + length);
             if (msg == NULL) goto end;
             memcpy(msg->data, dst, length);
             msg->syscontrol  = 0;
             msg->compress    = this.compress;
             msg->encrypt     = this.encrypt;
-            msg->ident       = htonl(++this.msg_ident);
+            msg->ident       = htonl(ret->idx);
             msg->sec         = sec;
             msg->usec        = usec;
             msg->len         = len;
@@ -112,7 +113,7 @@ msg_group_t* new_msg_group(const void* data, const unsigned short len)
             msg->zone.unused = 0;
             msg->zone.clip   = 1;
             msg->zone.last   = i == ret->count - 1 ? 1 : 0;
-            msg->zone.idx    = little16((i * this.mtu) >> 3);
+            msg->zone.idx    = little16((i * this.max_length) >> 3);
             msg->checksum    = 0;
             msg->checksum    = checksum(msg, sizeof(msg_t) + length);
             left -= length;

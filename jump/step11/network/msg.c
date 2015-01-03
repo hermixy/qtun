@@ -278,36 +278,6 @@ int process_asc(void* src, unsigned int src_len, void** dst, unsigned int* dst_l
     return 1;
 }
 
-msg_t* new_msg(const void* data, const unsigned short len)
-{
-    struct timeval tv;
-    msg_t* ret = NULL;
-    void *dst;
-    unsigned int dst_len;
-    int want_free = 0;
-    size_t room_id;
-
-    if (!process_asc((void*)data, (unsigned int)len, &dst, &dst_len, &want_free, &room_id)) goto end;
-    ret = pool_room_alloc(&this.pool, MSG_ROOM_IDX, sizeof(msg_t) + dst_len);
-    if (ret == NULL) goto end;
-    memcpy(ret->data, dst, dst_len);
-    gettimeofday(&tv, NULL);
-    ret->syscontrol = 0;
-    ret->compress   = this.compress;
-    ret->encrypt    = this.encrypt;
-    ret->ident      = htonl(++this.msg_ident);
-    ret->sec        = htonl(tv.tv_sec);
-    ret->usec       = little32(tv.tv_usec);
-    ret->len        = little16(floor(dst_len / 16));
-    ret->pfx        = little16(dst_len % 16);
-    ret->sys        = 0;
-    ret->checksum   = 0;
-    ret->checksum   = checksum(ret, sizeof(msg_t) + dst_len);
-end:
-    if (want_free) pool_room_free(&this.pool, room_id);
-    return ret;
-}
-
 msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request)
 {
     struct timeval tv;

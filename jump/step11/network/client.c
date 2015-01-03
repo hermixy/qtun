@@ -140,7 +140,7 @@ static void process_msg(msg_t* msg, int localfd)
 
 static int client_process(int max, fd_set* set, int remotefd, int localfd)
 {
-    msg_t* msg;
+    msg_group_t* group;
     if (FD_ISSET(localfd, set))
     {
         unsigned char buffer[2048];
@@ -149,14 +149,12 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
         readen = read(localfd, buffer, sizeof(buffer));
         if (readen > 0)
         {
-            msg = new_msg(buffer, readen);
-            if (msg)
+            group = new_msg_group(buffer, readen);
+            if (group)
             {
-                size_t len;
-                write_n(remotefd, msg, sizeof(msg_t) + msg_data_length(msg));
-                pool_room_free(&this.pool, MSG_ROOM_IDX);
-                len = msg_data_length(msg);
-                SYSLOG(LOG_INFO, "send msg length: %lu", len);
+                ssize_t written = send_msg_group(remotefd, group);
+                msg_group_free(group);
+                SYSLOG(LOG_INFO, "send msg length: %ld", written);
             }
         }
     }

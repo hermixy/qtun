@@ -6,6 +6,7 @@
 
 #include "hash.h"
 #include "link.h"
+#include "msg_group.h"
 #include "msg.h"
 
 #define UNCOMPRESSED       0
@@ -24,6 +25,7 @@ extern ssize_t read_msg_t(int fd, msg_t** msg, double timeout);
 extern ssize_t write_n(int fd, const void* buf, size_t count);
 extern ssize_t read_t(int fd, void* buf, size_t count, double timeout);
 extern ssize_t read_pre(int fd, void* buf, size_t count);
+extern ssize_t send_msg_group(int fd, msg_group_t* g);
 
 #define LOGIN_TIMEOUT      5
 #define KEEPALIVE_INTERVAL 30

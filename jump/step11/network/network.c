@@ -131,3 +131,24 @@ inline ssize_t read_pre(int fd, void* buf, size_t count)
     return read(fd, buf, count);
 }
 
+ssize_t send_msg_group(int fd, msg_group_t* g)
+{
+    size_t i;
+    ssize_t written, ret = 0;
+    size_t left, fixed;
+    if (g->count == 0) return -1;
+
+    left = msg_data_length(g->elements[0]);
+    fixed = sizeof(msg_t) + this.max_length;
+    for (i = 0; i < g->count - 1; ++i)
+    {
+        written = write_n(fd, g->elements[i], fixed);
+        if (written <= 0) return written;
+        ret  += written;
+        left -= written;
+    }
+    written = write_n(fd, g->elements[g->count - 1], left);
+    if (written <= 0) return written;
+    return ret + written;
+}
+
