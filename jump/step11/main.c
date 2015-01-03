@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
     conf.localip      = 0;
     conf.netmask      = 24;
     conf.log_level    = LOG_WARNING;
-    conf.mtu          = 1400;
+    conf.mtu          = 1500;
     conf.use_gzip     = 0;
     conf.use_aes      = 0;
     conf.aes_key_file = NULL;
@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
         library_init(conf);
         remotefd = bind_and_listen(port);
         if (remotefd == -1) return 1;
-        sprintf(cmd, "ifconfig %s %s/%u up", this.dev_name, inet_ntoa(a), conf.netmask);
+        sprintf(cmd, "ifconfig %s %s/%u mtu %u up", this.dev_name, inet_ntoa(a), conf.netmask, conf.mtu);
         SYSTEM_EXIT(cmd);
         a.s_addr = conf.localip & LEN2MASK(conf.netmask);
         sprintf(cmd, "route add -net %s/%u dev %s", inet_ntoa(a), conf.netmask, this.dev_name);
