@@ -54,7 +54,7 @@ typedef struct
     DES_cblock      des_key[3];
     unsigned int    des_key_len;
     unsigned char   des_iv[DES_KEY_SZ];
-    unsigned short  mtu;
+    unsigned short  internal_mtu;
     unsigned short  max_length;
 
     unsigned char   compress;
@@ -79,7 +79,7 @@ typedef struct
     unsigned int   localip;
     unsigned char  netmask;
     unsigned char  log_level;
-    unsigned short mtu;
+    unsigned short internal_mtu;
 
     int           use_gzip;
 

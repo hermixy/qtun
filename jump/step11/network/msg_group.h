@@ -5,9 +5,9 @@
 
 typedef struct
 {
-    msg_t** elements;
-    size_t  idx;
-    size_t  count;
+    msg_t**        elements;
+    unsigned int   idx;
+    unsigned short count;
 } msg_group_t;
 
 extern void msg_group_free(msg_group_t* g);
