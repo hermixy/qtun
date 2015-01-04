@@ -292,6 +292,7 @@ msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request)
     memcpy(msg.check, SYS_MSG_CHECK, sizeof(msg.check));
     msg.ip = ip;
     msg.mask = mask;
+    msg.internal_mtu = htons(this.internal_mtu);
 
     if (!find_cmd(SYS_LOGIN, cmd_mask)) goto end;
     if (cmd_mask[request ? 0 : 1])
@@ -382,7 +383,7 @@ int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* outpu
     return 1;
 }
 
-int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* mask)
+int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* mask, unsigned short* internal_mtu)
 {
     int sys;
     void* data;
@@ -403,6 +404,7 @@ int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* m
     }
     *ip = login->ip;
     *mask = login->mask;
+    *internal_mtu = login->internal_mtu;
     pool_room_free(&this.pool, room_id);
     return 1;
 }

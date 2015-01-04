@@ -67,6 +67,14 @@ static void accept_and_check(int bindfd)
     int fd = accept(bindfd, NULL, NULL);
     client_t* client;
     int flag = 1;
+    hash_functor_t functor = {
+        msg_ident_hash,
+        msg_ident_compare,
+        hash_dummy_dup,
+        hash_dummy_dup,
+        msg_group_free_hash,
+        msg_group_free_hash_val
+    };
     if (fd == -1) return;
 
     if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1)
@@ -90,6 +98,14 @@ static void accept_and_check(int bindfd)
     if (client->buffer == NULL)
     {
         SYSLOG(LOG_ERR, "Not enough memory");
+        free(client);
+        close(fd);
+        return;
+    }
+    if (!hash_init(&client->recv_table, functor, 11))
+    {
+        SYSLOG(LOG_ERR, "hash_init failed");
+        pool_room_free(&this.pool, RECV_ROOM_IDX);
         free(client);
         close(fd);
         return;
@@ -205,6 +221,8 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
                 goto end;
             }
         }
+        client->internal_mtu = ntohs(login->internal_mtu);
+        client->max_length = client->internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - sizeof(struct tcphdr);
         pool_room_free(&this.pool, room_id);
         data = NULL;
         new_msg = new_login_msg(0, 0, 0);

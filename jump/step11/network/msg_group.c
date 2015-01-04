@@ -23,7 +23,7 @@ static int no_clip(msg_group_t* g, struct timeval tv, const void* data, const un
     msg->syscontrol  = 0;
     msg->compress    = this.compress;
     msg->encrypt     = this.encrypt;
-    msg->ident       = htonl(g->idx);
+    msg->ident       = htonl(g->ident);
     msg->sec         = htonl(tv.tv_sec);
     msg->usec        = little32(tv.tv_usec);
     msg->len         = little16(floor(len / 16));
@@ -53,9 +53,9 @@ void msg_group_free(msg_group_t* g)
             }
             group_pool_room_free(&this.group_pool, g->elements);
         }
-        group_pool_room_free(&this.group_pool, g);
         g->elements = NULL;
         g->count = 0;
+        group_pool_room_free(&this.group_pool, g);
     }
 }
 
@@ -73,7 +73,7 @@ msg_group_t* new_msg_group(const void* data, const unsigned short len)
     if (!process_asc((void*)data, (unsigned int)len, &dst, &dst_len, &want_free, &room_id)) goto end;
     ret = group_pool_room_alloc(&this.group_pool, sizeof(msg_group_t));
     if (ret == NULL) goto end;
-    ret->idx = ++this.msg_ident;
+    ret->ident = ++this.msg_ident;
     if (dst_len <= this.max_length)
     {
         if (!no_clip(ret, tv, dst, dst_len)) goto end;
@@ -104,7 +104,7 @@ msg_group_t* new_msg_group(const void* data, const unsigned short len)
             msg->syscontrol  = 0;
             msg->compress    = this.compress;
             msg->encrypt     = this.encrypt;
-            msg->ident       = htonl(ret->idx);
+            msg->ident       = htonl(ret->ident);
             msg->sec         = sec;
             msg->usec        = usec;
             msg->len         = len;

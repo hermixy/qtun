@@ -7,8 +7,10 @@
 #include <openssl/des.h>
 
 #include "pool.h"
+#include "hash.h"
 #include "group_pool.h"
 #include "active_vector.h"
+#include "msg_group.h"
 
 #define CLIENT_STATUS_UNKNOWN        0
 #define CLIENT_STATUS_CHECKLOGIN     1
@@ -36,12 +38,17 @@ typedef struct
     unsigned char* buffer;
     unsigned char* read;
     size_t         want;
+    msg_group_t*   group;
     unsigned int   keepalive;
+    hash_t         recv_table;
+    unsigned short internal_mtu;
+    unsigned short max_length;
 } client_t;
 
 typedef struct
 {
     unsigned int    msg_ident;
+    unsigned int    msg_ttl;
     unsigned int    localip;
     unsigned char   netmask;
     unsigned char   log_level;
@@ -94,5 +101,6 @@ extern int library_init(library_conf_t conf);
 extern int compare_clients_by_fd(const void* d1, const size_t l1, const void* d2, const size_t l2);
 extern int compare_clients_by_ip(const void* d1, const size_t l1, const void* d2, const size_t l2);
 extern unsigned char netmask();
+extern void free_client(void* c, size_t l);
 
 #endif

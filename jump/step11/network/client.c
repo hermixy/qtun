@@ -60,13 +60,22 @@ int connect_server(char* ip, unsigned short port)
         {
             unsigned int ip;
             unsigned char mask;
+            hash_functor_t functor = {
+                msg_ident_hash,
+                msg_ident_compare,
+                hash_dummy_dup,
+                hash_dummy_dup,
+                msg_group_free_hash,
+                msg_group_free_hash_val
+            };
+            unsigned short internal_mtu;
             if (msg->compress != this.compress || msg->encrypt != this.encrypt)
             {
                 SYSLOG(LOG_ERR, "compress algorithm or encrypt algorithm is not same");
                 pool_room_free(&this.pool, RECV_ROOM_IDX);
                 goto end;
             }
-            if (!parse_login_reply_msg(msg, &ip, &mask)) goto end;
+            if (!parse_login_reply_msg(msg, &ip, &mask, &internal_mtu)) goto end;
             pool_room_free(&this.pool, RECV_ROOM_IDX);
             if (ip == 0)
             {
@@ -84,6 +93,9 @@ int connect_server(char* ip, unsigned short port)
                 SYSLOG(LOG_ERR, "%s is inuse, but %s is not inuse", saddr, daddr);
                 goto end;
             }
+            this.client.group = NULL;
+            hash_init(&this.client.recv_table, functor, 11);
+            this.client.internal_mtu = ntohs(internal_mtu);
             this.netmask = mask;
             this.keepalive = time(NULL);
             return fd;
@@ -97,7 +109,7 @@ end:
     return -1;
 }
 
-static void client_process_sys(msg_t* msg, const void* buffer, const size_t len)
+static void client_process_sys(msg_t* msg)
 {
     switch (GET_SYS_OP(msg->sys))
     {
@@ -117,21 +129,40 @@ static void process_msg(msg_t* msg, int localfd)
     unsigned short len;
     int sys;
     size_t room_id;
+    msg_group_t* group;
+    unsigned int ident = ntohl(msg->ident);
 
-    if (parse_msg(msg, &sys, &buffer, &len, &room_id))
+    if (msg->syscontrol)
     {
-        if (sys) client_process_sys(msg, buffer, len);
+        client_process_sys(msg);
+    }
+    else if (msg->zone.clip)
+    {
+        group = msg_group_lookup(&this.client.recv_table, ident);
+        if (group) // TODO: process
+        {
+        }
         else
         {
-            ssize_t written = write_n(localfd, buffer, len);
-            SYSLOG(LOG_INFO, "write local length: %ld", written);
+            group = group_pool_room_alloc(&this.group_pool, sizeof(msg_group_t));
+            if (group == NULL)
+            {
+                SYSLOG(LOG_ERR, "Not enough memory");
+                goto end;
+            }
+            group->ident = ident;
+            group->ttl_start = this.msg_ident;
+            if (!hash_set(&this.client.recv_table, (void*)(unsigned long)ident, sizeof(ident), group, sizeof(msg_group_t))) goto end;
         }
     }
-    else
+    else if (parse_msg(msg, &sys, &buffer, &len, &room_id))
     {
-        SYSLOG(LOG_WARNING, "Parse message error");
-        return;
+        ssize_t written = write_n(localfd, buffer, len);
+        SYSLOG(LOG_INFO, "write local length: %ld", written);
     }
+    else
+        SYSLOG(LOG_WARNING, "Parse message error");
+end:
     if (buffer) pool_room_free(&this.pool, room_id);
     this.client.status = (this.client.status & ~CLIENT_STATUS_WAITING_BODY) | CLIENT_STATUS_WAITING_HEADER;
     this.client.want = sizeof(msg_t);

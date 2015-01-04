@@ -152,3 +152,31 @@ ssize_t send_msg_group(int fd, msg_group_t* g)
     return ret + written;
 }
 
+msg_group_t* msg_group_lookup(hash_t* h, size_t ident)
+{
+    msg_group_t* ret = NULL;
+    size_t len = 0;
+    if (!hash_get(h, (void*)ident, sizeof(ident), (void**)&ret, &len)) return NULL;
+    return ret;
+}
+
+size_t msg_ident_hash(const void* data, const size_t len)
+{
+    return (size_t)data;
+}
+
+inline void msg_group_free_hash(void* key, size_t key_len, void* val, size_t val_len)
+{
+    msg_group_free(val);
+}
+
+inline void msg_group_free_hash_val(void* val, size_t len)
+{
+    msg_group_free(val);
+}
+
+int msg_ident_compare(const void* d1, const size_t l1, const void* d2, const size_t l2)
+{
+    return (size_t)d1 == (size_t)d2;
+}
+

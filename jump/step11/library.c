@@ -14,12 +14,13 @@ int library_init(library_conf_t conf)
     ssize_t len;
     active_vector_functor_t functor_clients = {
         active_vector_dummy_dup,
-        active_vector_normal_free
+        free_client
     };
 
     init_msg_process_handler();
 
     this.msg_ident    = 0;
+    this.msg_ttl      = 0;
     this.localip      = conf.localip;
     this.log_level    = conf.log_level;
     this.internal_mtu = conf.internal_mtu;
@@ -110,5 +111,12 @@ inline int compare_clients_by_ip(const void* d1, const size_t l1, const void* d2
 inline unsigned char netmask()
 {
     return this.netmask;
+}
+
+void free_client(void* c, size_t l)
+{
+    client_t* client = c;
+    hash_free(&client->recv_table);
+    free(c);
 }
 
