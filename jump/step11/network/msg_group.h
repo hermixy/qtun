@@ -17,6 +17,7 @@ typedef struct
 
 extern void msg_group_free(msg_group_t* g);
 extern msg_group_t* new_msg_group(const void* data, const unsigned short len);
+extern int parse_msg_group(unsigned short max_length, msg_group_t* g, void** output, unsigned short* output_len, size_t* room_id);
 
 #endif
 

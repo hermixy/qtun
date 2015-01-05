@@ -1,6 +1,7 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <errno.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -138,11 +139,9 @@ static void process_msg(msg_t* msg, int localfd)
     }
     else if (msg->zone.clip)
     {
+        size_t i;
         group = msg_group_lookup(&this.client.recv_table, ident);
-        if (group) // TODO: process
-        {
-        }
-        else
+        if (group == NULL)
         {
             group = group_pool_room_alloc(&this.group_pool, sizeof(msg_group_t));
             if (group == NULL)
@@ -150,9 +149,34 @@ static void process_msg(msg_t* msg, int localfd)
                 SYSLOG(LOG_ERR, "Not enough memory");
                 goto end;
             }
+            group->count = ceil((double)msg_data_length(msg) / this.client.max_length);
+            group->elements = group_pool_room_alloc(&this.group_pool, sizeof(msg_t*) * group->count);
             group->ident = ident;
             group->ttl_start = this.msg_ident;
             if (!hash_set(&this.client.recv_table, (void*)(unsigned long)ident, sizeof(ident), group, sizeof(msg_group_t))) goto end;
+        }
+        if (this.msg_ttl - group->ttl_start > MSG_MAX_TTL) goto end; // expired
+        for (i = 0; i < group->count; ++i)
+        {
+            if (group->elements[i] == NULL) // 收包顺序可能与发包顺序不同
+            {
+                msg_t* dup = group_pool_room_alloc(&this.group_pool, this.client.buffer_len);
+                if (dup == NULL) break;
+                memcpy(dup, msg, this.client.buffer_len);
+                group->elements[i] = dup;
+                if (i == group->count - 1)
+                {
+                    if (parse_msg_group(this.client.max_length, group, &buffer, &len, &room_id))
+                    {
+                        ssize_t written = write_n(localfd, buffer, len);
+                        SYSLOG(LOG_INFO, "write local length: %ld", written);
+                    }
+                    else
+                        SYSLOG(LOG_WARNING, "Parse message error");
+                    hash_del(&this.client.recv_table, (void*)(unsigned long)ident, sizeof(ident));
+                }
+                break;
+            }
         }
     }
     else if (parse_msg(msg, &sys, &buffer, &len, &room_id))
@@ -167,6 +191,7 @@ end:
     this.client.status = (this.client.status & ~CLIENT_STATUS_WAITING_BODY) | CLIENT_STATUS_WAITING_HEADER;
     this.client.want = sizeof(msg_t);
     this.client.read = this.client.buffer;
+    ++this.msg_ttl;
 }
 
 static int client_process(int max, fd_set* set, int remotefd, int localfd)
@@ -214,9 +239,16 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
                     size_t len = msg_data_length((msg_t*)this.client.buffer);
                     if (len)
                     {
+                        msg_t* msg = (msg_t*)this.client.buffer;
                         this.client.status = (this.client.status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
-                        this.client.want = len;
-                        this.client.buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t) + this.client.want);
+                        if (msg->zone.clip)
+                        {
+                            if (msg->zone.last) this.client.want = len & this.client.max_length;
+                            else this.client.want = this.client.max_length;
+                        }
+                        else this.client.want = len;
+                        this.client.buffer_len = sizeof(msg_t) + this.client.want;
+                        this.client.buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, this.client.buffer_len);
                         if (this.client.buffer == NULL)
                         {
                             SYSLOG(LOG_ERR, "Not enough memory");
@@ -286,6 +318,7 @@ void client_loop(int remotefd, int localfd)
             pool_room_free(&this.pool, RECV_ROOM_IDX);
             return;
         }
+        // TODO: 扫垃圾，将expired group清除
     }
 }
 

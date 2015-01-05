@@ -129,3 +129,43 @@ end:
     return NULL;
 }
 
+int parse_msg_group(unsigned short max_length, msg_group_t* g, void** output, unsigned short* output_len, size_t* room_id)
+{
+    unsigned short src_len = msg_data_length(g->elements[0]);
+    link_iterator_t iter = link_rev_begin(&msg_process_handlers);
+    const void* i;
+    size_t j;
+
+    *output_len = src_len;
+    *room_id = TMP_ROOM_IDX;
+    *output = pool_room_alloc(&this.pool, *room_id, src_len);
+    if (*output == NULL) return 0;
+    for (j = 0; j < g->count; ++j)
+    {
+        if (!g->elements[j]->zone.last) memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, max_length);
+        else memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, src_len & max_length);
+    }
+    if (this.compress == 0 && this.encrypt == 0) return 1;
+
+    while (!link_is_end(&msg_process_handlers, iter))
+    {
+        void* o;
+        unsigned int ol;
+        msg_process_handler_t* handler = (msg_process_handler_t*)iter.data;
+
+        if (!handler->undo_handler(i, src_len, &o, &ol))
+        {
+            *output = NULL;
+            *output_len = 0;
+            pool_room_free(&this.pool, *room_id);
+            return 0;
+        }
+        pool_room_free(&this.pool, *room_id);
+        i = *output = o;
+        src_len = *output_len = ol;
+        *room_id = handler->room_id;
+        iter = link_next(&msg_process_handlers, iter);
+    }
+    return 1;
+}
+

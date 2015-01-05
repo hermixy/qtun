@@ -36,6 +36,7 @@ typedef struct
     unsigned int   ip;
     unsigned char  status;
     unsigned char* buffer;
+    size_t         buffer_len;
     unsigned char* read;
     size_t         want;
     msg_group_t*   group;
