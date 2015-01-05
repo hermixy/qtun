@@ -4,7 +4,7 @@ compiler:
     - clang
 before_script:
     - sudo apt-get update -q
-    - sudo apt-get install zlib1g-dev liblua5.1-0-dev openssl
+    - sudo apt-get install zlib1g-dev openssl
 script: cd src/ && cmake . && make
 notifications:
     recipients:
