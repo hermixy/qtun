@@ -39,7 +39,6 @@ typedef struct
     size_t         buffer_len;
     unsigned char* read;
     size_t         want;
-    msg_group_t*   group;
     unsigned int   keepalive;
     hash_t         recv_table;
     unsigned short internal_mtu;

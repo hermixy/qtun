@@ -1,7 +1,6 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <errno.h>
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -94,7 +93,6 @@ int connect_server(char* ip, unsigned short port)
                 SYSLOG(LOG_ERR, "%s is inuse, but %s is not inuse", saddr, daddr);
                 goto end;
             }
-            this.client.group = NULL;
             hash_init(&this.client.recv_table, functor, 11);
             this.client.internal_mtu = ntohs(internal_mtu);
             this.netmask = mask;
@@ -130,8 +128,6 @@ static void process_msg(msg_t* msg, int localfd)
     unsigned short len;
     int sys;
     size_t room_id;
-    msg_group_t* group;
-    unsigned int ident = ntohl(msg->ident);
 
     if (msg->syscontrol)
     {
@@ -139,45 +135,7 @@ static void process_msg(msg_t* msg, int localfd)
     }
     else if (msg->zone.clip)
     {
-        size_t i;
-        group = msg_group_lookup(&this.client.recv_table, ident);
-        if (group == NULL)
-        {
-            group = group_pool_room_alloc(&this.group_pool, sizeof(msg_group_t));
-            if (group == NULL)
-            {
-                SYSLOG(LOG_ERR, "Not enough memory");
-                goto end;
-            }
-            group->count = ceil((double)msg_data_length(msg) / this.client.max_length);
-            group->elements = group_pool_room_alloc(&this.group_pool, sizeof(msg_t*) * group->count);
-            group->ident = ident;
-            group->ttl_start = this.msg_ident;
-            if (!hash_set(&this.client.recv_table, (void*)(unsigned long)ident, sizeof(ident), group, sizeof(msg_group_t))) goto end;
-        }
-        if (this.msg_ttl - group->ttl_start > MSG_MAX_TTL) goto end; // expired
-        for (i = 0; i < group->count; ++i)
-        {
-            if (group->elements[i] == NULL) // 收包顺序可能与发包顺序不同
-            {
-                msg_t* dup = group_pool_room_alloc(&this.group_pool, this.client.buffer_len);
-                if (dup == NULL) break;
-                memcpy(dup, msg, this.client.buffer_len);
-                group->elements[i] = dup;
-                if (i == group->count - 1)
-                {
-                    if (parse_msg_group(this.client.max_length, group, &buffer, &len, &room_id))
-                    {
-                        ssize_t written = write_n(localfd, buffer, len);
-                        SYSLOG(LOG_INFO, "write local length: %ld", written);
-                    }
-                    else
-                        SYSLOG(LOG_WARNING, "Parse message error");
-                    hash_del(&this.client.recv_table, (void*)(unsigned long)ident, sizeof(ident));
-                }
-                break;
-            }
-        }
+        if (!process_clip_msg(localfd, &this.client, msg, &room_id)) goto end;
     }
     else if (parse_msg(msg, &sys, &buffer, &len, &room_id))
     {

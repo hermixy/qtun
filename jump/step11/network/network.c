@@ -1,7 +1,9 @@
+#include <arpa/inet.h>
 #include <linux/if_tun.h>
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -178,5 +180,52 @@ inline void msg_group_free_hash_val(void* val, size_t len)
 int msg_ident_compare(const void* d1, const size_t l1, const void* d2, const size_t l2)
 {
     return (size_t)d1 == (size_t)d2;
+}
+
+int process_clip_msg(int fd, client_t* client, msg_t* msg, size_t* room_id)
+{
+    size_t i;
+    unsigned int ident = ntohl(msg->ident);
+    msg_group_t* group = msg_group_lookup(&client->recv_table, ident);
+    if (group == NULL)
+    {
+        group = group_pool_room_alloc(&this.group_pool, sizeof(msg_group_t));
+        if (group == NULL)
+        {
+            SYSLOG(LOG_ERR, "Not enough memory");
+            return 0;
+        }
+        group->count = ceil((double)msg_data_length(msg) / client->max_length);
+        group->elements = group_pool_room_alloc(&this.group_pool, sizeof(msg_t*) * group->count);
+        group->ident = ident;
+        group->ttl_start = this.msg_ident;
+        if (!hash_set(&client->recv_table, (void*)(unsigned long)ident, sizeof(ident), group, sizeof(msg_group_t))) return 0;
+    }
+    if (this.msg_ttl - group->ttl_start > MSG_MAX_TTL) return 0; // expired
+    for (i = 0; i < group->count; ++i)
+    {
+        if (group->elements[i] == NULL) // 收包顺序可能与发包顺序不同
+        {
+            msg_t* dup = group_pool_room_alloc(&this.group_pool, client->buffer_len);
+            if (dup == NULL) break;
+            memcpy(dup, msg, client->buffer_len);
+            group->elements[i] = dup;
+            if (i == group->count - 1)
+            {
+                void* buffer = NULL;
+                unsigned short len = 0;
+                if (parse_msg_group(client->max_length, group, &buffer, &len, room_id))
+                {
+                    ssize_t written = write_n(fd, buffer, len);
+                    SYSLOG(LOG_INFO, "write local length: %ld", written);
+                }
+                else
+                    SYSLOG(LOG_WARNING, "Parse message error");
+                hash_del(&client->recv_table, (void*)(unsigned long)ident, sizeof(ident));
+            }
+            break;
+        }
+    }
+    return 1;
 }
 

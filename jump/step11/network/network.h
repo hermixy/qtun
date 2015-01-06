@@ -33,6 +33,8 @@ extern void msg_group_free_hash(void* key, size_t key_len, void* val, size_t val
 extern void msg_group_free_hash_val(void* val, size_t len);
 extern msg_group_t* msg_group_lookup(hash_t* h, size_t ident);
 
+extern int process_clip_msg(int fd, client_t* client, msg_t* msg, size_t* room_id);
+
 #define LOGIN_TIMEOUT      5
 #define KEEPALIVE_INTERVAL 30
 #define KEEPALIVE_TIMEOUT  25

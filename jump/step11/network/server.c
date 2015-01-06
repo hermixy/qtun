@@ -141,7 +141,7 @@ inline static void close_client(vector_t* for_del, size_t idx)
     vector_push_back(for_del, (void*)(long)idx, sizeof(idx));
 }
 
-static void server_process_sys(client_t* client, msg_t* msg, const void* buffer, const size_t len)
+static void server_process_sys(client_t* client, msg_t* msg)
 {
     switch (GET_SYS_OP(msg->sys))
     {
@@ -266,24 +266,34 @@ static void process_msg(client_t* client, msg_t* msg, int localfd, vector_t* for
     int sys;
     size_t room_id;
 
-    if (msg->syscontrol && CHECK_SYS_OP(msg->sys, SYS_LOGIN, 1))
+    if (msg->syscontrol)
     {
-        server_process_login(client, msg, idx, for_del);
+        if (CHECK_SYS_OP(msg->sys, SYS_LOGIN, 1)) server_process_login(client, msg, idx, for_del);
+        else
+        {
+            server_process_sys(client, msg);
+            active_vector_up(&this.clients, idx);
+        }
+    }
+    else if (msg->zone.clip)
+    {
+        if (!process_clip_msg(localfd, client, msg, &room_id)) goto end;
+        active_vector_up(&this.clients, idx);
     }
     else if (parse_msg(msg, &sys, &buffer, &len, &room_id))
     {
-        if (sys) server_process_sys(client, msg, buffer, len);
-        else
-        {
-            ssize_t written = write_n(localfd, buffer, len);
-            SYSLOG(LOG_INFO, "write local length: %ld", written);
-        }
+        ssize_t written = write_n(localfd, buffer, len);
+        SYSLOG(LOG_INFO, "write local length: %ld", written);
         active_vector_up(&this.clients, idx);
     }
+    else
+        SYSLOG(LOG_WARNING, "Parse message error");
+end:
     if (buffer) pool_room_free(&this.pool, room_id);
     client->status = (client->status & ~CLIENT_STATUS_WAITING_BODY) | CLIENT_STATUS_WAITING_HEADER;
     client->want = sizeof(msg_t);
     client->read = client->buffer;
+    ++this.msg_ttl;
 }
 
 static void server_process(int max, fd_set* set, int remotefd, int localfd)
@@ -323,13 +333,21 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                         size_t len = msg_data_length((msg_t*)client->buffer);
                         if (len)
                         {
+                            msg_t* msg = (msg_t*)this.client.buffer;
                             client->status = (client->status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
-                            client->want = len;
+                            if (msg->zone.clip)
+                            {
+                                if (msg->zone.last) this.client.want = len & this.client.max_length;
+                                else this.client.want = this.client.max_length;
+                            }
+                            else this.client.want = len;
+                            this.client.buffer_len = sizeof(msg_t) + this.client.want;
                             client->buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t) + client->want);
                             if (client->buffer == NULL)
                             {
                                 SYSLOG(LOG_ERR, "Not enough memory");
                                 vector_push_back(&v, (void*)(long)active_vector_iterator_idx(iter), sizeof(active_vector_iterator_idx(iter)));
+                                exit(1);
                             }
                             client->read = ((msg_t*)client->buffer)->data;
                         }
@@ -339,6 +357,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                 }
             }
         }
+        // TODO: 扫垃圾，将expired group清除
 end:
         iter = active_vector_next(iter);
     }
