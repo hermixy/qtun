@@ -308,16 +308,20 @@ msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request)
     gettimeofday(&tv, NULL);
 
     ret = pool_room_alloc(&this.pool, MSG_ROOM_IDX, sizeof(msg_t) + dst_len);
-    ret->syscontrol = 1;
-    ret->compress   = this.compress;
-    ret->encrypt    = this.encrypt;
-    ret->ident      = htonl(++this.msg_ident);
-    ret->sec        = htonl(tv.tv_sec);
-    ret->usec       = little32(tv.tv_usec);
-    ret->len        = little16(floor(dst_len / 16));
-    ret->pfx        = little16(dst_len % 16);
-    ret->sys        = MAKE_SYS_OP(SYS_LOGIN, request ? 1 : 0);
-    ret->checksum   = 0;
+    ret->syscontrol  = 1;
+    ret->compress    = this.compress;
+    ret->encrypt     = this.encrypt;
+    ret->ident       = htonl(++this.msg_ident);
+    ret->sec         = htonl(tv.tv_sec);
+    ret->usec        = little32(tv.tv_usec);
+    ret->len         = little16(floor(dst_len / 16));
+    ret->pfx         = little16(dst_len % 16);
+    ret->sys         = MAKE_SYS_OP(SYS_LOGIN, request ? 1 : 0);
+    ret->zone.unused = 0;
+    ret->zone.clip   = 0;
+    ret->zone.last   = 1;
+    ret->zone.idx    = 0;
+    ret->checksum    = 0;
     memcpy(ret->data, dst, dst_len);
     ret->checksum   = checksum(ret, sizeof(msg_t) + dst_len);
 end:
@@ -332,17 +336,21 @@ msg_t* new_keepalive_msg(unsigned char request)
     if (ret == NULL) goto end;
     gettimeofday(&tv, NULL);
 
-    ret->syscontrol = 1;
-    ret->compress   = 0;
-    ret->encrypt    = 0;
-    ret->ident      = htonl(++this.msg_ident);
-    ret->sec        = htonl(tv.tv_sec);
-    ret->usec       = little32(tv.tv_usec);
-    ret->len        = 0;
-    ret->pfx        = 0;
-    ret->sys        = MAKE_SYS_OP(SYS_PING, request ? 1 : 0);
-    ret->checksum   = 0;
-    ret->checksum   = checksum(ret, sizeof(msg_t));
+    ret->syscontrol  = 1;
+    ret->compress    = 0;
+    ret->encrypt     = 0;
+    ret->ident       = htonl(++this.msg_ident);
+    ret->sec         = htonl(tv.tv_sec);
+    ret->usec        = little32(tv.tv_usec);
+    ret->len         = 0;
+    ret->pfx         = 0;
+    ret->sys         = MAKE_SYS_OP(SYS_PING, request ? 1 : 0);
+    ret->zone.unused = 0;
+    ret->zone.clip   = 0;
+    ret->zone.last   = 1;
+    ret->zone.idx    = 0;
+    ret->checksum    = 0;
+    ret->checksum    = checksum(ret, sizeof(msg_t));
 end:
     return ret;
 }
