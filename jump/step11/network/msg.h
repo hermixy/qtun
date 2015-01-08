@@ -26,6 +26,7 @@
 
 #define SYS_MSG_CHECK "for sys msg check"
 
+#pragma pack(1)
 typedef struct
 {
     unsigned char  syscontrol : 1; // 是否是系统消息
@@ -55,6 +56,7 @@ typedef struct
     unsigned char  mask;
     unsigned short internal_mtu;
 } sys_login_msg_t;
+#pragma pack()
 
 typedef struct
 {
