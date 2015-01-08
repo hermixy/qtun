@@ -333,15 +333,15 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                         size_t len = msg_data_length((msg_t*)client->buffer);
                         if (len)
                         {
-                            msg_t* msg = (msg_t*)this.client.buffer;
+                            msg_t* msg = (msg_t*)client->buffer;
                             client->status = (client->status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
                             if (msg->zone.clip)
                             {
-                                if (msg->zone.last) this.client.want = len & this.client.max_length;
-                                else this.client.want = this.client.max_length;
+                                if (msg->zone.last) client->want = len & client->max_length;
+                                else client->want = client->max_length;
                             }
-                            else this.client.want = len;
-                            this.client.buffer_len = sizeof(msg_t) + this.client.want;
+                            else client->want = len;
+                            client->buffer_len = sizeof(msg_t) + client->want;
                             client->buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t) + client->want);
                             if (client->buffer == NULL)
                             {
