@@ -51,7 +51,18 @@ void* group_pool_room_alloc(group_pool_t* p, size_t len)
     group_pool_room_t* node = p->free;
     while (node)
     {
-        if (node->capacity >= len) return node->ptr + sizeof(group_pool_room_t*);
+        if (node->capacity >= len)
+        {
+            group_pool_room_t *prev = node->prev, *next = node->next;
+            node->prev = NULL;
+            node->next = p->used;
+            if (p->used) p->used->prev = node;
+            p->used = node;
+            if (prev) prev->next = next;
+            if (next) next->prev = prev;
+            if (node == p->free) p->free = next;
+            return node->ptr + sizeof(group_pool_room_t*);
+        }
         if (node->hint++ >= MAX_HINT)
         {
             node = group_pool_remove_free(p, node);
