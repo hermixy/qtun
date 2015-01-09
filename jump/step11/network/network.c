@@ -147,7 +147,7 @@ ssize_t send_msg_group(int fd, msg_group_t* g)
         written = write_n(fd, g->elements[i], fixed);
         if (written <= 0) return written;
         ret  += written;
-        left -= written;
+        left -= this.max_length;
     }
     written = write_n(fd, g->elements[g->count - 1], sizeof(msg_t) + left);
     if (written <= 0) return written;
