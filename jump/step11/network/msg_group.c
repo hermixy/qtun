@@ -14,7 +14,7 @@ static int no_clip(msg_group_t* g, struct timeval tv, const void* data, const un
 {
     msg_t* msg;
     if (len > this.max_length) return 0;
-    msg = group_pool_room_alloc(&this.group_pool, len);
+    msg = group_pool_room_alloc(&this.group_pool, sizeof(msg_t) + len);
     if (msg == NULL) return 0;
     g->elements = group_pool_room_alloc(&this.group_pool, sizeof(msg_t*));
     if (g->elements == NULL) return 0;
