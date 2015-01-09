@@ -149,7 +149,7 @@ ssize_t send_msg_group(int fd, msg_group_t* g)
         ret  += written;
         left -= written;
     }
-    written = write_n(fd, g->elements[g->count - 1], left);
+    written = write_n(fd, g->elements[g->count - 1], sizeof(msg_t) + left);
     if (written <= 0) return written;
     return ret + written;
 }
