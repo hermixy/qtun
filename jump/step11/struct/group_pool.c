@@ -43,6 +43,7 @@ static group_pool_room_t* group_pool_remove_free(group_pool_t* p, group_pool_roo
     free(node);
     if (prev == NULL) p->free = next;
     else prev->next = next;
+    if (next) next->prev = prev;
     return next;
 }
 
