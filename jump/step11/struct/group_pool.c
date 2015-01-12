@@ -93,11 +93,15 @@ void group_pool_room_free(group_pool_t* p, void* ptr)
 {
     void* tmp = ptr - sizeof(group_pool_room_t*);
     group_pool_room_t* node = *(group_pool_room_t**)&tmp;
+    group_pool_room_t *prev = node->prev, *next = node->next;
     node->hint = 0;
     node->prev = NULL;
     node->next = p->free;
     if (p->free) p->free->prev = node;
     p->free = node;
+    if (prev) prev->next = next;
+    if (next) next->prev = prev;
+    if (node == p->used) p->used = next;
 }
 
 void* group_pool_room_realloc(group_pool_t* p, void* ptr, size_t len)
