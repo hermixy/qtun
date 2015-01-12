@@ -144,7 +144,7 @@ int parse_msg_group(unsigned short max_length, msg_group_t* g, void** output, un
     for (j = 0; j < g->count; ++j)
     {
         if (!g->elements[j]->zone.last) memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, max_length);
-        else memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, src_len & max_length);
+        else memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, src_len % max_length);
     }
     if (this.compress == 0 && this.encrypt == 0) return 1;
 

@@ -339,7 +339,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                             client->status = (client->status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
                             if (msg->zone.clip)
                             {
-                                if (msg->zone.last) client->want = len & client->max_length;
+                                if (msg->zone.last) client->want = len % client->max_length;
                                 else client->want = client->max_length;
                             }
                             else client->want = len;
