@@ -5,9 +5,15 @@
 
 typedef struct group_pool_room_s group_pool_room_t;
 
+typedef struct
+{
+    group_pool_room_t* node;
+    unsigned char      ptr[];
+} group_pool_zone_t;
+
 struct group_pool_room_s
 {
-    void*              ptr;
+    group_pool_zone_t* zone;
     size_t             capacity;
     unsigned short     hint;
     group_pool_room_t* prev;

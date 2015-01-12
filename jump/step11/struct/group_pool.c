@@ -17,7 +17,7 @@ void group_pool_free(group_pool_t* p)
     while (node)
     {
         group_pool_room_t* next = node->next;
-        free(node->ptr);
+        free(node->zone->ptr);
         free(node);
         node = next;
     }
@@ -25,7 +25,7 @@ void group_pool_free(group_pool_t* p)
     while (node)
     {
         group_pool_room_t* next = node->next;
-        free(node->ptr);
+        free(node->zone->ptr);
         free(node);
         node = next;
     }
@@ -39,7 +39,7 @@ static group_pool_room_t* group_pool_remove_free(group_pool_t* p, group_pool_roo
     if (node == NULL) return NULL;
     prev = node->prev;
     next = node->next;
-    free(node->ptr);
+    free(node->zone->ptr);
     free(node);
     if (prev == NULL) p->free = next;
     else prev->next = next;
@@ -62,7 +62,7 @@ void* group_pool_room_alloc(group_pool_t* p, size_t len)
             if (prev) prev->next = next;
             if (next) next->prev = prev;
             if (node == p->free) p->free = next;
-            return node->ptr + sizeof(group_pool_room_t*);
+            return node->zone->ptr;
         }
         if (node->hint++ >= MAX_HINT)
         {
@@ -75,24 +75,24 @@ void* group_pool_room_alloc(group_pool_t* p, size_t len)
     if (node == NULL) return NULL;
     node->capacity = len << 1;
     if (node->capacity > CAPACITY_LIMIT) node->capacity = MIN(len, node->capacity);
-    node->ptr = malloc(node->capacity + sizeof(group_pool_room_t*));
-    if (node->ptr == NULL)
+    node->zone = malloc(node->capacity + sizeof(group_pool_room_t*));
+    if (node->zone == NULL)
     {
         free(node);
         return NULL;
     }
     node->next = p->used;
     node->prev = NULL;
+    node->zone->node = node;
     if (p->used) p->used->prev = node;
     p->used = node;
-    *(group_pool_room_t**)&node->ptr = node;
-    return node->ptr + sizeof(group_pool_room_t*);
+    return node->zone->ptr;
 }
 
 void group_pool_room_free(group_pool_t* p, void* ptr)
 {
-    void* tmp = ptr - sizeof(group_pool_room_t*);
-    group_pool_room_t* node = *(group_pool_room_t**)&tmp;
+    group_pool_zone_t* zone = (group_pool_zone_t*)((char*)ptr - sizeof(group_pool_room_t*));
+    group_pool_room_t* node = zone->node;
     group_pool_room_t *prev = node->prev, *next = node->next;
     node->hint = 0;
     node->prev = NULL;
