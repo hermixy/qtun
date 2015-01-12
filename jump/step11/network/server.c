@@ -95,6 +95,7 @@ static void accept_and_check(int bindfd)
     client->status = CLIENT_STATUS_CHECKLOGIN | CLIENT_STATUS_WAITING_HEADER;
     client->want = sizeof(msg_t);
     client->buffer = client->read = pool_room_realloc(&this.pool, RECV_ROOM_IDX, client->want);
+    client->buffer_len = client->want;
     if (client->buffer == NULL)
     {
         SYSLOG(LOG_ERR, "Not enough memory");
@@ -293,6 +294,7 @@ end:
     client->status = (client->status & ~CLIENT_STATUS_WAITING_BODY) | CLIENT_STATUS_WAITING_HEADER;
     client->want = sizeof(msg_t);
     client->read = client->buffer;
+    client->buffer_len = client->want;
     ++this.msg_ttl;
 }
 
