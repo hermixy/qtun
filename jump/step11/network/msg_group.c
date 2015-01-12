@@ -100,6 +100,7 @@ msg_group_t* new_msg_group(const void* data, const unsigned short len)
             unsigned int length = left > this.max_length ? this.max_length : left;
             msg_t* msg = group_pool_room_alloc(&this.group_pool, sizeof(msg_t) + length);
             if (msg == NULL) goto end;
+            ret->elements[i] = msg;
             memcpy(msg->data, dst, length);
             msg->syscontrol  = 0;
             msg->compress    = this.compress;
