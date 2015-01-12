@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <linux/ip.h>
 #include <netinet/tcp.h>
 #include <errno.h>
 #include <stdio.h>
@@ -95,6 +96,7 @@ int connect_server(char* ip, unsigned short port)
             }
             hash_init(&this.client.recv_table, functor, 11);
             this.client.internal_mtu = ntohs(internal_mtu);
+            this.client.max_length = this.client.internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - sizeof(struct tcphdr);
             this.netmask = mask;
             this.keepalive = time(NULL);
             return fd;
