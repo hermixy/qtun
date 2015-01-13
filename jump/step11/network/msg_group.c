@@ -159,21 +159,17 @@ int parse_msg_group(unsigned short max_length, msg_group_t* g, void** output, un
     *room_id = TMP_ROOM_IDX;
     *output = pool_room_alloc(&this.pool, *room_id, src_len);
     if (*output == NULL) return 0;
-printf("start\n");
     for (j = 0; j < g->count; ++j)
     {
         if (!g->elements[j]->zone.last)
         {
             memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, max_length);
-printf("idx: %d len: %u\n", g->elements[j]->zone.idx << 3, max_length);
         }
         else
         {
             memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, src_len % max_length);
-printf("idx: %d len: %d\n", g->elements[j]->zone.idx << 3, src_len % max_length);
         }
     }
-printf("end\n");
     if (this.compress == 0 && this.encrypt == 0) return 1;
 
     while (!link_is_end(&msg_process_handlers, iter))
