@@ -133,6 +133,7 @@ static void remove_clients(vector_t* v, const char* pfx)
         sprintf(ip, "%s", inet_ntoa(a));
         SYSLOG(LOG_INFO, "%s: %s", pfx, ip);
         close(client->fd);
+        hash_free(&client->recv_table);
         active_vector_del(&this.clients, (size_t)tmp);
     }
 }
@@ -359,7 +360,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                 }
             }
         }
-        // TODO: 扫垃圾，将expired group清除
+        checkout_ttl(&client->recv_table);
 end:
         iter = active_vector_next(iter);
     }

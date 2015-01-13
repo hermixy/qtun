@@ -280,7 +280,7 @@ void client_loop(int remotefd, int localfd)
             pool_room_free(&this.pool, RECV_ROOM_IDX);
             return;
         }
-        // TODO: 扫垃圾，将expired group清除
+        checkout_ttl(&this.client.recv_table);
     }
 }
 

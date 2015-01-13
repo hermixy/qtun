@@ -198,3 +198,18 @@ int parse_msg_group(unsigned short max_length, msg_group_t* g, void** output, un
     return 1;
 }
 
+void checkout_ttl(hash_t* h)
+{
+    hash_iterator_t iter = hash_begin(h);
+    while (!hash_is_end(iter))
+    {
+        msg_group_t* group = iter.data.val;
+        if (this.msg_ttl - group->ttl_start > MSG_MAX_TTL)
+        {
+            hash_del(h, iter.data.key, iter.data.key_len);
+            return;
+        }
+        iter = hash_next(h, iter);
+    }
+}
+
