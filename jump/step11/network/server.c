@@ -252,7 +252,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         client->status = CLIENT_STATUS_NORMAL;
         client->keepalive = time(NULL);
         client->internal_mtu = ntohs(login->internal_mtu);
-        client->max_length = client->internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - sizeof(struct tcphdr);
+        client->max_length = ROUND_UP(client->internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - sizeof(struct tcphdr), 8);
         write_n(client->fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
         pool_room_free(&this.pool, MSG_ROOM_IDX);
     }
@@ -339,8 +339,8 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                             client->status = (client->status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
                             if (msg->zone.clip)
                             {
-                                if (msg->zone.last) client->want = len % ROUND_UP(client->max_length, 8);
-                                else client->want = ROUND_UP(client->max_length, 8);
+                                if (msg->zone.last) client->want = len % client->max_length;
+                                else client->want = client->max_length;
                             }
                             else client->want = len;
                             client->buffer_len = sizeof(msg_t) + client->want;

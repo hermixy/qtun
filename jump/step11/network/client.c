@@ -96,7 +96,7 @@ int connect_server(char* ip, unsigned short port)
             }
             hash_init(&this.client.recv_table, functor, 11);
             this.client.internal_mtu = ntohs(internal_mtu);
-            this.client.max_length = this.client.internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - sizeof(struct tcphdr);
+            this.client.max_length = ROUND_UP(this.client.internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - sizeof(struct tcphdr), 8);
             this.netmask = mask;
             this.keepalive = time(NULL);
             return fd;
@@ -204,8 +204,8 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
                         this.client.status = (this.client.status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
                         if (msg->zone.clip)
                         {
-                            if (msg->zone.last) this.client.want = len % ROUND_UP(this.client.max_length, 8);
-                            else this.client.want = ROUND_UP(this.client.max_length, 8);
+                            if (msg->zone.last) this.client.want = len % this.client.max_length;
+                            else this.client.want = this.client.max_length;
                         }
                         else this.client.want = len;
                         this.client.buffer_len = sizeof(msg_t) + this.client.want;

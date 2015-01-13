@@ -84,7 +84,7 @@ msg_group_t* new_msg_group(const void* data, const unsigned short len)
         unsigned int usec;
         unsigned short len;
         unsigned char pfx;
-        unsigned short fixed = ROUND_UP(this.max_length, 8);
+        unsigned short fixed = this.max_length;
         unsigned short mixed = fixed >> 3;
         msg_t* msg;
         ret->count = ceil((double)dst_len / fixed);
@@ -156,7 +156,7 @@ int parse_msg_group(unsigned short max_length, msg_group_t* g, void** output, un
     link_iterator_t iter = link_rev_begin(&msg_process_handlers);
     const void* i;
     size_t j;
-    unsigned short fixed = ROUND_UP(max_length, 8);
+    unsigned short fixed = max_length;
 
     *output_len = src_len;
     *room_id = TMP_ROOM_IDX;

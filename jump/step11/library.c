@@ -24,7 +24,7 @@ int library_init(library_conf_t conf)
     this.localip      = conf.localip;
     this.log_level    = conf.log_level;
     this.internal_mtu = conf.internal_mtu;
-    this.max_length   = conf.internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - sizeof(struct tcphdr);
+    this.max_length   = ROUND_UP(conf.internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - sizeof(struct tcphdr), 8);
     this.compress     = 0;
     this.encrypt      = 0;
     this.netmask      = conf.netmask;
