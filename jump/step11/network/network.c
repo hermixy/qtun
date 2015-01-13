@@ -141,13 +141,13 @@ ssize_t send_msg_group(int fd, msg_group_t* g)
     if (g->count == 0) return -1;
 
     left = msg_data_length(g->elements[0]);
-    fixed = sizeof(msg_t) + this.max_length;
+    fixed = ROUND_UP(this.max_length, 8);
     for (i = 0; i < g->count - 1; ++i)
     {
-        written = write_n(fd, g->elements[i], fixed);
+        written = write_n(fd, g->elements[i], sizeof(msg_t) + fixed);
         if (written <= 0) return written;
         ret  += written;
-        left -= this.max_length;
+        left -= fixed;
     }
     written = write_n(fd, g->elements[g->count - 1], sizeof(msg_t) + left);
     if (written <= 0) return written;
@@ -195,7 +195,7 @@ int process_clip_msg(int fd, client_t* client, msg_t* msg, size_t* room_id)
             SYSLOG(LOG_ERR, "Not enough memory");
             return 0;
         }
-        group->count = ceil((double)msg_data_length(msg) / client->max_length);
+        group->count = ceil((double)msg_data_length(msg) / ROUND_UP(client->max_length, 8));
         group->elements = group_pool_room_alloc(&this.group_pool, sizeof(msg_t*) * group->count);
         group->ident = ident;
         group->ttl_start = this.msg_ident;

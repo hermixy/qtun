@@ -339,8 +339,8 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                             client->status = (client->status & ~CLIENT_STATUS_WAITING_HEADER) | CLIENT_STATUS_WAITING_BODY;
                             if (msg->zone.clip)
                             {
-                                if (msg->zone.last) client->want = len % client->max_length;
-                                else client->want = client->max_length;
+                                if (msg->zone.last) client->want = len % ROUND_UP(client->max_length, 8);
+                                else client->want = ROUND_UP(client->max_length, 8);
                             }
                             else client->want = len;
                             client->buffer_len = sizeof(msg_t) + client->want;

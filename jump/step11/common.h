@@ -57,6 +57,9 @@ do { \
 if (this.log_level >= level) syslog(level, ##arg); \
 } while(0)
 
+#define ROUND_UP(bytes, align) (((bytes) + (align) - 1) & ~((align) - 1))
+#define ROUND_DOWN(bytes, align) ((bytes) & ~((align) - 1))
+
 extern unsigned short checksum(void* buffer, size_t len);
 
 extern uint32_t little32(uint32_t n);

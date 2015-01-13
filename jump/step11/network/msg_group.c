@@ -84,8 +84,10 @@ msg_group_t* new_msg_group(const void* data, const unsigned short len)
         unsigned int usec;
         unsigned short len;
         unsigned char pfx;
+        unsigned short fixed = ROUND_UP(this.max_length, 8);
+        unsigned short mixed = fixed >> 3;
         msg_t* msg;
-        ret->count = ceil((double)dst_len / this.max_length);
+        ret->count = ceil((double)dst_len / fixed);
         ret->elements = group_pool_room_alloc(&this.group_pool, sizeof(msg_t*) * ret->count);
         if (ret->elements == NULL) goto end;
         memset(ret->elements, 0, sizeof(msg_t*) * ret->count);
@@ -98,10 +100,10 @@ msg_group_t* new_msg_group(const void* data, const unsigned short len)
         pfx = little16(dst_len % 16);
         for (i = 0; i < ret->count - 1; ++i)
         {
-            msg = group_pool_room_alloc(&this.group_pool, sizeof(msg_t) + this.max_length);
+            msg = group_pool_room_alloc(&this.group_pool, sizeof(msg_t) + fixed);
             if (msg == NULL) goto end;
             ret->elements[i] = msg;
-            memcpy(msg->data, dst, this.max_length);
+            memcpy(msg->data, dst, fixed);
             msg->syscontrol  = 0;
             msg->compress    = this.compress;
             msg->encrypt     = this.encrypt;
@@ -114,11 +116,11 @@ msg_group_t* new_msg_group(const void* data, const unsigned short len)
             msg->zone.unused = 0;
             msg->zone.clip   = 1;
             msg->zone.last   = 0;
-            msg->zone.idx    = little16((i * this.max_length) >> 3);
+            msg->zone.idx    = little16(i * mixed);
             msg->checksum    = 0;
-            msg->checksum    = checksum(msg, sizeof(msg_t) + this.max_length);
-            left -= this.max_length;
-            dst  += this.max_length;
+            msg->checksum    = checksum(msg, sizeof(msg_t) + fixed);
+            left -= fixed;
+            dst  += fixed;
         }
         msg = group_pool_room_alloc(&this.group_pool, sizeof(msg_t) + left);
         if (msg == NULL) goto end;
@@ -136,7 +138,7 @@ msg_group_t* new_msg_group(const void* data, const unsigned short len)
         msg->zone.unused = 0;
         msg->zone.clip   = 1;
         msg->zone.last   = 1;
-        msg->zone.idx    = little16((i * this.max_length) >> 3);
+        msg->zone.idx    = little16(i * mixed);
         msg->checksum    = 0;
         msg->checksum    = checksum(msg, sizeof(msg_t) + left);
     }
@@ -154,6 +156,7 @@ int parse_msg_group(unsigned short max_length, msg_group_t* g, void** output, un
     link_iterator_t iter = link_rev_begin(&msg_process_handlers);
     const void* i;
     size_t j;
+    unsigned short fixed = ROUND_UP(max_length, 8);
 
     *output_len = src_len;
     *room_id = TMP_ROOM_IDX;
@@ -163,11 +166,11 @@ int parse_msg_group(unsigned short max_length, msg_group_t* g, void** output, un
     {
         if (!g->elements[j]->zone.last)
         {
-            memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, max_length);
+            memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, fixed);
         }
         else
         {
-            memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, src_len % max_length);
+            memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, src_len % fixed);
         }
     }
     if (this.compress == 0 && this.encrypt == 0) return 1;
