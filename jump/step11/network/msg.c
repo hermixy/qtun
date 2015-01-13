@@ -77,7 +77,7 @@ int gzip_decompress(const void* src, const unsigned int src_len, void** dst, uns
     stream.opaque = NULL;
     if (inflateInit(&stream) != Z_OK) return 0;
     stream.next_in   = (Bytef*)src;
-    stream.avail_in  = src_len;
+    stream.avail_in  = src_len - sizeof(unsigned int);
     stream.next_out  = *dst;
     stream.avail_out = *dst_len;
     inflate(&stream, Z_FINISH);
