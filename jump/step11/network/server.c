@@ -240,6 +240,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
     else
     {
         unsigned int remote_ip = login->ip;
+        unsigned short internal_mtu = ntohs(login->internal_mtu);
         pool_room_free(&this.pool, room_id);
         data = NULL;
         new_msg = new_login_msg(remote_ip, this.netmask, 0);
@@ -252,7 +253,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         client->ip = remote_ip;
         client->status = CLIENT_STATUS_NORMAL;
         client->keepalive = time(NULL);
-        client->internal_mtu = ntohs(login->internal_mtu);
+        client->internal_mtu = internal_mtu;
         client->max_length = ROUND_UP(client->internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - sizeof(struct tcphdr), 8);
         write_n(client->fd, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
         pool_room_free(&this.pool, MSG_ROOM_IDX);
