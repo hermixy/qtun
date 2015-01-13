@@ -175,6 +175,7 @@ int parse_msg_group(unsigned short max_length, msg_group_t* g, void** output, un
     }
     if (this.compress == 0 && this.encrypt == 0) return 1;
 
+    i = *output;
     while (!link_is_end(&msg_process_handlers, iter))
     {
         void* o;
