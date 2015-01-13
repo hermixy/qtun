@@ -218,6 +218,7 @@ int process_clip_msg(int fd, client_t* client, msg_t* msg, size_t* room_id)
                 {
                     ssize_t written = write_n(fd, buffer, len);
                     SYSLOG(LOG_INFO, "write local length: %ld", written);
+                    pool_room_free(&this.pool, *room_id);
                 }
                 else
                     SYSLOG(LOG_WARNING, "Parse message error");
