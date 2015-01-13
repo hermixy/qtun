@@ -197,6 +197,7 @@ int process_clip_msg(int fd, client_t* client, msg_t* msg, size_t* room_id)
         }
         group->count = ceil((double)msg_data_length(msg) / ROUND_UP(client->max_length, 8));
         group->elements = group_pool_room_alloc(&this.group_pool, sizeof(msg_t*) * group->count);
+        memset(group->elements, 0, sizeof(msg_t*) * group->count);
         group->ident = ident;
         group->ttl_start = this.msg_ttl;
         if (!hash_set(&client->recv_table, (void*)(unsigned long)ident, sizeof(ident), group, sizeof(msg_group_t))) return 0;
