@@ -166,11 +166,11 @@ int parse_msg_group(unsigned short max_length, msg_group_t* g, void** output, un
     {
         if (!g->elements[j]->zone.last)
         {
-            memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, fixed);
+            memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, sizeof(msg_t) + fixed);
         }
         else
         {
-            memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, src_len % fixed);
+            memcpy(*output + (g->elements[j]->zone.idx << 3), g->elements[j]->data, sizeof(msg_t) + (src_len % fixed));
         }
     }
     if (this.compress == 0 && this.encrypt == 0) return 1;
