@@ -96,7 +96,7 @@ void* group_pool_room_alloc(group_pool_t* p, size_t len)
 
 void group_pool_room_free(group_pool_t* p, void* ptr)
 {
-    group_pool_zone_t* zone = (group_pool_zone_t*)((char*)ptr - sizeof(group_pool_room_t*));
+    group_pool_zone_t* zone = (group_pool_zone_t*)(ptr - sizeof(group_pool_room_t*));
     group_pool_room_t* node = zone->node;
     group_pool_room_t *prev = node->prev, *next = node->next;
     node->length = 0;
@@ -112,12 +112,12 @@ void group_pool_room_free(group_pool_t* p, void* ptr)
 
 void* group_pool_room_realloc(group_pool_t* p, void* ptr, size_t len)
 {
-    void* tmp = ptr - sizeof(group_pool_room_t*);
+    group_pool_zone_t* zone = (group_pool_zone_t*)(ptr - sizeof(group_pool_room_t*));
+    group_pool_room_t* node = zone->node;
     void* ret;
-    group_pool_room_t* node = (group_pool_room_t*)tmp;
     if (node->capacity >= len)
     {
-        node->len = len;
+        node->length = len;
         return ptr;
     }
     ret = group_pool_room_alloc(p, len);
