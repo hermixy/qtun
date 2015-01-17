@@ -79,7 +79,7 @@ void* group_pool_room_alloc(group_pool_t* p, size_t len)
     if (node == NULL) return NULL;
     node->capacity = len << 1;
     if (node->capacity > CAPACITY_LIMIT) node->capacity = MIN(len, node->capacity);
-    node->zone = malloc(node->capacity + sizeof(group_pool_room_t*));
+    node->zone = malloc(sizeof(group_pool_zone_t) + node->capacity);
     if (node->zone == NULL)
     {
         free(node);
@@ -115,7 +115,11 @@ void* group_pool_room_realloc(group_pool_t* p, void* ptr, size_t len)
     void* tmp = ptr - sizeof(group_pool_room_t*);
     void* ret;
     group_pool_room_t* node = (group_pool_room_t*)tmp;
-    if (node->capacity >= len) return ptr;
+    if (node->capacity >= len)
+    {
+        node->len = len;
+        return ptr;
+    }
     ret = group_pool_room_alloc(p, len);
     if (ret == NULL) return NULL;
     memcpy(ret, ptr, node->length);
