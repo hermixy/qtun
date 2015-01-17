@@ -14,6 +14,7 @@ typedef struct
 struct group_pool_room_s
 {
     group_pool_zone_t* zone;
+    size_t             length;
     size_t             capacity;
     unsigned short     hint;
     group_pool_room_t* prev;

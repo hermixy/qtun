@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "common.h"
 #include "group_pool.h"
 
@@ -37,6 +39,7 @@ static group_pool_room_t* group_pool_remove_free(group_pool_t* p, group_pool_roo
 {
     group_pool_room_t *prev, *next;
     if (node == NULL) return NULL;
+    node->length = 0;
     prev = node->prev;
     next = node->next;
     free(node->zone->ptr);
@@ -55,6 +58,7 @@ void* group_pool_room_alloc(group_pool_t* p, size_t len)
         if (node->capacity >= len)
         {
             group_pool_room_t *prev = node->prev, *next = node->next;
+            node->length = len;
             node->prev = NULL;
             node->next = p->used;
             if (p->used) p->used->prev = node;
@@ -81,6 +85,7 @@ void* group_pool_room_alloc(group_pool_t* p, size_t len)
         free(node);
         return NULL;
     }
+    node->length = len;
     node->next = p->used;
     node->prev = NULL;
     node->zone->node = node;
@@ -94,6 +99,7 @@ void group_pool_room_free(group_pool_t* p, void* ptr)
     group_pool_zone_t* zone = (group_pool_zone_t*)((char*)ptr - sizeof(group_pool_room_t*));
     group_pool_room_t* node = zone->node;
     group_pool_room_t *prev = node->prev, *next = node->next;
+    node->length = 0;
     node->hint = 0;
     node->prev = NULL;
     node->next = p->free;
@@ -107,9 +113,13 @@ void group_pool_room_free(group_pool_t* p, void* ptr)
 void* group_pool_room_realloc(group_pool_t* p, void* ptr, size_t len)
 {
     void* tmp = ptr - sizeof(group_pool_room_t*);
-    group_pool_room_t* node = *(group_pool_room_t**)&tmp;
+    void* ret;
+    group_pool_room_t* node = (group_pool_room_t*)tmp;
     if (node->capacity >= len) return ptr;
+    ret = group_pool_room_alloc(p, len);
+    if (ret == NULL) return NULL;
+    memcpy(ret, ptr, node->length);
     group_pool_room_free(p, ptr);
-    return group_pool_room_alloc(p, len);
+    return ret;
 }
 

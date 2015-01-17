@@ -94,7 +94,7 @@ static void accept_and_check(int bindfd)
     client->keepalive = time(NULL);
     client->status = CLIENT_STATUS_CHECKLOGIN | CLIENT_STATUS_WAITING_HEADER;
     client->want = sizeof(msg_t);
-    client->buffer = client->read = pool_room_realloc(&this.pool, RECV_ROOM_IDX, client->want);
+    client->buffer = client->read = group_pool_room_alloc(&this.group_pool, client->want);
     client->buffer_len = client->want;
     if (client->buffer == NULL)
     {
@@ -106,7 +106,7 @@ static void accept_and_check(int bindfd)
     if (!hash_init(&client->recv_table, functor, 11))
     {
         SYSLOG(LOG_ERR, "hash_init failed");
-        pool_room_free(&this.pool, RECV_ROOM_IDX);
+        group_pool_room_free(&this.group_pool, client->buffer);
         free(client);
         close(fd);
         return;
@@ -346,7 +346,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
                             }
                             else client->want = len;
                             client->buffer_len = sizeof(msg_t) + client->want;
-                            client->buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t) + client->want);
+                            client->buffer = group_pool_room_realloc(&this.group_pool, client->buffer, sizeof(msg_t) + client->want);
                             if (client->buffer == NULL)
                             {
                                 SYSLOG(LOG_ERR, "Not enough memory");
