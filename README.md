@@ -20,6 +20,7 @@
 8. [Jump The Great Firewall【step8 系统消息与活跃表】](http://blog.q-devel.com/jump-the-great-firewall-step8/)
 9. [Jump The Great Firewall【step9 内存池】](http://blog.q-devel.com/jump-the-great-firewall-step9/)
 10. [Jump The Great Firewall【step10 syslog】](http://blog.q-devel.com/jump-the-great-firewall-step10/)
+11. [Jump The Great Firewall【step11 数据分片】](http://blog.q-devel.com/jump-the-great-firewall-step11/)
 
 # 关于
 
