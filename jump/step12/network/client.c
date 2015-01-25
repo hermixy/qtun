@@ -231,6 +231,8 @@ void client_loop(int remotefd, int localfd)
 {
     fd_set set;
     int max;
+    this.remotefd = remotefd;
+    this.localfd = localfd;
     this.client.status = CLIENT_STATUS_NORMAL | CLIENT_STATUS_WAITING_HEADER;
     this.client.want = sizeof(msg_t);
     this.client.buffer = this.client.read = pool_room_alloc(&this.pool, RECV_ROOM_IDX, this.client.want);

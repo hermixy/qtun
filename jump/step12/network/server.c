@@ -500,6 +500,9 @@ void server_loop(int remotefd, int localfd)
         }
     }
 
+    this.remotefd = remotefd;
+    this.localfd = localfd;
+
     vector_init(&v, f);
     while (1)
     {

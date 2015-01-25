@@ -60,6 +60,9 @@ typedef struct
     char            dev_name[IFNAMSIZ];
     int             remotefd;
     int             localfd;
+    unsigned short  internal_mtu;
+    unsigned short  max_length;
+    unsigned char   use_udp;
 
     unsigned char   aes_key[32];
     unsigned int    aes_key_len;
@@ -68,9 +71,6 @@ typedef struct
     DES_cblock      des_key[3];
     unsigned int    des_key_len;
     unsigned char   des_iv[DES_KEY_SZ];
-    unsigned short  internal_mtu;
-    unsigned short  max_length;
-    unsigned char   use_udp;
 
     unsigned char   compress;
     unsigned char   encrypt;
