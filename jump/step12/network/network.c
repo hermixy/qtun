@@ -13,41 +13,49 @@
 
 #include "network.h"
 
-ssize_t read_msg_t(int fd, msg_t** msg, double timeout)
+ssize_t read_msg_t(client_t* client, msg_t** msg, double timeout)
 {
-    ssize_t rc;
-    size_t len;
-
-    *msg = pool_room_alloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t));
-    if (*msg == NULL) return -2;
-    rc = read_t(fd, *msg, sizeof(**msg), timeout);
-    if (rc <= 0)
+    if (this.use_udp)
     {
-        pool_room_free(&this.pool, RECV_ROOM_IDX);
-        *msg = NULL;
-        return rc;
+        *msg = pool_room_realloc(&this.pool, RECV_ROOM_IDX, this.recv_buffer_len);
+        return read_t(client, *msg, this.recv_buffer_len, timeout);
     }
-    len = msg_data_length(*msg);
-    *msg = pool_room_realloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t) + len);
-    if (*msg == NULL) return -2;
-    rc = read_t(fd, (*msg)->data, len, timeout);
-    if (rc <= 0 && len)
+    else
     {
-        pool_room_free(&this.pool, RECV_ROOM_IDX);
-        *msg = NULL;
-        return rc;
-    }
+        ssize_t rc;
+        size_t len;
 
-    if (checksum(*msg, sizeof(msg_t) + len))
-    {
-        SYSLOG(LOG_ERR, "Invalid msg");
-        pool_room_free(&this.pool, RECV_ROOM_IDX);
-        *msg = NULL;
-        return -2;
-    }
+        *msg = pool_room_alloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t));
+        if (*msg == NULL) return -2;
+        rc = read_t(client, *msg, sizeof(**msg), timeout);
+        if (rc <= 0)
+        {
+            pool_room_free(&this.pool, RECV_ROOM_IDX);
+            *msg = NULL;
+            return rc;
+        }
+        len = msg_data_length(*msg);
+        *msg = pool_room_realloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t) + len);
+        if (*msg == NULL) return -2;
+        rc = read_t(client, (*msg)->data, len, timeout);
+        if (rc <= 0 && len)
+        {
+            pool_room_free(&this.pool, RECV_ROOM_IDX);
+            *msg = NULL;
+            return rc;
+        }
 
-    SYSLOG(LOG_INFO, "read msg length: %lu", len);
-    return rc + sizeof(msg_t);
+        if (checksum(*msg, sizeof(msg_t) + len))
+        {
+            SYSLOG(LOG_ERR, "Invalid msg");
+            pool_room_free(&this.pool, RECV_ROOM_IDX);
+            *msg = NULL;
+            return -2;
+        }
+
+        SYSLOG(LOG_INFO, "read msg length: %lu", len);
+        return rc + sizeof(msg_t);
+    }
 }
 
 int tun_open(char name[IFNAMSIZ])
@@ -72,6 +80,7 @@ int tun_open(char name[IFNAMSIZ])
         return -1;
     }
 
+    this.localfd = fd;
     strncpy(name, ifr.ifr_name, IFNAMSIZ);
     return fd;
 }
@@ -121,7 +130,7 @@ ssize_t write_n(int fd, const void* buf, size_t count)
     return count;
 }
 
-ssize_t read_t(int fd, void* buf, size_t count, double timeout)
+ssize_t read_t(client_t* client, void* buf, size_t count, double timeout)
 {
     fd_set set;
     struct timeval tv = {(long)timeout, (long)(timeout * 1000000) % 1000000};
@@ -129,11 +138,11 @@ ssize_t read_t(int fd, void* buf, size_t count, double timeout)
     void* ptr = buf;
     size_t left = count;
     FD_ZERO(&set);
-    FD_SET(fd, &set);
+    FD_SET(client->fd, &set);
     while (tv.tv_sec || tv.tv_usec)
     {
         ssize_t readen;
-        rc = select(fd + 1, &set, NULL, NULL, &tv);
+        rc = select(client->fd + 1, &set, NULL, NULL, &tv);
         switch (rc)
         {
         case -1:
@@ -142,11 +151,19 @@ ssize_t read_t(int fd, void* buf, size_t count, double timeout)
             errno = EAGAIN;
             return -1;
         default:
-            readen = read(fd, ptr, left);
-            if (readen < 0) return readen;
-            ptr += readen;
-            left -= readen;
-            if (left == 0) return count;
+            if (this.use_udp)
+            {
+                socklen_t len = sizeof(client->addr);
+                return recvfrom(client->fd, buf, count, 0, (struct sockaddr*)&client->addr, &len);
+            }
+            else
+            {
+                readen = read(client->fd, ptr, left);
+                if (readen < 0) return readen;
+                ptr += readen;
+                left -= readen;
+                if (left == 0) return count;
+            }
             break;
         }
     }
@@ -258,6 +275,23 @@ int process_clip_msg(int fd, client_t* client, msg_t* msg, size_t* room_id)
             }
             break;
         }
+    }
+    return 1;
+}
+
+int check_msg(client_t* client, msg_t* msg)
+{
+    size_t msg_data_len;
+    if (msg->zone.clip)
+    {
+        if (msg->zone.last) msg_data_len = msg_data_length(msg) % client->max_length;
+        else msg_data_len = client->max_length;
+    }
+    else msg_data_len = msg_data_length(msg);
+    if (checksum(msg, sizeof(msg_t) + msg_data_len))
+    {
+        SYSLOG(LOG_ERR, "Invalid msg");
+        return 0;
     }
     return 1;
 }

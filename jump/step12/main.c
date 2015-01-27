@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     int localfd, remotefd;
     library_conf_t conf;
     int opt;
-    char* ip = NULL;
+    char* host = NULL;
     unsigned int port = 6687;
     struct in_addr a;
 
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
             conf.localip = inet_addr(optarg);
             break;
         case 's':
-            ip = optarg;
+            host = optarg;
             break;
         case 'm':
             conf.netmask = atoi(optarg);
@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
     syslog(LOG_INFO, "%s opened\n", this.dev_name);
     a.s_addr = conf.localip;
 
-    if (ip == NULL)
+    if (host == NULL)
     {
         if (conf.netmask == 0 || conf.netmask > 31)
         {
@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
 
         while (1)
         {
-            remotefd = connect_server(ip, port);
+            remotefd = connect_server(host, port);
             if (remotefd == -1)
             {
                 sleep(5);

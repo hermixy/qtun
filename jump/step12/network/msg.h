@@ -53,6 +53,7 @@ typedef struct
 {
     unsigned char  check[3];
     unsigned int   ip;
+    unsigned int   gateway;
     unsigned char  mask;
     unsigned short internal_mtu;
 } sys_login_msg_t;
@@ -84,9 +85,9 @@ extern int append_msg_process_handler(
 );
 extern size_t msg_data_length(const msg_t* msg);
 extern int process_asc(void* src, unsigned int src_len, void** dst, unsigned int* dst_len, int* want_free, size_t* room_id);
-extern msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request);
+extern msg_t* new_login_msg(unsigned int ip, unsigned int gateway, unsigned char mask, unsigned char request);
 extern msg_t* new_keepalive_msg(unsigned char request);
 extern int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* output_len, size_t* room_id);
-extern int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* mask, unsigned short* internal_mtu);
+extern int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned int* gateway, unsigned char* mask, unsigned short* internal_mtu);
 
 #endif

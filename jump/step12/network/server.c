@@ -23,7 +23,7 @@ int bind_and_listen(unsigned short port)
     addr.sin_addr.s_addr = htons(INADDR_ANY);
     addr.sin_port = htons(port);
 
-    fd = socket(AF_INET, this.use_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
+    this.remotefd = fd = socket(AF_INET, this.use_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (fd == -1)
     {
         perror("socket");
@@ -216,7 +216,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
             {
                 pool_room_free(&this.pool, room_id);
                 data = NULL;
-                new_msg = new_login_msg(newip, this.netmask, 0);
+                new_msg = new_login_msg(newip, 0, this.netmask, 0);
                 if (new_msg)
                 {
                     write_c(client, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
@@ -232,7 +232,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         }
         pool_room_free(&this.pool, room_id);
         data = NULL;
-        new_msg = new_login_msg(0, 0, 0);
+        new_msg = new_login_msg(0, 0, 0, 0);
         if (new_msg)
         {
             write_c(client, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
@@ -261,7 +261,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
                 goto end;
             }
         }
-        new_msg = new_login_msg(remote_ip, this.netmask, 0);
+        new_msg = new_login_msg(remote_ip, this.localip, this.netmask, 0);
         if (new_msg == NULL)
         {
             SYSLOG(LOG_ERR, "Can not create login message");
@@ -286,6 +286,8 @@ static void process_msg(client_t* client, msg_t* msg, int localfd, vector_t* for
     unsigned short len;
     int sys;
     size_t room_id;
+
+    if (!check_msg(client, msg)) return;
 
     if (msg->syscontrol)
     {
@@ -489,20 +491,6 @@ void server_loop(int remotefd, int localfd)
         vector_dummy_dup,
         NULL
     };
-
-    if (this.use_udp)
-    {
-        this.recv_buffer_len = (sizeof(msg_t) + sizeof(sys_login_msg_t)) << 1; // enough for sys login msg
-        this.recv_buffer = pool_room_alloc(&this.pool, RECV_ROOM_IDX, this.recv_buffer_len);
-        if (this.recv_buffer == NULL)
-        {
-            SYSLOG(LOG_ERR, "Not enough memory");
-            exit(1);
-        }
-    }
-
-    this.remotefd = remotefd;
-    this.localfd = localfd;
 
     vector_init(&v, f);
     while (1)

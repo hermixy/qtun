@@ -36,6 +36,17 @@ int library_init(library_conf_t conf)
     pool_init(&this.pool);
     group_pool_init(&this.group_pool);
 
+    if (conf.use_udp)
+    {
+        this.recv_buffer_len = (sizeof(msg_t) + sizeof(sys_login_msg_t)) << 1; // enough for sys login msg
+        this.recv_buffer = pool_room_alloc(&this.pool, RECV_ROOM_IDX, this.recv_buffer_len);
+        if (this.recv_buffer == NULL)
+        {
+            SYSLOG(LOG_ERR, "Not enough memory");
+            exit(1);
+        }
+    }
+
     if (conf.use_gzip)
         if (!append_msg_process_handler(MSG_PROCESS_COMPRESS_HANDLER, MSG_COMPRESS_GZIP_ID, GZIP_ROOM_IDX, gzip_compress, gzip_decompress))
             return 0;

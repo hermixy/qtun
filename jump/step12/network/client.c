@@ -1,7 +1,9 @@
 #include <arpa/inet.h>
 #include <linux/ip.h>
 #include <netinet/tcp.h>
+#include <netinet/udp.h>
 #include <errno.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -16,14 +18,15 @@
 #define RETURN_CONNECTION_CLOSED -1
 #define RETURN_READ_ERROR        -2
 
-int connect_server(char* ip, unsigned short port)
+int connect_server(char* host, unsigned short port)
 {
     int fd, rc;
+    struct hostent* he;
     struct sockaddr_in addr = {0};
     msg_t* msg;
     int flag = 1;
 
-    fd = socket(AF_INET, SOCK_STREAM, 0);
+    this.client.fd = this.remotefd = fd = socket(AF_INET, this.use_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (fd == -1)
     {
         perror("socket");
@@ -32,12 +35,16 @@ int connect_server(char* ip, unsigned short port)
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    if (inet_aton(ip, &addr.sin_addr) == 0)
+    if ((he = gethostbyname(host)) == NULL)
     {
-        SYSLOG(LOG_ERR, "Convert ip address error!");
+        SYSLOG(LOG_ERR, "Convert ip address error");
         close(fd);
         return -1;
     }
+    addr.sin_addr = *(struct in_addr*)he->h_addr_list[0];
+
+    this.client.remote_ip = addr.sin_addr.s_addr;
+    this.client.addr = addr;
 
     rc = connect(fd, (struct sockaddr*)&addr, sizeof(addr));
     if (rc == -1)
@@ -47,17 +54,17 @@ int connect_server(char* ip, unsigned short port)
         return -1;
     }
 
-    if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1)
+    if (!this.use_udp && setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1)
     {
         perror("setsockopt");
     }
 
-    msg = new_login_msg(this.localip, 0, 1);
+    msg = new_login_msg(this.localip, 0, 0, 1);
     if (msg)
     {
-        write_n(fd, msg, sizeof(msg_t) + msg_data_length(msg));
+        write_c(&this.client, msg, sizeof(msg_t) + msg_data_length(msg));
         pool_room_free(&this.pool, MSG_ROOM_IDX);
-        if (read_msg_t(fd, &msg, 5) > 0)
+        if (read_msg_t(&this.client, &msg, 5) > 0)
         {
             unsigned int ip;
             unsigned char mask;
@@ -69,6 +76,7 @@ int connect_server(char* ip, unsigned short port)
                 msg_group_free_hash,
                 msg_group_free_hash_val
             };
+            unsigned int gateway;
             unsigned short internal_mtu;
             if (msg->compress != this.compress || msg->encrypt != this.encrypt)
             {
@@ -76,7 +84,7 @@ int connect_server(char* ip, unsigned short port)
                 pool_room_free(&this.pool, RECV_ROOM_IDX);
                 goto end;
             }
-            if (!parse_login_reply_msg(msg, &ip, &mask, &internal_mtu)) goto end;
+            if (!parse_login_reply_msg(msg, &ip, &gateway, &mask, &internal_mtu)) goto end;
             pool_room_free(&this.pool, RECV_ROOM_IDX);
             if (ip == 0)
             {
@@ -95,9 +103,17 @@ int connect_server(char* ip, unsigned short port)
                 goto end;
             }
             hash_init(&this.client.recv_table, functor, 11);
+            this.client.local_ip = gateway;
             this.client.fd = fd;
             this.client.internal_mtu = ntohs(internal_mtu);
             this.client.max_length = ROUND_UP(this.client.internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - sizeof(struct tcphdr), 8);
+            this.recv_buffer_len = ROUND_UP(internal_mtu - sizeof(struct iphdr) - sizeof(struct udphdr), 8);
+            this.recv_buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, this.recv_buffer_len);
+            if (this.recv_buffer == NULL)
+            {
+                SYSLOG(LOG_INFO, "Not enough memory");
+                goto end;
+            }
             this.netmask = mask;
             this.keepalive = time(NULL);
             return fd;
@@ -132,6 +148,8 @@ static void process_msg(msg_t* msg, int localfd)
     int sys;
     size_t room_id;
 
+    if (!check_msg(&this.client, msg)) return;
+
     if (msg->syscontrol)
     {
         client_process_sys(msg);
@@ -149,10 +167,13 @@ static void process_msg(msg_t* msg, int localfd)
         SYSLOG(LOG_WARNING, "Parse message error");
 end:
     if (buffer) pool_room_free(&this.pool, room_id);
-    this.client.status = (this.client.status & ~CLIENT_STATUS_WAITING_BODY) | CLIENT_STATUS_WAITING_HEADER;
-    this.client.want = sizeof(msg_t);
-    this.client.read = this.client.buffer;
-    this.client.buffer_len = this.client.want;
+    if (!this.use_udp)
+    {
+        this.client.status = (this.client.status & ~CLIENT_STATUS_WAITING_BODY) | CLIENT_STATUS_WAITING_HEADER;
+        this.client.want = sizeof(msg_t);
+        this.client.read = this.client.buffer;
+        this.client.buffer_len = this.client.want;
+    }
     ++this.msg_ttl;
 }
 
@@ -178,7 +199,8 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
     }
     if (FD_ISSET(remotefd, set))
     {
-        ssize_t rc = read_pre(remotefd, this.client.read, this.client.want);
+        ssize_t rc = this.use_udp ? udp_read(remotefd, this.recv_buffer, this.recv_buffer_len, NULL, NULL)
+                                  : read_pre(remotefd, this.client.read, this.client.want);
         if (rc == 0)
         {
             SYSLOG(LOG_ERR, "connection closed");
@@ -190,7 +212,11 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
             perror("read");
             return RETURN_READ_ERROR;
         }
-        else
+        else if (this.use_udp) // use udp
+        {
+            process_msg((msg_t*)this.recv_buffer, localfd);
+        }
+        else // use tcp
         {
             this.client.read += rc;
             this.client.want -= rc;

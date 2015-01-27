@@ -278,7 +278,7 @@ int process_asc(void* src, unsigned int src_len, void** dst, unsigned int* dst_l
     return 1;
 }
 
-msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request)
+msg_t* new_login_msg(unsigned int ip, unsigned int gateway, unsigned char mask, unsigned char request)
 {
     struct timeval tv;
     msg_t* ret = NULL;
@@ -291,6 +291,7 @@ msg_t* new_login_msg(unsigned int ip, unsigned char mask, unsigned char request)
 
     memcpy(msg.check, SYS_MSG_CHECK, sizeof(msg.check));
     msg.ip = ip;
+    msg.gateway = gateway;
     msg.mask = mask;
     msg.internal_mtu = htons(this.internal_mtu);
 
@@ -391,7 +392,7 @@ int parse_msg(const msg_t* input, int* sys, void** output, unsigned short* outpu
     return 1;
 }
 
-int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* mask, unsigned short* internal_mtu)
+int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned int* gateway, unsigned char* mask, unsigned short* internal_mtu)
 {
     int sys;
     void* data;
@@ -411,6 +412,7 @@ int parse_login_reply_msg(const msg_t* input, unsigned int* ip, unsigned char* m
         return 0;
     }
     *ip = login->ip;
+    *gateway = login->gateway;
     *mask = login->mask;
     *internal_mtu = login->internal_mtu;
     pool_room_free(&this.pool, room_id);
