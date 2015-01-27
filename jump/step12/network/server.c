@@ -250,17 +250,6 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         unsigned short internal_mtu = ntohs(login->internal_mtu);
         pool_room_free(&this.pool, room_id);
         data = NULL;
-        if (this.use_udp && client->max_length + sizeof(msg_t) > this.recv_buffer_len)
-        {
-            this.recv_buffer_len = ROUND_UP(internal_mtu - sizeof(struct iphdr) - sizeof(struct udphdr), 8);
-            this.recv_buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, this.recv_buffer_len);
-            if (this.recv_buffer == NULL)
-            {
-                SYSLOG(LOG_INFO, "Not enough memory");
-                close_client(for_del, idx);
-                goto end;
-            }
-        }
         new_msg = new_login_msg(remote_ip, this.localip, this.netmask, 0);
         if (new_msg == NULL)
         {
@@ -273,6 +262,17 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         client->internal_mtu = internal_mtu;
         client->max_length = ROUND_UP(client->internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - (this.use_udp ? sizeof(struct udphdr) : sizeof(struct tcphdr)), 8);
         client->status = CLIENT_STATUS_NORMAL;
+        if (this.use_udp && client->max_length + sizeof(msg_t) > this.recv_buffer_len)
+        {
+            this.recv_buffer_len = ROUND_UP(internal_mtu - sizeof(struct iphdr) - sizeof(struct udphdr), 8);
+            this.recv_buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, this.recv_buffer_len);
+            if (this.recv_buffer == NULL)
+            {
+                SYSLOG(LOG_INFO, "Not enough memory");
+                close_client(for_del, idx);
+                goto end;
+            }
+        }
         write_c(client, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
         pool_room_free(&this.pool, MSG_ROOM_IDX);
     }
