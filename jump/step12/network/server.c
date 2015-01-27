@@ -448,9 +448,12 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
         NULL
     };
 
-    if (FD_ISSET(remotefd, set)) accept_and_check(remotefd);
+    if (!this.use_udp && FD_ISSET(remotefd, set)) accept_and_check(remotefd);
     vector_init(&v, f);
-    if (this.use_udp) udp_process(remotefd, localfd, &v);
+    if (this.use_udp)
+    {
+        if (FD_ISSET(remotefd, set)) udp_process(remotefd, localfd, &v);
+    }
     else tcp_process(set, localfd, &v);
     ++this.msg_ttl;
     remove_clients(&v, "closed");
