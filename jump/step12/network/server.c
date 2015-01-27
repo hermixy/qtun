@@ -310,7 +310,6 @@ static void process_msg(client_t* client, msg_t* msg, int localfd, vector_t* for
     else
         SYSLOG(LOG_WARNING, "Parse message error");
 end:
-    ++this.msg_ttl;
     if (buffer) pool_room_free(&this.pool, room_id);
     if (!this.use_udp)
     {
@@ -327,7 +326,7 @@ static void udp_process(int remotefd, int localfd, vector_t* for_del)
     socklen_t addrlen = sizeof(srcaddr);
     ssize_t rc;
     ssize_t idx;
-    client_t* client;
+    client_t* client = NULL;
     hash_functor_t functor = {
         msg_ident_hash,
         msg_ident_compare,
@@ -379,6 +378,7 @@ static void udp_process(int remotefd, int localfd, vector_t* for_del)
             process_msg(client, msg, localfd, for_del, active_vector_count(&this.clients));
         }
     }
+    if (client) checkout_ttl(&client->recv_table);
 }
 
 static void tcp_process(fd_set* set, int localfd, vector_t* for_del)
@@ -449,6 +449,7 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     vector_init(&v, f);
     if (this.use_udp) udp_process(remotefd, localfd, &v);
     else tcp_process(set, localfd, &v);
+    ++this.msg_ttl;
     remove_clients(&v, "closed");
     vector_free(&v);
     if (FD_ISSET(localfd, set))
