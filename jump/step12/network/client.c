@@ -107,7 +107,7 @@ int connect_server(char* host, unsigned short port)
             this.client.fd = fd;
             this.client.internal_mtu = ntohs(internal_mtu);
             this.client.max_length = ROUND_UP(this.client.internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - sizeof(struct tcphdr), 8);
-            this.recv_buffer_len = ROUND_UP(internal_mtu - sizeof(struct iphdr) - sizeof(struct udphdr), 8);
+            this.recv_buffer_len = ROUND_UP(this.client.internal_mtu - sizeof(struct iphdr) - sizeof(struct udphdr), 8);
             this.recv_buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, this.recv_buffer_len);
             if (this.recv_buffer == NULL)
             {
@@ -270,11 +270,6 @@ void client_loop(int remotefd, int localfd)
         this.client.buffer_len = this.client.want;
     }
 
-    if (this.client.buffer == NULL)
-    {
-        SYSLOG(LOG_ERR, "Not enough memory");
-        return;
-    }
     this.keepalive_replyed = 1;
     while (1)
     {
