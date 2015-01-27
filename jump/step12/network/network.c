@@ -25,7 +25,7 @@ ssize_t read_msg_t(client_t* client, msg_t** msg, double timeout)
         ssize_t rc;
         size_t len;
 
-        *msg = pool_room_alloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t));
+        *msg = pool_room_realloc(&this.pool, RECV_ROOM_IDX, sizeof(msg_t));
         if (*msg == NULL) return -2;
         rc = read_t(client, *msg, sizeof(**msg), timeout);
         if (rc <= 0)
