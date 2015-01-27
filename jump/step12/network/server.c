@@ -366,6 +366,7 @@ static void udp_process(int remotefd, int localfd, vector_t* for_del)
             client->remote_ip = srcaddr.sin_addr.s_addr;
             client->addr = srcaddr;
             client->keepalive = time(NULL);
+            client->status = CLIENT_STATUS_CHECKLOGIN | CLIENT_STATUS_WAITING_HEADER;
             if (!hash_init(&client->recv_table, functor, 11))
             {
                 SYSLOG(LOG_ERR, "hash_init failed");
