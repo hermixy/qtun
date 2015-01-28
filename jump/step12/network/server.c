@@ -264,7 +264,7 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
         client->status = CLIENT_STATUS_NORMAL;
         if (this.use_udp && client->max_length + sizeof(msg_t) > this.recv_buffer_len)
         {
-            this.recv_buffer_len = ROUND_UP(internal_mtu - sizeof(struct iphdr) - sizeof(struct udphdr), 8);
+            this.recv_buffer_len = client->max_length + sizeof(msg_t);
             this.recv_buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, this.recv_buffer_len);
             if (this.recv_buffer == NULL)
             {
