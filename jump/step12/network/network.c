@@ -234,7 +234,9 @@ int process_clip_msg(int fd, client_t* client, msg_t* msg, size_t* room_id)
 {
     size_t i;
     unsigned int ident = ntohl(msg->ident);
+    size_t all_len = msg_data_length(msg);
     msg_group_t* group = msg_group_lookup(&client->recv_table, ident);
+    if (!msg->zone.clip) return 0;
     if (group == NULL)
     {
         group = group_pool_room_alloc(&this.group_pool, sizeof(msg_group_t));
@@ -243,7 +245,7 @@ int process_clip_msg(int fd, client_t* client, msg_t* msg, size_t* room_id)
             SYSLOG(LOG_ERR, "Not enough memory");
             return 0;
         }
-        group->count = ceil((double)msg_data_length(msg) / client->max_length);
+        group->count = ceil((double)all_len / client->max_length);
         group->elements = group_pool_room_alloc(&this.group_pool, sizeof(msg_t*) * group->count);
         memset(group->elements, 0, sizeof(msg_t*) * group->count);
         group->ident = ident;
@@ -255,9 +257,10 @@ int process_clip_msg(int fd, client_t* client, msg_t* msg, size_t* room_id)
     {
         if (group->elements[i] == NULL) // 收包顺序可能与发包顺序不同
         {
-            msg_t* dup = group_pool_room_alloc(&this.group_pool, client->buffer_len);
+            size_t this_len = sizeof(msg_t) + (msg->zone.last ? all_len % client->max_length : client->max_length);
+            msg_t* dup = group_pool_room_alloc(&this.group_pool, this_len);
             if (dup == NULL) break;
-            memcpy(dup, msg, client->buffer_len);
+            memcpy(dup, msg, this_len);
             group->elements[i] = dup;
             if (i == group->count - 1)
             {
