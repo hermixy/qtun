@@ -35,6 +35,11 @@
     a > b ? a : b; \
 })
 
+#define SHOW_TIME_DIFF(pfx, a, b) \
+do { \
+    printf(pfx, (b.tv_sec - a.tv_sec) + (b.tv_usec - a.tv_usec) / 1000000.0); \
+} while (0)
+
 #define SYSTEM_NORMAL(cmd) \
 do {\
     if (system(cmd) == -1) \
