@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
     conf.localip      = 0;
     conf.netmask      = 24;
     conf.log_level    = LOG_WARNING;
-    conf.internal_mtu = 1500;
+    conf.internal_mtu = 1492; // keep not to clip
     conf.use_gzip     = 0;
     conf.use_udp      = 0;
     conf.use_aes      = 0;
