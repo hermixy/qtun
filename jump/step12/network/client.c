@@ -107,12 +107,15 @@ int connect_server(char* host, unsigned short port)
             this.client.fd = fd;
             this.client.internal_mtu = ntohs(internal_mtu);
             this.client.max_length = ROUND_UP(this.client.internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - (this.use_udp ? sizeof(struct udphdr) : sizeof(struct tcphdr)), 8);
-            this.recv_buffer_len = this.client.max_length + sizeof(msg_t);
-            this.recv_buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, this.recv_buffer_len);
-            if (this.recv_buffer == NULL)
+            if (this.use_udp)
             {
-                SYSLOG(LOG_INFO, "Not enough memory");
-                goto end;
+                this.recv_buffer_len = this.client.max_length + sizeof(msg_t);
+                this.recv_buffer = pool_room_realloc(&this.pool, RECV_ROOM_IDX, this.recv_buffer_len);
+                if (this.recv_buffer == NULL)
+                {
+                    SYSLOG(LOG_INFO, "Not enough memory");
+                    goto end;
+                }
             }
             this.netmask = mask;
             this.keepalive = time(NULL);
