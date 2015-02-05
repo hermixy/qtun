@@ -21,6 +21,7 @@
 9. [Jump The Great Firewall【step9 内存池】](http://blog.q-devel.com/jump-the-great-firewall-step9/)
 10. [Jump The Great Firewall【step10 syslog】](http://blog.q-devel.com/jump-the-great-firewall-step10/)
 11. [Jump The Great Firewall【step11 数据分片】](http://blog.q-devel.com/jump-the-great-firewall-step11/)
+12. [Jump The Great Firewall【step12 支持UDP协议】](http://blog.q-devel.com/jump-the-great-firewall-step12/)
 
 # 部署
 
@@ -61,7 +62,8 @@
 -s     | --server       | 服务器IP地址 | 无                   | 该参数指定了服务器的IP地址，若没有指定该参数则当前运行的是服务端
 -p     | --port         | 端口号       | 6687                 | 若当前运行的是服务端则为其绑定的端口号，否则为连接到服务器的端口号
 -v     | --log-level    | log等级      | LOG\_WARNING对应的值 | 详见syslog.h中定义的值
--t     | --internal-mtu | mtu值        | 1500                 | 内部使用的mtu值，过大的数据包将被分片
+-t     | --internal-mtu | mtu值        | 1492                 | 内部使用的mtu值，过大的数据包将被分片
+-u     | --udp          | 无           | 无                   | 若指定该参数则使用UDP协议进行通信
 
 # 关于
 
