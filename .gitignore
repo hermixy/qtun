@@ -1,4 +1,5 @@
 build/
+tools/transproxy/build/
 jump/step1/build/
 jump/step2/build/
 jump/step3/build/
