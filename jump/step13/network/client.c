@@ -130,7 +130,8 @@ int connect_server(char* host, unsigned short port)
             this.keepalive = (unsigned int)time(NULL);
             a.s_addr = gateway;
             strcpy(str, inet_ntoa(a));
-            sprintf(cmd, "netsh -c 'i i' add neighbors 17 %s ff-ff-ff-ff-ff-ff", str); // TODO: find interface ID
+            sprintf(cmd, "netsh -c \"i i\" add neighbors 17 %s ff-ff-ff-ff-ff-ff", str); // TODO: find interface ID
+            SYSTEM_NORMAL(cmd);
             return fd;
         }
         SYSLOG(LOG_ERR, "read sys_login_reply message timeouted");
