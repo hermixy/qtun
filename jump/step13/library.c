@@ -19,14 +19,18 @@ int library_init(library_conf_t conf)
         active_vector_dummy_dup,
         free_client
     };
+    unsigned short en = 0x1234;
 
     init_msg_process_handler();
 
+    if (*(unsigned char*)&en == 0x12) this.little_endian = 0;
+    else this.little_endian = 1;
     this.msg_ident    = 0;
     this.msg_ttl      = 0;
     this.localip      = conf.localip;
     this.log_level    = conf.log_level;
     this.internal_mtu = conf.internal_mtu;
+    strcpy(this.dev_name, conf.device);
     this.max_length   = ROUND_UP(conf.internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - (conf.use_udp ? sizeof(struct udphdr) : sizeof(struct tcphdr)), 8);
     this.use_udp      = conf.use_udp;
     this.compress     = 0;

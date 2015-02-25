@@ -72,14 +72,14 @@ static int check_ip_by_mask(unsigned int src, unsigned int dst, unsigned char ma
     return (src & m) == (dst & m);
 }
 
-static void accept_and_check(int bindfd)
+static void accept_and_check()
 {
     struct sockaddr_in srcaddr;
     socklen_t addrlen = sizeof(srcaddr);
 #ifdef WIN32
-    int fd = (int)accept(bindfd, (struct sockaddr*)&srcaddr, &addrlen);
+    int fd = (int)accept(this.remotefd, (struct sockaddr*)&srcaddr, &addrlen);
 #else
-    int fd = accept(bindfd, (struct sockaddr*)&srcaddr, &addrlen);
+    int fd = accept(this.remotefd, (struct sockaddr*)&srcaddr, &addrlen);
 #endif
     client_t* client;
     char flag = 1;
@@ -291,7 +291,7 @@ end:
     if (data) pool_room_free(&this.pool, room_id);
 }
 
-static void process_msg(client_t* client, msg_t* msg, int localfd, vector_t* for_del, size_t idx)
+static void process_msg(client_t* client, msg_t* msg, vector_t* for_del, size_t idx)
 {
     void* buffer = NULL;
     unsigned short len;
@@ -311,12 +311,17 @@ static void process_msg(client_t* client, msg_t* msg, int localfd, vector_t* for
     }
     else if (msg->zone.clip)
     {
-        if (!process_clip_msg(localfd, client, msg, &room_id)) goto end;
+        if (!process_clip_msg(this.localfd, client, msg, &room_id)) goto end;
         active_vector_up(&this.clients, idx);
     }
     else if (parse_msg(msg, &sys, &buffer, &len, &room_id))
     {
-        ssize_t written = write_n(localfd, buffer, len);
+        ssize_t written;
+#ifdef WIN32
+        WriteFile(this.localfd, buffer, len, &written, NULL);
+#else
+        written = write(this.localfd, buffer, len);
+#endif
         SYSLOG(LOG_INFO, "write local length: %ld", written);
         active_vector_up(&this.clients, idx);
     }
@@ -333,7 +338,7 @@ end:
     }
 }
 
-static void udp_process(int remotefd, int localfd, vector_t* for_del)
+static void udp_process(vector_t* for_del)
 {
     struct sockaddr_in srcaddr;
     socklen_t addrlen = sizeof(srcaddr);
@@ -349,7 +354,7 @@ static void udp_process(int remotefd, int localfd, vector_t* for_del)
         msg_group_free_hash_val
     };
 
-    rc = udp_read(remotefd, this.recv_buffer, this.recv_buffer_len, &srcaddr, &addrlen);
+    rc = udp_read(this.remotefd, this.recv_buffer, this.recv_buffer_len, &srcaddr, &addrlen);
     if (rc <= 0)
     {
         if (errno == EAGAIN || errno == EWOULDBLOCK) return;
@@ -361,7 +366,7 @@ static void udp_process(int remotefd, int localfd, vector_t* for_del)
     {
         size_t len;
         active_vector_get(&this.clients, idx, (void**)&client, &len);
-        process_msg(client, (msg_t*)this.recv_buffer, localfd, for_del, idx);
+        process_msg(client, (msg_t*)this.recv_buffer, for_del, idx);
     }
     else
     {
@@ -389,13 +394,13 @@ static void udp_process(int remotefd, int localfd, vector_t* for_del)
                 SYSLOG(LOG_ERR, "append to clients error");
                 free(client);
             }
-            process_msg(client, msg, localfd, for_del, active_vector_count(&this.clients));
+            process_msg(client, msg, for_del, active_vector_count(&this.clients));
         }
     }
     if (client) checkout_ttl(&client->recv_table);
 }
 
-static void tcp_process(fd_set* set, int localfd, vector_t* for_del)
+static void tcp_process(fd_set* set, vector_t* for_del)
 {
     active_vector_iterator_t iter = active_vector_begin(&this.clients);
     while (!active_vector_is_end(iter))
@@ -438,9 +443,9 @@ static void tcp_process(fd_set* set, int localfd, vector_t* for_del)
                         }
                         client->read = ((msg_t*)client->buffer)->data;
                     }
-                    else process_msg(client, (msg_t*)client->buffer, localfd, for_del, active_vector_iterator_idx(iter));
+                    else process_msg(client, (msg_t*)client->buffer, for_del, active_vector_iterator_idx(iter));
                 }
-                else process_msg(client, (msg_t*)client->buffer, localfd, for_del, active_vector_iterator_idx(iter));
+                else process_msg(client, (msg_t*)client->buffer, for_del, active_vector_iterator_idx(iter));
             }
         }
         checkout_ttl(&client->recv_table);
@@ -449,7 +454,7 @@ end:
     }
 }
 
-static void server_process(int max, fd_set* set, int remotefd, int localfd)
+static void server_process(int max, fd_set* set)
 {
     msg_group_t* group;
     struct iphdr* ipHdr;
@@ -459,22 +464,30 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
         NULL
     };
 
-    if (!this.use_udp && FD_ISSET(remotefd, set)) accept_and_check(remotefd);
+    if (!this.use_udp && FD_ISSET(this.remotefd, set)) accept_and_check();
     vector_init(&v, f);
     if (this.use_udp)
     {
-        if (FD_ISSET(remotefd, set)) udp_process(remotefd, localfd, &v);
+        if (FD_ISSET(this.remotefd, set)) udp_process(&v);
     }
-    else tcp_process(set, localfd, &v);
+    else tcp_process(set, &v);
     ++this.msg_ttl;
     remove_clients(&v, "closed");
     vector_free(&v);
+#ifdef WIN32
+    if (local_have_data())
+#else
     if (FD_ISSET(localfd, set))
+#endif
     {
         unsigned char buffer[2048];
-        ssize_t readen;
+        ssize_t readen = 0;
 
-        readen = read(localfd, buffer, sizeof(buffer));
+#ifdef WIN32
+        ReadFile(this.localfd, buffer, sizeof(buffer), &readen, NULL);
+#else
+        readen = read(this.localfd, buffer, sizeof(buffer));
+#endif
         if (readen > 0)
         {
             ssize_t idx;
@@ -497,7 +510,14 @@ static void server_process(int max, fd_set* set, int remotefd, int localfd)
     }
 }
 
-void server_loop(int remotefd, int localfd)
+void server_loop(
+    fd_type remotefd,
+#ifdef WIN32
+    HANDLE localfd
+#else
+    int localfd
+#endif
+)
 {
     fd_set set;
     int max;
@@ -507,6 +527,9 @@ void server_loop(int remotefd, int localfd)
         NULL
     };
 
+    this.remotefd = remotefd;
+    this.localfd = localfd;
+
     vector_init(&v, f);
     while (1)
     {
@@ -515,8 +538,12 @@ void server_loop(int remotefd, int localfd)
 
         FD_ZERO(&set);
         FD_SET(remotefd, &set);
+#ifdef WIN32
+        max = remotefd;
+#else
         FD_SET(localfd, &set);
         max = remotefd > localfd ? remotefd : localfd;
+#endif
         if (!this.use_udp)
         {
             iter = active_vector_begin(&this.clients);
@@ -530,7 +557,7 @@ void server_loop(int remotefd, int localfd)
         }
 
         max = select(max + 1, &set, NULL, NULL, &tv);
-        if (max > 0) server_process(max, &set, remotefd, localfd);
+        if (max > 0) server_process(max, &set);
 
         iter = active_vector_begin(&this.clients);
         while (!active_vector_is_end(iter))

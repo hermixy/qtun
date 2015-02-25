@@ -8,9 +8,9 @@
 
 extern int gettimeofday(struct timeval *tp, void *tzp);
 
-#define write(a, b, c) _write(a, b, c)
-#define read(a, b, c) _read(a, b, c)
-#define close(x) _close(x)
+#define write(a, b, c) send(a, b, c, 0)
+#define read(a, b, c) recv(a, b, c, 0)
+#define close(x) closesocket(x)
 
 #define bswap_16(x) \
 ((unsigned short int) ((((x) >> 8) & 0xff) | (((x) & 0xff) << 8)))

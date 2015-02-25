@@ -65,7 +65,15 @@ ssize_t read_msg_t(client_t* client, msg_t** msg, double timeout)
     }
 }
 
-#ifndef WIN32
+#ifdef WIN32
+HANDLE tun_open(char name[IFNAMSIZ])
+{
+    char path[255] = { 0 };
+    strcpy(path, "\\\\.\\");
+    strcat(path, name);
+    return CreateFile(path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+}
+#else
 int tun_open(char name[IFNAMSIZ])
 {
     struct ifreq ifr;
@@ -104,9 +112,11 @@ ssize_t write_c(client_t* client, const void* buf, size_t count)
     {
         const char* ptr = buf;
         size_t left = count;
+        msg_t* m = (msg_t*)buf;
         while (left)
         {
             ssize_t written = write(client->fd, ptr, (unsigned int)left);
+            msg_t* m = (msg_t*)buf;
             if (written == 0) return 0;
             else if (written == -1)
             {
@@ -118,25 +128,6 @@ ssize_t write_c(client_t* client, const void* buf, size_t count)
         }
         return (ssize_t)count;
     }
-}
-
-ssize_t write_n(int fd, const void* buf, size_t count)
-{
-    const char* ptr = buf;
-    size_t left = count;
-    while (left)
-    {
-        ssize_t written = write(fd, ptr, (unsigned int)left);
-        if (written == 0) return 0;
-        else if (written == -1)
-        {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
-            return -1;
-        }
-        ptr  += written;
-        left -= written;
-    }
-    return (ssize_t)count;
 }
 
 ssize_t read_t(client_t* client, void* buf, size_t count, double timeout)
@@ -180,12 +171,12 @@ ssize_t read_t(client_t* client, void* buf, size_t count, double timeout)
     return -1;
 }
 
-ssize_t read_pre(int fd, void* buf, size_t count)
+ssize_t read_pre(fd_type fd, void* buf, size_t count)
 {
     return read(fd, buf, (unsigned int)count);
 }
 
-ssize_t udp_read(int fd, void* buf, size_t count, struct sockaddr_in* srcaddr, socklen_t* addrlen)
+ssize_t udp_read(fd_type fd, void* buf, size_t count, struct sockaddr_in* srcaddr, socklen_t* addrlen)
 {
     return recvfrom(fd, buf, (unsigned int)count, 0, (struct sockaddr*)srcaddr, addrlen);
 }
@@ -239,7 +230,16 @@ int msg_ident_compare(const void* d1, const size_t l1, const void* d2, const siz
     return (size_t)d1 == (size_t)d2;
 }
 
-int process_clip_msg(int fd, client_t* client, msg_t* msg, size_t* room_id)
+int process_clip_msg(
+#ifdef WIN32
+    HANDLE fd,
+#else
+    int fd,
+#endif
+    client_t* client,
+    msg_t* msg,
+    size_t* room_id
+)
 {
     size_t i;
     unsigned int ident = ntohl(msg->ident);
@@ -277,7 +277,12 @@ int process_clip_msg(int fd, client_t* client, msg_t* msg, size_t* room_id)
                 unsigned short len = 0;
                 if (parse_msg_group(client->max_length, group, &buffer, &len, room_id))
                 {
-                    ssize_t written = write_n(fd, buffer, len);
+                    ssize_t written;
+#ifdef WIN32
+                    WriteFile(fd, buffer, len, &written, NULL);
+#else
+                    written = write(fd, buffer, len);
+#endif
                     SYSLOG(LOG_INFO, "write local length: %ld", written);
                     pool_room_free(&this.pool, *room_id);
                 }
@@ -308,3 +313,12 @@ int check_msg(client_t* client, msg_t* msg)
     return 1;
 }
 
+#ifdef WIN32
+int local_have_data()
+{
+    unsigned char ret = 0;
+    DWORD readen = 0;
+    DeviceIoControl(this.localfd, IOCTL_HAVE_DATA, NULL, 0, &ret, sizeof(ret), &readen, NULL);
+    return ret;
+}
+#endif

@@ -11,11 +11,16 @@
 #include <openssl/aes.h>
 #include <openssl/des.h>
 
+#include "common.h"
 #include "pool.h"
 #include "hash.h"
 #include "group_pool.h"
 #include "active_vector.h"
 #include "msg_group.h"
+
+#ifdef WIN32
+#define IFNAMSIZ 16
+#endif
 
 #define CLIENT_STATUS_UNKNOWN        0
 #define CLIENT_STATUS_CHECKLOGIN     1
@@ -35,6 +40,16 @@
 #define MSG_ROOM_IDX  4
 #define TMP_ROOM_IDX  (ROOM_COUNT - 1)
 
+#ifdef WIN32
+#define IOCTL_HAVE_DATA CTL_CODE(FILE_DEVICE_NETWORK, 1, METHOD_BUFFERED, FILE_READ_ACCESS)
+#endif
+
+#ifdef WIN32
+typedef SOCKET fd_type;
+#else
+typedef int fd_type;
+#endif
+
 typedef struct
 {
     unsigned int       local_ip;
@@ -46,7 +61,7 @@ typedef struct
     unsigned short     max_length;
 
     // for tcp connection
-    int            fd;
+    fd_type        fd;
     unsigned char  status;
     unsigned char* buffer;
     size_t         buffer_len;
@@ -61,11 +76,14 @@ typedef struct
     unsigned int    localip;
     unsigned char   netmask;
     unsigned char   log_level;
-#ifndef WIN32
     char            dev_name[IFNAMSIZ];
+    fd_type         remotefd;
+    unsigned char   little_endian;
+#ifdef WIN32
+    HANDLE          localfd;
+#else
+    fd_type         localfd;
 #endif
-    int             remotefd;
-    int             localfd;
     unsigned short  internal_mtu;
     unsigned short  max_length;
     unsigned char   use_udp;
@@ -103,6 +121,9 @@ typedef struct
     unsigned char  netmask;
     unsigned char  log_level;
     unsigned short internal_mtu;
+#ifdef WIN32
+    char           device[IFNAMSIZ];
+#endif
     unsigned char  use_udp;
 
     int           use_gzip;

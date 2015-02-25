@@ -26,13 +26,14 @@
 
 int connect_server(char* host, unsigned short port)
 {
-    int fd, rc;
+    fd_type fd;
+    int rc;
     struct hostent* he;
     struct sockaddr_in addr = {0};
     msg_t* msg;
     char flag = 1;
 
-    this.client.fd = this.remotefd = fd = (int)socket(AF_INET, this.use_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
+    this.client.fd = this.remotefd = fd = socket(AF_INET, this.use_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (fd == -1)
     {
         perror("socket");
@@ -84,6 +85,9 @@ int connect_server(char* host, unsigned short port)
             };
             unsigned int gateway;
             unsigned short internal_mtu;
+            char cmd[1024];
+            struct in_addr a;
+            char str[16];
             if (msg->compress != this.compress || msg->encrypt != this.encrypt)
             {
                 SYSLOG(LOG_ERR, "compress algorithm or encrypt algorithm is not same");
@@ -99,7 +103,6 @@ int connect_server(char* host, unsigned short port)
             }
             if (ip != this.localip)
             {
-                struct in_addr a;
                 char saddr[16], daddr[16];
                 a.s_addr = this.localip;
                 strcpy(saddr, inet_ntoa(a));
@@ -125,6 +128,9 @@ int connect_server(char* host, unsigned short port)
             }
             this.netmask = mask;
             this.keepalive = (unsigned int)time(NULL);
+            a.s_addr = gateway;
+            strcpy(str, inet_ntoa(a));
+            sprintf(cmd, "netsh -c 'i i' add neighbors 17 %s ff-ff-ff-ff-ff-ff", str); // TODO: find interface ID
             return fd;
         }
         SYSLOG(LOG_ERR, "read sys_login_reply message timeouted");
@@ -150,7 +156,7 @@ static void client_process_sys(msg_t* msg)
     }
 }
 
-static void process_msg(msg_t* msg, int localfd)
+static void process_msg(msg_t* msg)
 {
     void* buffer = NULL;
     unsigned short len;
@@ -165,11 +171,16 @@ static void process_msg(msg_t* msg, int localfd)
     }
     else if (msg->zone.clip)
     {
-        if (!process_clip_msg(localfd, &this.client, msg, &room_id)) goto end;
+        if (!process_clip_msg(this.localfd, &this.client, msg, &room_id)) goto end;
     }
     else if (parse_msg(msg, &sys, &buffer, &len, &room_id))
     {
-        ssize_t written = write_n(localfd, buffer, len);
+        ssize_t written;
+#ifdef WIN32
+        WriteFile(this.localfd, buffer, len, &written, NULL);
+#else
+        written = write(this.localfd, buffer, len);
+#endif
         SYSLOG(LOG_INFO, "write local length: %ld", written);
     }
     else
@@ -186,15 +197,23 @@ end:
     ++this.msg_ttl;
 }
 
-static int client_process(int max, fd_set* set, int remotefd, int localfd)
+static int client_process(int max, fd_set* set)
 {
     msg_group_t* group;
-    if (FD_ISSET(localfd, set))
+#ifdef WIN32
+    if (local_have_data())
+#else
+    if (FD_ISSET(this.localfd, set))
+#endif
     {
         unsigned char buffer[2048];
         ssize_t readen;
 
-        readen = read(localfd, buffer, sizeof(buffer));
+#ifdef WIN32
+        ReadFile(this.localfd, buffer, sizeof(buffer), &readen, NULL);
+#else
+        readen = read(this.localfd, buffer, sizeof(buffer));
+#endif
         if (readen > 0)
         {
             group = new_msg_group(buffer, (unsigned short)readen);
@@ -206,10 +225,10 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
             }
         }
     }
-    if (FD_ISSET(remotefd, set))
+    if (FD_ISSET(this.remotefd, set))
     {
-        ssize_t rc = this.use_udp ? udp_read(remotefd, this.recv_buffer, this.recv_buffer_len, NULL, NULL)
-                                  : read_pre(remotefd, this.client.read, this.client.want);
+        ssize_t rc = this.use_udp ? udp_read(this.remotefd, this.recv_buffer, this.recv_buffer_len, NULL, NULL)
+                                  : read_pre(this.remotefd, this.client.read, this.client.want);
         if (rc == 0)
         {
             SYSLOG(LOG_ERR, "connection closed");
@@ -223,7 +242,7 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
         }
         else if (this.use_udp) // use udp
         {
-            process_msg((msg_t*)this.recv_buffer, localfd);
+            process_msg((msg_t*)this.recv_buffer);
         }
         else // use tcp
         {
@@ -253,16 +272,23 @@ static int client_process(int max, fd_set* set, int remotefd, int localfd)
                         }
                         this.client.read = ((msg_t*)this.client.buffer)->data;
                     }
-                    else process_msg((msg_t*)this.client.buffer, localfd);
+                    else process_msg((msg_t*)this.client.buffer);
                 }
-                else process_msg((msg_t*)this.client.buffer, localfd);
+                else process_msg((msg_t*)this.client.buffer);
             }
         }
     }
     return RETURN_OK;
 }
 
-void client_loop(int remotefd, int localfd)
+void client_loop(
+    fd_type remotefd,
+#ifdef WIN32
+    HANDLE localfd
+#else
+    int localfd
+#endif
+)
 {
     fd_set set;
     int max;
@@ -282,11 +308,15 @@ void client_loop(int remotefd, int localfd)
     this.keepalive_replyed = 1;
     while (1)
     {
-        struct timeval tv = {1, 0};
+        struct timeval tv = {0, 1};
         FD_ZERO(&set);
         FD_SET(remotefd, &set);
+#ifdef WIN32
+        max = remotefd;
+#else
         FD_SET(localfd, &set);
         max = remotefd > localfd ? remotefd : localfd;
+#endif
 
         if (this.keepalive_replyed && (time(NULL) - this.keepalive) > KEEPALIVE_INTERVAL)
         {
@@ -300,9 +330,9 @@ void client_loop(int remotefd, int localfd)
         }
 
         max = select(max + 1, &set, NULL, NULL, &tv);
-        if (max > 0)
+        if (max >= 0)
         {
-            rc = client_process(max, &set, remotefd, localfd);
+            rc = client_process(max, &set);
             switch (rc)
             {
             case RETURN_CONNECTION_CLOSED:

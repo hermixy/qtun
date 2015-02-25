@@ -67,10 +67,14 @@ int main(int argc, char* argv[])
     signal(SIGPIPE, SIG_IGN);
 #endif
 
-#ifndef WIN32
+#ifdef WIN32
+    HANDLE localfd;
+    WSADATA wsa;
+#else
     char cmd[1024];
+    int localfd;
 #endif
-    int localfd, remotefd;
+    int remotefd;
     library_conf_t conf;
     int opt;
     char* host = NULL;
@@ -78,16 +82,19 @@ int main(int argc, char* argv[])
     struct in_addr a;
 
     struct option long_options[] = {
-        {"aes",          1, NULL, 'a'},
-        {"des",          1, NULL, 'd'},
-        {"gzip",         0, NULL, 'g'},
-        {"mask",         1, NULL, 'm'},
-        {"localip",      1, NULL, 'l'},
-        {"server",       1, NULL, 's'},
-        {"port",         1, NULL, 'p'},
-        {"log-level",    1, NULL, 'v'},
-        {"internal-mtu", 1, NULL, 't'},
-        {"udp",          0, NULL, 'u'},
+        { "aes",          1, NULL, 'a' },
+        { "des",          1, NULL, 'd' },
+        { "gzip",         0, NULL, 'g' },
+        { "mask",         1, NULL, 'm' },
+        { "localip",      1, NULL, 'l' },
+        { "server",       1, NULL, 's' },
+        { "port",         1, NULL, 'p' },
+        { "log-level",    1, NULL, 'v' },
+        { "internal-mtu", 1, NULL, 't' },
+        { "udp",          0, NULL, 'u' },
+#ifdef WIN32
+        { "device",       1, NULL, 'e' },
+#endif
         {NULL,           0, NULL,   0}
     };
     char short_options[512] = {0};
@@ -96,12 +103,22 @@ int main(int argc, char* argv[])
     openlog(argv[0], LOG_PERROR | LOG_CONS | LOG_PID, LOG_LOCAL0);
 #endif
 
+#ifdef WIN32
+    remotefd = -1;
+    localfd = INVALID_HANDLE_VALUE;
+#else
     localfd = remotefd = -1;
+#endif
+
+    memset(&this, 0, sizeof(this));
 
     conf.localip      = 0;
     conf.netmask      = 24;
     conf.log_level    = LOG_WARNING;
     conf.internal_mtu = 1492; // keep not to clip
+#ifdef WIN32
+    memset(conf.device, 0, sizeof(conf.device));
+#endif
     conf.use_gzip     = 0;
     conf.use_udp      = 0;
     conf.use_aes      = 0;
@@ -145,6 +162,11 @@ int main(int argc, char* argv[])
         case 'u':
             conf.use_udp = 1;
             break;
+#ifdef WIN32
+        case 'e':
+            strcpy(conf.device, optarg);
+            break;
+#endif
         default:
 #ifndef WIN32
             syslog(LOG_ERR, "param error");
@@ -167,8 +189,19 @@ int main(int argc, char* argv[])
 #endif
         return 1;
     }
+#ifdef WIN32
+    if (strlen(conf.device) == 0)
+    {
+        fprintf(stderr, "Missing param [-e] or [--device]\n");
+        return 1;
+    }
+#endif
 
-#ifndef WIN32
+#ifdef WIN32
+    localfd = tun_open(conf.device);
+    if (localfd == INVALID_HANDLE_VALUE) return 1;
+    fprintf(stdout, "%s opened\n", conf.device);
+#else
     memset(this.dev_name, 0, IFNAMSIZ);
     localfd = tun_open(this.dev_name);
     if (localfd == -1) return 1;
@@ -176,6 +209,9 @@ int main(int argc, char* argv[])
 #endif
     a.s_addr = conf.localip;
 
+#ifdef WIN32
+    WSAStartup(MAKEWORD(2, 2), &wsa);
+#endif
     if (host == NULL)
     {
         if (conf.netmask == 0 || conf.netmask > 31)
@@ -183,11 +219,16 @@ int main(int argc, char* argv[])
 #ifndef WIN32
             syslog(LOG_ERR, "netmask must > 0 and <= 31\n");
 #endif
+            WSACleanup();
             return 1;
         }
         library_init(conf);
         remotefd = bind_and_listen(port);
-        if (remotefd == -1) return 1;
+        if (remotefd == -1)
+        {
+            WSACleanup();
+            return 1;
+        }
 #ifndef WIN32
         sprintf(cmd, "ifconfig %s %s/%u up", this.dev_name, inet_ntoa(a), conf.netmask);
         SYSTEM_EXIT(cmd);
@@ -234,7 +275,9 @@ int main(int argc, char* argv[])
             SYSLOG(LOG_WARNING, "retry");
         }
     }
-#ifndef WIN32
+#ifdef WIN32
+    WSACleanup();
+#else
     closelog();
 #endif
     return 0;

@@ -312,6 +312,7 @@ msg_t* new_login_msg(unsigned int ip, unsigned int gateway, unsigned char mask, 
 
     gettimeofday(&tv, NULL);
 
+    uint16_t u = dst_len / 16;
     ret = pool_room_alloc(&this.pool, MSG_ROOM_IDX, sizeof(msg_t) + dst_len);
     ret->syscontrol  = 1;
     ret->compress    = this.compress;

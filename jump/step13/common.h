@@ -89,8 +89,6 @@ extern uint32_t little32(uint32_t n);
 extern uint16_t little16(uint16_t n);
 extern uint32_t big32(uint32_t n);
 extern uint16_t big16(uint16_t n);
-extern void cpy_net32(uint32_t src, uint32_t* dst);
-extern void cpy_net16(uint16_t src, uint16_t* dst);
 extern uint32_t little2host32(uint32_t n);
 extern uint16_t little2host16(uint16_t n);
 

@@ -29,21 +29,21 @@
 #pragma pack(1)
 typedef struct
 {
-    unsigned char  syscontrol : 1; // 是否是系统消息
-    unsigned char  compress   : 4; // 压缩算法
-    unsigned char  encrypt    : 3; // 加密算法
-    unsigned int   ident;          // 序号
-    unsigned int   sec;            // 发包时间
-    unsigned int   usec   : 20;    // 精确到微秒，little-endian
-    unsigned short len    : 12;    // 长度 = len * 16 + pfx
-    unsigned char  pfx    : 4;     // pfx
-    unsigned char  sys    : 4;     // for sys msg
+    unsigned char syscontrol : 1; // 是否是系统消息
+    unsigned char compress   : 4; // 压缩算法
+    unsigned char encrypt    : 3; // 加密算法
+    unsigned int  ident;          // 序号
+    unsigned int  sec;            // 发包时间
+    unsigned int  usec   : 20;    // 精确到微秒，little-endian
+    unsigned int  len    : 12;    // 长度 = len * 16 + pfx
+    unsigned char pfx    : 4;     // pfx
+    unsigned char sys    : 4;     // for sys msg
     struct
     {
-        unsigned char unused : 1;  // 未使用
-        unsigned char clip   : 1;  // 是否需要分片
-        unsigned char last   : 1;  // 是否是最后一个分片
-        unsigned short idx   : 13; // 分片位置
+        unsigned short unused : 1;  // 未使用
+        unsigned short clip   : 1;  // 是否需要分片
+        unsigned short last   : 1;  // 是否是最后一个分片
+        unsigned short idx    : 13; // 分片位置
     } zone;
     unsigned short checksum;       // 校验和
     unsigned char  data[];         // 数据
