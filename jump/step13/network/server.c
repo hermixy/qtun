@@ -477,7 +477,7 @@ static void server_process(int max, fd_set* set)
 #ifdef WIN32
     if (local_have_data())
 #else
-    if (FD_ISSET(localfd, set))
+    if (FD_ISSET(this.localfd, set))
 #endif
     {
         unsigned char buffer[2048];
@@ -533,7 +533,7 @@ void server_loop(
     vector_init(&v, f);
     while (1)
     {
-        struct timeval tv = {1, 0};
+        struct timeval tv = {0, 1};
         active_vector_iterator_t iter;
 
         FD_ZERO(&set);

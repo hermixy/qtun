@@ -128,10 +128,12 @@ int connect_server(char* host, unsigned short port)
             }
             this.netmask = mask;
             this.keepalive = (unsigned int)time(NULL);
+#ifdef WIN32 // 将对端内网IP添加到ARP表
             a.s_addr = gateway;
             strcpy(str, inet_ntoa(a));
             sprintf(cmd, "netsh -c \"i i\" add neighbors 17 %s ff-ff-ff-ff-ff-ff", str); // TODO: find interface ID
             SYSTEM_NORMAL(cmd);
+#endif
             return fd;
         }
         SYSLOG(LOG_ERR, "read sys_login_reply message timeouted");
