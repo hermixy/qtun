@@ -1,19 +1,28 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+#include <arpa/inet.h>
 #include <stdlib.h>
 #include <syslog.h>
 
 typedef struct
 {
-    int            log_level;
-    unsigned char  use_udp;
-    unsigned short mtu;
-    int            bind_fd;
-    int            client_fd; // for tcp
-    int            remote_fd;
-    unsigned char* buffer;
-    size_t         buffer_len;
+    int                log_level;
+    unsigned char      use_udp;
+    unsigned short     mtu;
+    int                bind_fd;
+    int                remote_fd;
+    unsigned char*     buffer;
+    size_t             buffer_len;
+
+    // for tcp
+    int                client_fd;
+    char*              host;
+    unsigned short     port;
+
+    // for udp
+    struct sockaddr_in client_addr;
+    struct sockaddr_in remote_addr;
 } this_t;
 
 extern this_t this;

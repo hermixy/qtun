@@ -20,7 +20,7 @@ int bind_and_listen(unsigned short port)
     addr.sin_addr.s_addr = htons(INADDR_ANY);
     addr.sin_port = htons(port);
 
-    this.bind_fd = fd = socket(AF_INET, SOCK_STREAM, 0);
+    fd = socket(AF_INET, this.use_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (fd == -1)
     {
         perror("socket");
@@ -42,6 +42,7 @@ int bind_and_listen(unsigned short port)
         close(fd);
         return -1;
     }
+    if (this.use_udp) return fd;
 
     rc = listen(fd, SOMAXCONN);
     if (rc == -1)
@@ -61,7 +62,7 @@ int connect_server(char* host, unsigned short port)
     struct sockaddr_in addr = {0};
     int flag = 1;
 
-    this.remote_fd = fd = socket(AF_INET, SOCK_STREAM, 0);
+    fd = socket(AF_INET, this.use_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (fd == -1)
     {
         perror("socket");
@@ -86,7 +87,7 @@ int connect_server(char* host, unsigned short port)
         return -1;
     }
 
-    if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1)
+    if (!this.use_udp && setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag)) == -1)
     {
         perror("setsockopt");
     }
@@ -105,12 +106,26 @@ static void _accept()
         perror("setsockopt");
     }
 
+    this.remote_fd = connect_server(this.host, this.port);
+    if (this.remote_fd == -1)
+    {
+        SYSLOG(LOG_ERR, "Can not connect remote host");
+        close(fd);
+        return;
+    }
+
     this.client_fd = fd;
 }
 
-static ssize_t read_pre(int fd, void* buffer, size_t count)
+inline static ssize_t read_pre(int fd, void* buffer, size_t count)
 {
     return read(fd, buffer, count);
+}
+
+inline static ssize_t udp_read(int fd, void* buffer, size_t count, struct sockaddr_in* addr)
+{
+    socklen_t len = sizeof(*addr);
+    return recvfrom(fd, buffer, count, 0, (struct sockaddr*)addr, &len);
 }
 
 static ssize_t write_n(int fd, void* buffer, size_t count)
@@ -132,26 +147,115 @@ static ssize_t write_n(int fd, void* buffer, size_t count)
     return count;
 }
 
-static void process(int max, fd_set* set)
+inline static ssize_t udp_write(int fd, void* buffer, size_t count, const struct sockaddr_in* addr)
+{
+    return sendto(fd, buffer, count, 0, (struct sockaddr*)addr, sizeof(*addr));
+}
+
+static void disconnect()
+{
+    SYSLOG(LOG_INFO, "disconnected");
+    if (this.use_udp)
+    {
+        if (this.remote_fd != -1)
+        {
+            close(this.remote_fd);
+            this.remote_fd = -1;
+        }
+    }
+    else
+    {
+        if (this.client_fd != -1)
+        {
+            close(this.client_fd);
+            this.client_fd = -1;
+        }
+        if (this.remote_fd != -1)
+        {
+            close(this.remote_fd);
+            this.remote_fd = -1;
+        }
+    }
+}
+
+static int process(int max, fd_set* set)
 {
     ssize_t len;
 
-    if (FD_ISSET(this.bind_fd, set)) // accept
+    if (FD_ISSET(this.bind_fd, set))
     {
-        _accept();
+        if (this.use_udp)
+        {
+            len = udp_read(this.bind_fd, this.buffer, this.buffer_len, &this.client_addr);
+            SYSLOG(LOG_INFO, "read from client: %ld", len);
+            if (len > 0)
+            {
+                if (this.remote_fd == -1)
+                {
+                    this.remote_fd = connect_server(this.host, this.port);
+                    if (this.remote_fd == -1)
+                    {
+                        SYSLOG(LOG_ERR, "Can not connect remote host");
+                        goto faild;
+                    }
+                }
+                udp_write(this.remote_fd, this.buffer, len, &this.remote_addr);
+                SYSLOG(LOG_INFO, "write to remote: %ld, %s", len, inet_ntoa(this.remote_addr.sin_addr));
+            }
+        }
+        else // accept
+        {
+            _accept();
+        }
     }
 
     if (this.client_fd != -1 && FD_ISSET(this.client_fd, set)) // client
     {
         len = read_pre(this.client_fd, this.buffer, this.buffer_len);
-        if (len > 0) write_n(this.remote_fd, this.buffer, len);
+        SYSLOG(LOG_INFO, "read from client: %ld", len);
+        if (len <= 0)
+        {
+            if (len == 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) goto faild;
+        }
+        else if (this.remote_fd != -1)
+        {
+            len = write_n(this.remote_fd, this.buffer, len);
+            SYSLOG(LOG_INFO, "write to remote: %ld", len);
+            if (len == 0 || (len == -1 && errno != EAGAIN && errno != EWOULDBLOCK)) goto faild;
+        }
     }
 
     if (FD_ISSET(this.remote_fd, set)) // server
     {
-        len = read_pre(this.remote_fd, this.buffer, this.buffer_len);
-        if (len > 0) write_n(this.client_fd, this.buffer, len);
+        if (this.use_udp)
+        {
+            len = udp_read(this.remote_fd, this.buffer, this.buffer_len, &this.remote_addr);
+        }
+        else
+        {
+            len = read_pre(this.remote_fd, this.buffer, this.buffer_len);
+        }
+        SYSLOG(LOG_INFO, "read from remote: %ld", len);
+        if (len <= 0)
+        {
+            if (len == 0 || (errno != EAGAIN && errno != EWOULDBLOCK)) goto faild;
+        }
+        else if (this.use_udp)
+        {
+            udp_write(this.bind_fd, this.buffer, len, &this.client_addr);
+            SYSLOG(LOG_INFO, "write to local: %ld", len);
+        }
+        else if (this.client_fd != -1)
+        {
+            len = write_n(this.client_fd, this.buffer, len);
+            if (len == 0 || (len == -1 && errno != EAGAIN && errno != EWOULDBLOCK)) goto faild;
+            SYSLOG(LOG_INFO, "write to local: %ld", len);
+        }
     }
+    return 1;
+faild:
+    disconnect();
+    return 0;
 }
 
 void loop()
@@ -165,13 +269,20 @@ void loop()
 
         FD_ZERO(&set);
         FD_SET(this.bind_fd, &set);
-        FD_SET(this.remote_fd, &set);
-        if (this.client_fd != -1) FD_SET(this.client_fd, &set);
-        if (this.bind_fd > this.remote_fd) max = this.bind_fd;
-        if (this.client_fd > max) max = this.client_fd;
+        max = this.bind_fd;
+        if (this.remote_fd != -1)
+        {
+            FD_SET(this.remote_fd, &set);
+            if (this.remote_fd > max) max = this.remote_fd;
+        }
+        if (this.client_fd != -1)
+        {
+            FD_SET(this.client_fd, &set);
+            if (this.client_fd > max) max = this.client_fd;
+        }
 
         max = select(max + 1, &set, NULL, NULL, &tv);
-        if (max > 0) process(max, &set);
+        if (max > 0) if (!process(max, &set)) break;
     }
 }
 
