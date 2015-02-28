@@ -112,11 +112,9 @@ ssize_t write_c(client_t* client, const void* buf, size_t count)
     {
         const char* ptr = buf;
         size_t left = count;
-        msg_t* m = (msg_t*)buf;
         while (left)
         {
             ssize_t written = write(client->fd, ptr, (unsigned int)left);
-            msg_t* m = (msg_t*)buf;
             if (written == 0) return 0;
             else if (written == -1)
             {

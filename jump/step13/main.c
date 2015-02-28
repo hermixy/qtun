@@ -216,17 +216,20 @@ int main(int argc, char* argv[])
     {
         if (conf.netmask == 0 || conf.netmask > 31)
         {
-#ifndef WIN32
+#ifdef WIN32
+            WSACleanup();
+#else
             syslog(LOG_ERR, "netmask must > 0 and <= 31\n");
 #endif
-            WSACleanup();
             return 1;
         }
         library_init(conf);
         remotefd = bind_and_listen(port);
         if (remotefd == -1)
         {
+#ifdef WIN32
             WSACleanup();
+#endif
             return 1;
         }
 #ifndef WIN32

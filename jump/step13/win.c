@@ -1,5 +1,6 @@
 #include "win.h"
 
+#ifdef WIN32
 int gettimeofday(struct timeval *tp, void *tzp)
 {
     time_t clock;
@@ -18,3 +19,4 @@ int gettimeofday(struct timeval *tp, void *tzp)
     tp->tv_usec = wtm.wMilliseconds * 1000;
     return (0);
 }
+#endif

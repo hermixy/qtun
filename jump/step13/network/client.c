@@ -85,9 +85,11 @@ int connect_server(char* host, unsigned short port)
             };
             unsigned int gateway;
             unsigned short internal_mtu;
+#ifdef WIN32
             char cmd[1024];
-            struct in_addr a;
             char str[16];
+#endif
+            struct in_addr a;
             if (msg->compress != this.compress || msg->encrypt != this.encrypt)
             {
                 SYSLOG(LOG_ERR, "compress algorithm or encrypt algorithm is not same");
