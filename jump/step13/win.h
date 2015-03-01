@@ -19,17 +19,11 @@ extern int gettimeofday(struct timeval *tp, void *tzp);
 (((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
 (((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
 
+#pragma pack(1)
 struct iphdr
 {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-    unsigned int ihl : 4;
-    unsigned int version : 4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
-    unsigned int version : 4;
-    unsigned int ihl : 4;
-#else
-# error "Please fix <bits/endian.h>"
-#endif
+    unsigned char ihl : 4;
+    unsigned char version : 4;
     uint8_t tos;
     uint16_t tot_len;
     uint16_t id;
@@ -55,33 +49,20 @@ struct tcphdr
     uint16_t dest;
     uint32_t seq;
     uint32_t ack_seq;
-#  if __BYTE_ORDER == __LITTLE_ENDIAN
-    uint16_t res1 : 4;
-    uint16_t doff : 4;
-    uint16_t fin : 1;
-    uint16_t syn : 1;
-    uint16_t rst : 1;
-    uint16_t psh : 1;
-    uint16_t ack : 1;
-    uint16_t urg : 1;
-    uint16_t res2 : 2;
-#  elif __BYTE_ORDER == __BIG_ENDIAN
-    uint16_t doff : 4;
-    uint16_t res1 : 4;
-    uint16_t res2 : 2;
-    uint16_t urg : 1;
-    uint16_t ack : 1;
-    uint16_t psh : 1;
-    uint16_t rst : 1;
-    uint16_t syn : 1;
-    uint16_t fin : 1;
-#  else
-#   error "Adjust your <bits/endian.h> defines"
-#  endif
+    uint8_t res1 : 4;
+    uint8_t doff : 4;
+    uint8_t fin : 1;
+    uint8_t syn : 1;
+    uint8_t rst : 1;
+    uint8_t psh : 1;
+    uint8_t ack : 1;
+    uint8_t urg : 1;
+    uint8_t res2 : 2;
     uint16_t window;
     uint16_t check;
     uint16_t urg_ptr;
 };
+#pragma pack(1)
 
 #define LOG_EMERG   0   /* system is unusable */
 #define LOG_ALERT   1   /* action must be taken immediately */

@@ -335,16 +335,13 @@ void client_loop(
         }
 
         max = select(max + 1, &set, NULL, NULL, &tv);
-        if (max >= 0)
+        rc = client_process(max, &set);
+        switch (rc)
         {
-            rc = client_process(max, &set);
-            switch (rc)
-            {
-            case RETURN_CONNECTION_CLOSED:
-            case RETURN_READ_ERROR:
-                pool_room_free(&this.pool, RECV_ROOM_IDX);
-                return;
-            }
+        case RETURN_CONNECTION_CLOSED:
+        case RETURN_READ_ERROR:
+            pool_room_free(&this.pool, RECV_ROOM_IDX);
+            return;
         }
 
         if (keepalive_send && !this.keepalive_replyed && (time(NULL) - this.keepalive) > KEEPALIVE_TIMEOUT)

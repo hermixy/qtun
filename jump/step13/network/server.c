@@ -557,7 +557,7 @@ void server_loop(
         }
 
         max = select(max + 1, &set, NULL, NULL, &tv);
-        if (max > 0) server_process(max, &set);
+        server_process(max, &set);
 
         iter = active_vector_begin(&this.clients);
         while (!active_vector_is_end(iter))
