@@ -73,7 +73,7 @@ static void longopt2shortopt(struct option* long_options, size_t count, char* sh
 
 int main(int argc, char* argv[])
 {
-#ifndef HAVE_EXECINFO_H
+#ifdef HAVE_EXECINFO_H
     signal(SIGSEGV, crash_sig);
     signal(SIGABRT, crash_sig);
     signal(SIGPIPE, SIG_IGN);
