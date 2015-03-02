@@ -1,8 +1,11 @@
 #ifndef _NETWORK_H_
 #define _NETWORK_H_
 
-#ifndef WIN32
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+#endif
+
+#if defined(unix) && defined(HAVE_LINUX_IF_H)
 #include <linux/if.h>
 #endif
 

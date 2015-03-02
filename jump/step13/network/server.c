@@ -1,21 +1,26 @@
-﻿#ifndef WIN32
+﻿#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
-#include <linux/ip.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
 #endif
-#include <errno.h>
-#ifdef WIN32
+
+#if defined(unix) && defined(HAVE_LINUX_TCP_H)
+#include <linux/tcp.h>
+#endif
+
+#ifdef HAVE_IO_H
 #include <io.h>
 #endif
-#include <string.h>
-#include <time.h>
-#ifndef WIN32
+
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
+#include <errno.h>
+#include <string.h>
+#include <time.h>
+
 #include "common.h"
 #include "library.h"
+#include "proto.h"
 #include "vector.h"
 
 #include "network.h"
@@ -76,11 +81,7 @@ static void accept_and_check()
 {
     struct sockaddr_in srcaddr;
     socklen_t addrlen = sizeof(srcaddr);
-#ifdef WIN32
     int fd = (int)accept(this.remotefd, (struct sockaddr*)&srcaddr, &addrlen);
-#else
-    int fd = accept(this.remotefd, (struct sockaddr*)&srcaddr, &addrlen);
-#endif
     client_t* client;
     char flag = 1;
     hash_functor_t functor = {

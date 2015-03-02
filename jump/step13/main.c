@@ -1,6 +1,25 @@
-#ifndef WIN32
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
+
+#if defined(unix) && defined(HAVE_LINUX_TCP_H)
+#include <linux/tcp.h>
+#endif
+
+#ifdef HAVE_EXECINFO_H
+#include <execinfo.h>
+#endif
+
+#ifdef HAVE_GETOPT_H
+#include <getopt.h>
+#else
+#include "getopt.h"
+#endif
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #include <openssl/aes.h>
 
 #include <signal.h>
@@ -8,20 +27,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#ifdef WIN32
-#include "getopt.h"
-#else
-#include <unistd.h>
-#include <execinfo.h>
-#include <getopt.h>
-#endif
 
 #include "common.h"
 #include "library.h"
 #include "network.h"
 #include "main.h"
 
-#ifndef WIN32
+#ifdef HAVE_EXECINFO_H
 static void crash_sig(int signum)
 {
     void* array[10];
@@ -61,7 +73,7 @@ static void longopt2shortopt(struct option* long_options, size_t count, char* sh
 
 int main(int argc, char* argv[])
 {
-#ifndef WIN32
+#ifndef HAVE_EXECINFO_H
     signal(SIGSEGV, crash_sig);
     signal(SIGABRT, crash_sig);
     signal(SIGPIPE, SIG_IGN);
@@ -95,11 +107,11 @@ int main(int argc, char* argv[])
 #ifdef WIN32
         { "device",       1, NULL, 'e' },
 #endif
-        {NULL,           0, NULL,   0}
+        { NULL,           0, NULL,  0  }
     };
     char short_options[512] = {0};
     longopt2shortopt(long_options, sizeof(long_options) / sizeof(struct option), short_options);
-#ifndef WIN32
+#ifdef HAVE_SYSLOG_H
     openlog(argv[0], LOG_PERROR | LOG_CONS | LOG_PID, LOG_LOCAL0);
 #endif
 
@@ -168,7 +180,7 @@ int main(int argc, char* argv[])
             break;
 #endif
         default:
-#ifndef WIN32
+#ifdef HAVE_SYSLOG_H
             syslog(LOG_ERR, "param error");
 #endif
             return 1;
@@ -177,14 +189,14 @@ int main(int argc, char* argv[])
 
     if (conf.localip == 0)
     {
-#ifndef WIN32
+#ifdef HAVE_SYSLOG_H
         syslog(LOG_ERR, "localip is zero\n");
 #endif
         return 1;
     }
     if (port == 0)
     {
-#ifndef WIN32
+#ifdef HAVE_SYSLOG_H
         syslog(LOG_ERR, "port is zero\n");
 #endif
         return 1;
@@ -218,7 +230,9 @@ int main(int argc, char* argv[])
         {
 #ifdef WIN32
             WSACleanup();
-#else
+#endif
+
+#ifdef HAVE_SYSLOG_H
             syslog(LOG_ERR, "netmask must > 0 and <= 31\n");
 #endif
             return 1;
@@ -232,7 +246,7 @@ int main(int argc, char* argv[])
 #endif
             return 1;
         }
-#ifndef WIN32
+#ifdef unix
         sprintf(cmd, "ifconfig %s %s/%u up", this.dev_name, inet_ntoa(a), conf.netmask);
         SYSTEM_EXIT(cmd);
         a.s_addr = conf.localip & LEN2MASK(conf.netmask);
@@ -243,7 +257,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-#ifndef WIN32
+#ifdef unix
         unsigned char mask;
 #endif
         int inited = 0;
@@ -263,7 +277,7 @@ int main(int argc, char* argv[])
             }
             if (!inited)
             {
-#ifndef WIN32
+#ifdef unix
                 sprintf(cmd, "ifconfig %s %s up", this.dev_name, inet_ntoa(a));
                 SYSTEM_EXIT(cmd);
                 mask = netmask();
@@ -280,7 +294,9 @@ int main(int argc, char* argv[])
     }
 #ifdef WIN32
     WSACleanup();
-#else
+#endif
+
+#ifdef HAVE_SYSLOG_H
     closelog();
 #endif
     return 0;

@@ -1,19 +1,28 @@
-﻿#ifndef WIN32
+﻿#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
+#endif
+
+#if defined(unix) && defined(HAVE_LINUX_IF_TUN_H)
 #include <linux/if_tun.h>
+#endif
+
+#ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
 #endif
-#include <errno.h>
-#include <fcntl.h>
-#ifdef WIN32
+
+#ifdef HAVE_IO_H
 #include <io.h>
 #endif
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+#include <errno.h>
+#include <fcntl.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
-#ifndef WIN32
-#include <unistd.h>
-#endif
 
 #include "common.h"
 #include "library.h"

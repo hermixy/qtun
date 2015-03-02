@@ -1,22 +1,27 @@
-#ifndef WIN32
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
-#include <linux/ip.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
 #endif
-#include <errno.h>
-#ifndef WIN32
+
+#if defined(unix) && defined(HAVE_LINUX_TCP_H)
+#include <linux/tcp.h>
+#endif
+
+#ifdef HAVE_NETDB_H
 #include <netdb.h>
 #endif
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#ifndef WIN32
+
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
 #include "common.h"
 #include "library.h"
+#include "proto.h"
 
 #include "network.h"
 
