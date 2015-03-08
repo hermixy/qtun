@@ -65,6 +65,8 @@ IF (WIN32)
     INCLUDE_DIRECTORIES(${QTUN_SOURCE_DIR}/3rdParty)
     LIST(APPEND LIBRARIES
         "WSock32"
+        "IPHlpApi"
+        "Mprapi"
     )
 ELSE ()
     LIST(APPEND LIBRARIES

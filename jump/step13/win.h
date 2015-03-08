@@ -6,7 +6,17 @@
 #include <time.h>
 #include <windows.h>
 
+#define MAX_DEVICE_COUNT 20
+
+typedef struct
+{
+    DWORD index;
+    char dev_path[MAX_PATH];
+    char dev_name[255];
+} enum_device_t;
+
 extern int gettimeofday(struct timeval *tp, void *tzp);
+extern size_t enum_devices(enum_device_t devices[MAX_DEVICE_COUNT]);
 
 #define write(a, b, c) send(a, b, c, 0)
 #define read(a, b, c) recv(a, b, c, 0)

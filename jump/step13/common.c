@@ -67,3 +67,16 @@ uint16_t big2host16(uint16_t n)
 {
     return big16(n);
 }
+
+char* STR_LEN2MASK(uint8_t n)
+{
+    static char str[16] = { 0 };
+    uint32_t b = (1 << n) - 1;
+    unsigned char tmp[4];
+    tmp[0] =  b        & 0xFF;
+    tmp[1] = (b >> 8)  & 0xFF;
+    tmp[2] = (b >> 16) & 0xFF;
+    tmp[3] = (b >> 24) & 0xFF;
+    sprintf(str, "%d.%d.%d.%d", tmp[0], tmp[1], tmp[2], tmp[3]);
+    return str;
+}

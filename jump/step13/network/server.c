@@ -258,6 +258,11 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
     }
     else
     {
+#ifdef WIN32
+        char cmd[1024];
+        char str[16];
+#endif
+        struct in_addr a;
         unsigned int remote_ip = login->ip;
         unsigned short internal_mtu = ntohs(login->internal_mtu);
         pool_room_free(&this.pool, room_id);
@@ -285,6 +290,12 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
                 goto end;
             }
         }
+#ifdef WIN32 // 将对端内网IP添加到ARP表
+        a.s_addr = remote_ip;
+        strcpy(str, inet_ntoa(a));
+        sprintf(cmd, "arp -s %s ff-ff-ff-ff-ff-ff", str); // TODO: get mac from remote
+        SYSTEM_NORMAL(cmd);
+#endif
         write_c(client, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
         pool_room_free(&this.pool, MSG_ROOM_IDX);
     }

@@ -82,10 +82,11 @@ int main(int argc, char* argv[])
 #ifdef WIN32
     HANDLE localfd;
     WSADATA wsa;
+    enum_device_t devs[MAX_DEVICE_COUNT];
 #else
-    char cmd[1024];
     int localfd;
 #endif
+    char cmd[1024];
     int remotefd;
     library_conf_t conf;
     int opt;
@@ -104,9 +105,6 @@ int main(int argc, char* argv[])
         { "log-level",    1, NULL, 'v' },
         { "internal-mtu", 1, NULL, 't' },
         { "udp",          0, NULL, 'u' },
-#ifdef WIN32
-        { "device",       1, NULL, 'e' },
-#endif
         { NULL,           0, NULL,  0  }
     };
     char short_options[512] = {0};
@@ -129,7 +127,9 @@ int main(int argc, char* argv[])
     conf.log_level    = LOG_WARNING;
     conf.internal_mtu = 1492; // keep not to clip
 #ifdef WIN32
-    memset(conf.device, 0, sizeof(conf.device));
+    memset(conf.dev_symbol, 0, sizeof(conf.dev_symbol));
+    memset(conf.dev_name, 0, sizeof(conf.dev_name));
+    conf.dev_index = -1;
 #endif
     conf.use_gzip     = 0;
     conf.use_udp      = 0;
@@ -174,11 +174,6 @@ int main(int argc, char* argv[])
         case 'u':
             conf.use_udp = 1;
             break;
-#ifdef WIN32
-        case 'e':
-            strcpy(conf.device, optarg);
-            break;
-#endif
         default:
 #ifdef HAVE_SYSLOG_H
             syslog(LOG_ERR, "param error");
@@ -186,6 +181,33 @@ int main(int argc, char* argv[])
             return 1;
         }
     }
+
+#ifdef WIN32
+    {
+        size_t count = enum_devices(devs);
+        if (count == 0)
+        {
+            fprintf(stderr, "have no QTun Virtual Adapter\n");
+            return 1;
+        }
+        else if (count == 1)
+        {
+            strcpy(conf.dev_symbol, devs[0].dev_path);
+            strcpy(conf.dev_name, devs[0].dev_name);
+            conf.dev_index = devs[0].index;
+        }
+        else
+        {
+            size_t i;
+            printf("Have Adapters:\n");
+            for (i = 0; i < count; ++i)
+            {
+                printf("%lu: %s\n", i + 1, devs[i].dev_name);
+            }
+            printf("Choose One[1]: ");
+        }
+    }
+#endif
 
     if (conf.localip == 0)
     {
@@ -202,7 +224,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 #ifdef WIN32
-    if (strlen(conf.device) == 0)
+    if (strlen(conf.dev_symbol) == 0)
     {
         fprintf(stderr, "Missing param [-e] or [--device]\n");
         return 1;
@@ -210,9 +232,9 @@ int main(int argc, char* argv[])
 #endif
 
 #ifdef WIN32
-    localfd = tun_open(conf.device);
+    localfd = tun_open(conf.dev_symbol);
     if (localfd == INVALID_HANDLE_VALUE) return 1;
-    fprintf(stdout, "%s opened\n", conf.device);
+    fprintf(stdout, "%s opened\n", conf.dev_name);
 #else
     memset(this.dev_name, 0, IFNAMSIZ);
     localfd = tun_open(this.dev_name);
@@ -246,7 +268,11 @@ int main(int argc, char* argv[])
 #endif
             return 1;
         }
-#ifdef unix
+#ifdef WIN32
+        a.s_addr = conf.localip;
+        sprintf(cmd, "netsh interface ip set address name=\"%s\" static %s %s", conf.dev_name, inet_ntoa(a), STR_LEN2MASK(conf.netmask));
+        SYSTEM_EXIT(cmd);
+#else
         sprintf(cmd, "ifconfig %s %s/%u up", this.dev_name, inet_ntoa(a), conf.netmask);
         SYSTEM_EXIT(cmd);
         a.s_addr = conf.localip & LEN2MASK(conf.netmask);
@@ -277,7 +303,11 @@ int main(int argc, char* argv[])
             }
             if (!inited)
             {
-#ifdef unix
+#ifdef WIN32
+                a.s_addr = conf.localip;
+                sprintf(cmd, "netsh interface ip set address name=\"%s\" static %s %s", conf.dev_name, inet_ntoa(a), STR_LEN2MASK(conf.netmask));
+                SYSTEM_EXIT(cmd);
+#else
                 sprintf(cmd, "ifconfig %s %s up", this.dev_name, inet_ntoa(a));
                 SYSTEM_EXIT(cmd);
                 mask = netmask();

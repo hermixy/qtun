@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "msg.h"
+#include "proto.h"
 #include "library.h"
 
 this_t this;
@@ -31,7 +32,8 @@ int library_init(library_conf_t conf)
     this.log_level    = conf.log_level;
     this.internal_mtu = conf.internal_mtu;
 #ifdef WIN32
-    strcpy(this.dev_name, conf.device);
+    strcpy(this.dev_symbol, conf.dev_symbol);
+    this.dev_index = conf.dev_index;
 #endif
     this.max_length   = ROUND_UP(conf.internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - (conf.use_udp ? sizeof(struct udphdr) : sizeof(struct tcphdr)), 8);
     this.use_udp      = conf.use_udp;

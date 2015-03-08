@@ -76,7 +76,13 @@ typedef struct
     unsigned int    localip;
     unsigned char   netmask;
     unsigned char   log_level;
+#ifdef WIN32
+    char            dev_symbol[MAX_PATH];
+    char            dev_name[255];
+    DWORD           dev_index;
+#else
     char            dev_name[IFNAMSIZ];
+#endif
     fd_type         remotefd;
     unsigned char   little_endian;
 #ifdef WIN32
@@ -122,17 +128,19 @@ typedef struct
     unsigned char  log_level;
     unsigned short internal_mtu;
 #ifdef WIN32
-    char           device[IFNAMSIZ];
+    char           dev_symbol[MAX_PATH];
+    char           dev_name[255];
+    DWORD          dev_index;
 #endif
     unsigned char  use_udp;
 
-    int           use_gzip;
+    int            use_gzip;
 
-    int           use_aes;
-    char*         aes_key_file;
+    int            use_aes;
+    char*          aes_key_file;
 
-    int           use_des;
-    char*         des_key_file;
+    int            use_des;
+    char*          des_key_file;
 } library_conf_t;
 
 extern int library_init(library_conf_t conf);

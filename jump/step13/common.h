@@ -72,12 +72,14 @@ do {\
 } while (0)
 
 #ifdef WIN32
-#define SYSLOG(level, ...)
+#define SYSLOG(level, ...) do { \
+    fprintf(stdout, __VA_ARGS__); \
+    fprintf(stdout, "\n"); \
+} while (0)
 #else
-#define SYSLOG(level, arg...) \
-do { \
-if (this.log_level >= level) syslog(level, ##arg); \
-} while(0)
+#define SYSLOG(level, arg...) do { \
+    if (this.log_level >= level) syslog(level, ##arg); \
+} while (0)
 #endif
 
 #define ROUND_UP(bytes, align) (((bytes) + (align) - 1) & ~((align) - 1))
@@ -91,5 +93,6 @@ extern uint32_t big32(uint32_t n);
 extern uint16_t big16(uint16_t n);
 extern uint32_t little2host32(uint32_t n);
 extern uint16_t little2host16(uint16_t n);
+extern char* STR_LEN2MASK(uint8_t n);
 
 #endif
