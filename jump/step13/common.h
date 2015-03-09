@@ -94,5 +94,6 @@ extern uint16_t big16(uint16_t n);
 extern uint32_t little2host32(uint32_t n);
 extern uint16_t little2host16(uint16_t n);
 extern char* STR_LEN2MASK(uint8_t n);
+extern int is_int(const char* ptr, size_t len);
 
 #endif

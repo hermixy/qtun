@@ -80,3 +80,14 @@ char* STR_LEN2MASK(uint8_t n)
     sprintf(str, "%d.%d.%d.%d", tmp[0], tmp[1], tmp[2], tmp[3]);
     return str;
 }
+
+int is_int(const char* ptr, size_t len)
+{
+    size_t i;
+    for (i = 0; i < len; ++i)
+    {
+        if (ptr[i] < '0' || ptr[i] > '9') return 0;
+    }
+    return 1;
+}
+

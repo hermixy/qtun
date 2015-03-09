@@ -197,12 +197,32 @@ int main(int argc, char* argv[])
         else
         {
             size_t i;
+            char str[20] = { 0 };
+            int n = -1;
             printf("Have Adapters:\n");
             for (i = 0; i < count; ++i)
             {
                 printf("%lu: %s\n", i + 1, devs[i].dev_name);
             }
             printf("Choose One[1]: ");
+            while (n == -1)
+            {
+                if (str[0] == '\n' && str[1] == 0) n = 1;
+                else
+                {
+                    if (!is_int(str, sizeof(str))) continue;
+                    n = atoi(str);
+                    if (n < 1 || n > count)
+                    {
+                        fprintf(stderr, "Invalid Number must >= 1 and <= %lu\n", count);
+                        n = -1;
+                        continue;
+                    }
+                }
+            }
+            strcpy(conf.dev_symbol, devs[n].dev_path);
+            strcpy(conf.dev_name, devs[n].dev_name);
+            conf.dev_index = devs[n].index;
         }
     }
 #endif
