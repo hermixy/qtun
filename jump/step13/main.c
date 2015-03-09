@@ -212,7 +212,7 @@ int main(int argc, char* argv[])
                 {
                     if (!is_int(str, sizeof(str))) continue;
                     n = atoi(str);
-                    if (n < 1 || n > count)
+                    if (n < 1 || n > (int)count)
                     {
                         fprintf(stderr, "Invalid Number must >= 1 and <= %lu\n", count);
                         n = -1;
