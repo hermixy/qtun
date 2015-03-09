@@ -21,33 +21,17 @@
 #define ENCRYPT_WITH_AES   1
 #define ENCRYPT_WITH_DES   2
 
-extern
 #ifdef WIN32
-HANDLE
+extern local_fd_type tun_open(char path[MAX_PATH]);
 #else
-int
+extern local_fd_type tun_open(char name[IFNAMSIZ]);
 #endif
-tun_open(char name[IFNAMSIZ]);
 
 extern int bind_and_listen(unsigned short port);
 extern int connect_server(char* host, unsigned short port);
 
-extern void server_loop(
-    fd_type remotefd,
-#ifdef WIN32
-    HANDLE localfd
-#else
-    int localfd
-#endif
-);
-extern void client_loop(
-    fd_type remotefd,
-#ifdef WIN32
-    HANDLE localfd
-#else
-    int localfd
-#endif
-);
+extern void server_loop(fd_type remotefd, local_fd_type localfd);
+extern void client_loop(fd_type remotefd, local_fd_type localfd);
 extern ssize_t read_msg_t(client_t* client, msg_t** msg, double timeout);
 extern ssize_t write_c(client_t* client, const void* buf, size_t count);
 extern ssize_t read_t(client_t* client, void* buf, size_t count, double timeout);
@@ -61,16 +45,7 @@ extern void msg_group_free_hash(void* key, size_t key_len, void* val, size_t val
 extern void msg_group_free_hash_val(void* val, size_t len);
 extern msg_group_t* msg_group_lookup(hash_t* h, size_t ident);
 
-extern int process_clip_msg(
-#ifdef WIN32
-    HANDLE fd,
-#else
-    int fd,
-#endif
-    client_t* client,
-    msg_t* msg,
-    size_t* room_id
-);
+extern int process_clip_msg(local_fd_type fd, client_t* client, msg_t* msg, size_t* room_id);
 extern int check_msg(client_t* client, msg_t* msg);
 
 #ifdef WIN32

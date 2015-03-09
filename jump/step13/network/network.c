@@ -75,15 +75,12 @@ ssize_t read_msg_t(client_t* client, msg_t** msg, double timeout)
 }
 
 #ifdef WIN32
-HANDLE tun_open(char name[IFNAMSIZ])
+local_fd_type tun_open(char path[MAX_PATH])
 {
-    char path[255] = { 0 };
-    strcpy(path, "\\\\.\\");
-    strcat(path, name);
     return CreateFile(path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 }
 #else
-int tun_open(char name[IFNAMSIZ])
+local_fd_type tun_open(char name[IFNAMSIZ])
 {
     struct ifreq ifr;
     int fd;
@@ -237,16 +234,7 @@ int msg_ident_compare(const void* d1, const size_t l1, const void* d2, const siz
     return (size_t)d1 == (size_t)d2;
 }
 
-int process_clip_msg(
-#ifdef WIN32
-    HANDLE fd,
-#else
-    int fd,
-#endif
-    client_t* client,
-    msg_t* msg,
-    size_t* room_id
-)
+int process_clip_msg(local_fd_type fd, client_t* client, msg_t* msg, size_t* room_id)
 {
     size_t i;
     unsigned int ident = ntohl(msg->ident);

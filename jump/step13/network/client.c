@@ -90,10 +90,6 @@ int connect_server(char* host, unsigned short port)
             };
             unsigned int gateway;
             unsigned short internal_mtu;
-#ifdef WIN32
-            char cmd[1024];
-            char str[16];
-#endif
             struct in_addr a;
             if (msg->compress != this.compress || msg->encrypt != this.encrypt)
             {
@@ -135,11 +131,15 @@ int connect_server(char* host, unsigned short port)
             }
             this.netmask = mask;
             this.keepalive = (unsigned int)time(NULL);
-#ifdef WIN32 // ½«¶Ô¶ËÄÚÍøIPÌí¼Óµ½ARP±í
-            a.s_addr = gateway;
-            strcpy(str, inet_ntoa(a));
-            sprintf(cmd, "arp -s %s ff-ff-ff-ff-ff-ff", str);
-            SYSTEM_NORMAL(cmd);
+#ifdef WIN32 // å°†å¯¹ç«¯å†…ç½‘IPæ·»åŠ åˆ°ARPè¡¨
+            {
+                char cmd[1024];
+                char str[16];
+                a.s_addr = gateway;
+                strcpy(str, inet_ntoa(a));
+                sprintf(cmd, "arp -s %s ff-ff-ff-ff-ff-ff", str);
+                SYSTEM_NORMAL(cmd);
+            }
 #endif
             return fd;
         }
@@ -210,11 +210,7 @@ end:
 static int client_process(int max, fd_set* set)
 {
     msg_group_t* group;
-#ifdef WIN32
-    if (local_have_data())
-#else
-    if (FD_ISSET(this.localfd, set))
-#endif
+    if (LOCAL_HAVE_DATA(set))
     {
         unsigned char buffer[2048];
         ssize_t readen;
@@ -291,14 +287,7 @@ static int client_process(int max, fd_set* set)
     return RETURN_OK;
 }
 
-void client_loop(
-    fd_type remotefd,
-#ifdef WIN32
-    HANDLE localfd
-#else
-    int localfd
-#endif
-)
+void client_loop(fd_type remotefd, local_fd_type localfd)
 {
     fd_set set;
     int max;

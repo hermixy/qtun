@@ -18,10 +18,6 @@
 #include "active_vector.h"
 #include "msg_group.h"
 
-#ifdef WIN32
-#define IFNAMSIZ 16
-#endif
-
 #define CLIENT_STATUS_UNKNOWN        0
 #define CLIENT_STATUS_CHECKLOGIN     1
 #define CLIENT_STATUS_NORMAL         2
@@ -46,8 +42,14 @@
 
 #ifdef WIN32
 typedef SOCKET fd_type;
+typedef HANDLE local_fd_type;
+#define LOCAL_HAVE_DATA(set) (local_have_data())
+#define SLEEP(n) Sleep(n * 1000)
 #else
 typedef int fd_type;
+typedef int local_fd_type;
+#define LOCAL_HAVE_DATA(set) (FD_ISSET(this.localfd, set))
+#define SLEEP(n) sleep(n)
 #endif
 
 typedef struct
@@ -85,11 +87,7 @@ typedef struct
 #endif
     fd_type         remotefd;
     unsigned char   little_endian;
-#ifdef WIN32
-    HANDLE          localfd;
-#else
-    fd_type         localfd;
-#endif
+    local_fd_type   localfd;
     unsigned short  internal_mtu;
     unsigned short  max_length;
     unsigned char   use_udp;

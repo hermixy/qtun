@@ -175,9 +175,7 @@ int main(int argc, char* argv[])
             conf.use_udp = 1;
             break;
         default:
-#ifdef HAVE_SYSLOG_H
-            syslog(LOG_ERR, "param error");
-#endif
+            fprintf(stderr, "param error\n");
             return 1;
         }
     }
@@ -211,16 +209,12 @@ int main(int argc, char* argv[])
 
     if (conf.localip == 0)
     {
-#ifdef HAVE_SYSLOG_H
-        syslog(LOG_ERR, "localip is zero\n");
-#endif
+        fprintf(stderr, "localip is zero\n");
         return 1;
     }
     if (port == 0)
     {
-#ifdef HAVE_SYSLOG_H
-        syslog(LOG_ERR, "port is zero\n");
-#endif
+        fprintf(stderr, "port is zero\n");
         return 1;
     }
 #ifdef WIN32
@@ -254,9 +248,7 @@ int main(int argc, char* argv[])
             WSACleanup();
 #endif
 
-#ifdef HAVE_SYSLOG_H
-            syslog(LOG_ERR, "netmask must > 0 and <= 31\n");
-#endif
+            fprintf(stderr, "netmask must >0 and <= 31\n");
             return 1;
         }
         library_init(conf);
@@ -294,11 +286,7 @@ int main(int argc, char* argv[])
             remotefd = connect_server(host, port);
             if (remotefd == -1)
             {
-#ifdef WIN32
-                Sleep(5000);
-#else
-                sleep(5);
-#endif
+                SLEEP(5);
                 continue;
             }
             if (!inited)

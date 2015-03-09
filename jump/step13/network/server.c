@@ -258,11 +258,6 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
     }
     else
     {
-#ifdef WIN32
-        char cmd[1024];
-        char str[16];
-        struct in_addr a;
-#endif
         unsigned int remote_ip = login->ip;
         unsigned short internal_mtu = ntohs(login->internal_mtu);
         pool_room_free(&this.pool, room_id);
@@ -291,10 +286,15 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
             }
         }
 #ifdef WIN32 // 将对端内网IP添加到ARP表
-        a.s_addr = remote_ip;
-        strcpy(str, inet_ntoa(a));
-        sprintf(cmd, "arp -s %s ff-ff-ff-ff-ff-ff", str); // TODO: get mac from remote
-        SYSTEM_NORMAL(cmd);
+        {
+            char cmd[1024];
+            char str[16];
+            struct in_addr a;
+            a.s_addr = remote_ip;
+            strcpy(str, inet_ntoa(a));
+            sprintf(cmd, "arp -s %s ff-ff-ff-ff-ff-ff", str); // TODO: get mac from remote
+            SYSTEM_NORMAL(cmd);
+        }
 #endif
         write_c(client, new_msg, sizeof(msg_t) + msg_data_length(new_msg));
         pool_room_free(&this.pool, MSG_ROOM_IDX);
@@ -486,11 +486,7 @@ static void server_process(int max, fd_set* set)
     ++this.msg_ttl;
     remove_clients(&v, "closed");
     vector_free(&v);
-#ifdef WIN32
-    if (local_have_data())
-#else
-    if (FD_ISSET(this.localfd, set))
-#endif
+    if (LOCAL_HAVE_DATA(set))
     {
         unsigned char buffer[2048];
         ssize_t readen = 0;
@@ -522,14 +518,7 @@ static void server_process(int max, fd_set* set)
     }
 }
 
-void server_loop(
-    fd_type remotefd,
-#ifdef WIN32
-    HANDLE localfd
-#else
-    int localfd
-#endif
-)
+void server_loop(fd_type remotefd, local_fd_type localfd)
 {
     fd_set set;
     int max;
