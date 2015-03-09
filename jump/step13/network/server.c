@@ -261,8 +261,8 @@ static void server_process_login(client_t* client, msg_t* msg, size_t idx, vecto
 #ifdef WIN32
         char cmd[1024];
         char str[16];
-#endif
         struct in_addr a;
+#endif
         unsigned int remote_ip = login->ip;
         unsigned short internal_mtu = ntohs(login->internal_mtu);
         pool_room_free(&this.pool, room_id);
