@@ -22,10 +22,9 @@
 10. [Jump The Great Firewall【step10 syslog】](http://blog.q-devel.com/jump-the-great-firewall-step10/)
 11. [Jump The Great Firewall【step11 数据分片】](http://blog.q-devel.com/jump-the-great-firewall-step11/)
 12. [Jump The Great Firewall【step12 支持UDP协议】](http://blog.q-devel.com/jump-the-great-firewall-step12/)
+13. [Jump The Great Firewall【step13 支持Windows】](http://blog.q-devel.com/jump-the-great-firewall-step13/)
 
 # 部署
-
-本软件只支持`unix/linux`系的操作系统
 
 ## server端
 
