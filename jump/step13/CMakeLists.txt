@@ -5,11 +5,11 @@ SET(PROJECT_NAME step13)
 
 PROJECT(${PROJECT_NAME})
 
-IF (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../warning2error.cmake)
-    INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../warning2error.cmake)
-ELSE ()
-    INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../../warning2error.cmake)
-ENDIF ()
+FIND_PATH(WARNING2ERROR_PATH warning2error.cmake
+    ${CMAKE_CURRENT_SOURCE_DIR}/../
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../
+)
+INCLUDE(${WARNING2ERROR_PATH}/warning2error.cmake)
 
 INCLUDE(CheckTypeSize)
 INCLUDE(CheckFunctionExists)
