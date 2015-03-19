@@ -28,7 +28,11 @@
 int bind_and_listen(unsigned short port)
 {
     int fd, rc;
+#ifdef WIN32
     char opt = 1;
+#else
+    int opt = 1;
+#endif
     struct sockaddr_in addr = {0};
 
     addr.sin_family = AF_INET;
@@ -83,7 +87,11 @@ static void accept_and_check()
     socklen_t addrlen = sizeof(srcaddr);
     int fd = (int)accept(this.remotefd, (struct sockaddr*)&srcaddr, &addrlen);
     client_t* client;
+#ifdef WIN32
     char flag = 1;
+#else
+    int flag = 1;
+#endif
     hash_functor_t functor = {
         msg_ident_hash,
         msg_ident_compare,

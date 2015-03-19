@@ -36,7 +36,11 @@ int connect_server(char* host, unsigned short port)
     struct hostent* he;
     struct sockaddr_in addr = {0};
     msg_t* msg;
+#ifdef WIN32
     char flag = 1;
+#else
+    int flag = 1;
+#endif
 
     this.client.fd = this.remotefd = fd = socket(AF_INET, this.use_udp ? SOCK_DGRAM : SOCK_STREAM, 0);
     if (fd == -1)
