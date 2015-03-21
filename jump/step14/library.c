@@ -40,6 +40,7 @@ int library_init(library_conf_t conf)
     this.netmask      = conf.netmask;
     this.keepalive    = 0;
     this.keepalive_replyed = 0;
+    this.lua          = luaL_newstate();
 
     active_vector_init(&this.clients, functor_clients);
     pool_init(&this.pool);
@@ -111,6 +112,8 @@ int library_init(library_conf_t conf)
         this.des_key_len = len;
         fclose(fp);
     }
+
+    lua_close(this.lua);
 
     return 1;
 }

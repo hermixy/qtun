@@ -10,6 +10,8 @@
 #endif
 #include <openssl/aes.h>
 #include <openssl/des.h>
+#include <lua.h>
+#include <lauxlib.h>
 
 #include "common.h"
 #include "pool.h"
@@ -106,6 +108,8 @@ typedef struct
 
     pool_t          pool;
     group_pool_t    group_pool;
+
+    lua_State*      lua;
 
     // for server
     active_vector_t clients;

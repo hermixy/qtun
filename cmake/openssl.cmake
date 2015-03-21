@@ -2,7 +2,9 @@ IF (NOT THIRDPARTY_PATH)
     SET(THIRDPARTY_PATH "${CMAKE_CURRENT_LIST_DIR}/../3rdParty")
 ENDIF (NOT THIRDPARTY_PATH)
 
-SET (OPENSSL_SOURCES
+SET(OPENSSL_INCLUDE_DIR ${THIRDPARTY_PATH}/openssl/include)
+
+SET(OPENSSL_SOURCES
     ${THIRDPARTY_PATH}/openssl/crypto/modes/cbc128.c
     ${THIRDPARTY_PATH}/openssl/crypto/aes/aes_core.c
     ${THIRDPARTY_PATH}/openssl/crypto/aes/aes_misc.c
