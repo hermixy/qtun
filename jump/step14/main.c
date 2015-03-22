@@ -28,9 +28,11 @@
 #include <string.h>
 #include <time.h>
 
-#include "common.h"
-#include "library.h"
-#include "network.h"
+#include "library/common.h"
+#include "library/library.h"
+
+#include "network/network.h"
+
 #include "main.h"
 
 #ifdef HAVE_EXECINFO_H
@@ -105,6 +107,7 @@ int main(int argc, char* argv[])
         { "log-level",    1, NULL, 'v' },
         { "internal-mtu", 1, NULL, 't' },
         { "udp",          0, NULL, 'u' },
+        { "conf",         1, NULL, 'c' },
         { NULL,           0, NULL,  0  }
     };
     char short_options[512] = {0};
@@ -122,6 +125,7 @@ int main(int argc, char* argv[])
 
     memset(&this, 0, sizeof(this));
 
+    conf.conf_file    = NULL;
     conf.localip      = 0;
     conf.netmask      = 24;
     conf.log_level    = LOG_WARNING;
@@ -173,6 +177,9 @@ int main(int argc, char* argv[])
             break;
         case 'u':
             conf.use_udp = 1;
+            break;
+        case 'c':
+            conf.conf_file = optarg;
             break;
         default:
             fprintf(stderr, "param error\n");
@@ -337,5 +344,7 @@ int main(int argc, char* argv[])
 #ifdef HAVE_SYSLOG_H
     closelog();
 #endif
+
+    library_free();
     return 0;
 }

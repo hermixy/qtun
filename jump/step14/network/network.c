@@ -24,8 +24,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "common.h"
-#include "library.h"
+#include "../library/common.h"
+#include "../library/library.h"
 
 #include "network.h"
 

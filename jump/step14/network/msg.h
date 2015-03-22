@@ -1,7 +1,7 @@
 ﻿#ifndef _MSG_H_
 #define _MSG_H_
 
-#include "link.h"
+#include "../struct/link.h"
 
 #define SYS_LOGIN                    1 // req带本地虚拟IP，服务端收到req时查看IP是否存在，并挑一个未被使用的IP返回
 #define SYS_PING                     2 // 不带data

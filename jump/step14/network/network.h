@@ -9,8 +9,9 @@
 #include <linux/if.h>
 #endif
 
-#include "hash.h"
-#include "link.h"
+#include "../struct/hash.h"
+#include "../struct/link.h"
+
 #include "msg_group.h"
 #include "msg.h"
 

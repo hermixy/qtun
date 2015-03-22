@@ -3,8 +3,9 @@
 #endif
 #include <string.h>
 
+#include "../network/msg.h"
+
 #include "common.h"
-#include "msg.h"
 #include "proto.h"
 #include "library.h"
 
@@ -113,9 +114,12 @@ int library_init(library_conf_t conf)
         fclose(fp);
     }
 
-    lua_close(this.lua);
-
     return 1;
+}
+
+void library_free()
+{
+    lua_close(this.lua);
 }
 
 int compare_clients_by_fd(const void* d1, const size_t l1, const void* d2, const size_t l2)

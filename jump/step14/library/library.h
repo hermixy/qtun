@@ -13,12 +13,14 @@
 #include <lua.h>
 #include <lauxlib.h>
 
+#include "../network/msg_group.h"
+
+#include "../struct/active_vector.h"
+#include "../struct/group_pool.h"
+#include "../struct/hash.h"
+#include "../struct/pool.h"
+
 #include "common.h"
-#include "pool.h"
-#include "hash.h"
-#include "group_pool.h"
-#include "active_vector.h"
-#include "msg_group.h"
 
 #define CLIENT_STATUS_UNKNOWN        0
 #define CLIENT_STATUS_CHECKLOGIN     1
@@ -126,6 +128,7 @@ extern this_t this;
 
 typedef struct
 {
+    char*          conf_file;
     unsigned int   localip;
     unsigned char  netmask;
     unsigned char  log_level;
@@ -147,6 +150,7 @@ typedef struct
 } library_conf_t;
 
 extern int library_init(library_conf_t conf);
+extern void library_free();
 extern int compare_clients_by_fd(const void* d1, const size_t l1, const void* d2, const size_t l2);
 extern int compare_clients_by_local_ip(const void* d1, const size_t l1, const void* d2, const size_t l2);
 extern int compare_clients_by_remote_ip_and_port(const void* d1, const size_t l1, const void* d2, const size_t l2);

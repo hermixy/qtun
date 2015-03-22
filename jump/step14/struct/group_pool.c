@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "common.h"
+#include "../library/common.h"
 #include "group_pool.h"
 
 #define MAX_HINT 200

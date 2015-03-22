@@ -9,11 +9,12 @@
 #include <math.h>
 #include <string.h>
 
-#include "common.h"
-#include "msg.h"
-#include "group_pool.h"
-#include "pool.h"
+#include "../library/common.h"
 
+#include "../struct/group_pool.h"
+#include "../struct/pool.h"
+
+#include "msg.h"
 #include "msg_group.h"
 
 static int no_clip(msg_group_t* g, struct timeval tv, const void* data, const unsigned int len)

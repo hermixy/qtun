@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common.h"
+#include "../library/common.h"
 #include "active_vector.h"
 
 #define BEGIN_CAPACITY      11

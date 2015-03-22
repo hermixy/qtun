@@ -29,19 +29,26 @@ SET(SOURCE_STRUCT
 )
 SOURCE_GROUP(struct FILES ${SOURCE_STRUCT})
 
+SET(SOURCE_LIBRARY
+    ${QTUN_SOURCE_DIR}/library/common.h
+    ${QTUN_SOURCE_DIR}/library/common.c
+    ${QTUN_SOURCE_DIR}/library/library.h
+    ${QTUN_SOURCE_DIR}/library/library.c
+    ${QTUN_SOURCE_DIR}/library/proto.h
+    ${QTUN_SOURCE_DIR}/library/script.h
+    ${QTUN_SOURCE_DIR}/library/script.c
+    ${QTUN_SOURCE_DIR}/library/win.h
+    ${QTUN_SOURCE_DIR}/library/win.c
+)
+SOURCE_GROUP(library FILES ${SOURCE_LIBRARY})
+
 SET(SOURCE
     ${QTUN_SOURCE_DIR}/main.h
     ${QTUN_SOURCE_DIR}/main.c
 
     ${SOURCE_NETWORK}
     ${SOURCE_STRUCT}
-
-    ${QTUN_SOURCE_DIR}/common.h
-    ${QTUN_SOURCE_DIR}/common.c
-    ${QTUN_SOURCE_DIR}/library.h
-    ${QTUN_SOURCE_DIR}/library.c
-    ${QTUN_SOURCE_DIR}/win.h
-    ${QTUN_SOURCE_DIR}/win.c
+    ${SOURCE_LIBRARY}
 )
 
 IF (WIN32)

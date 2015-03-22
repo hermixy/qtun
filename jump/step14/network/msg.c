@@ -12,9 +12,10 @@
 #include <string.h>
 #include <zlib.h>
 
-#include "common.h"
-#include "library.h"
-#include "pool.h"
+#include "../library/common.h"
+#include "../library/library.h"
+
+#include "../struct/pool.h"
 
 #include "msg.h"
 

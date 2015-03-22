@@ -19,9 +19,9 @@
 #include <string.h>
 #include <time.h>
 
-#include "common.h"
-#include "library.h"
-#include "proto.h"
+#include "../library/common.h"
+#include "../library/library.h"
+#include "../library/proto.h"
 
 #include "network.h"
 

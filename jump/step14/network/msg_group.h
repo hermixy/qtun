@@ -1,6 +1,8 @@
 #ifndef _MSG_GROUP_H_
 #define _MSG_GROUP_H_
 
+#include "../struct/hash.h"
+
 #include "msg.h"
 
 #define MSG_MAX_TTL 200
