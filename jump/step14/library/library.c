@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "proto.h"
+#include "script.h"
 #include "library.h"
 
 this_t this;
@@ -42,6 +43,8 @@ int library_init(library_conf_t conf)
     this.keepalive    = 0;
     this.keepalive_replyed = 0;
     this.lua          = luaL_newstate();
+
+    script_global_init(this.lua);
 
     active_vector_init(&this.clients, functor_clients);
     pool_init(&this.pool);

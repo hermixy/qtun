@@ -123,6 +123,15 @@ int main(int argc, char* argv[])
     localfd = remotefd = -1;
 #endif
 
+    { // TODO: test
+#include "library/script.h"
+        lua_State* lua = luaL_newstate();
+        script_global_init(lua);
+        luaL_dofile(lua, "test.lua");
+        lua_close(lua);
+        return 0;
+    }
+
     memset(&this, 0, sizeof(this));
 
     conf.conf_file    = NULL;
