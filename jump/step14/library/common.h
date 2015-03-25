@@ -12,6 +12,17 @@
 
 #define LEN2MASK(len) ((1 << (len)) - 1)
 
+#ifndef bswap_16
+#define bswap_16(x) \
+((unsigned short int) ((((x) >> 8) & 0xff) | (((x) & 0xff) << 8)))
+#endif
+
+#ifndef bswap_32
+#define bswap_32(x) (\
+(((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
+(((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
+#endif
+
 #ifdef WIN32
 #define SWAP(a, b, type) do { \
     type tmp = a; \

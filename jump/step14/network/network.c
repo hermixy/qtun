@@ -82,29 +82,43 @@ local_fd_type tun_open(char path[MAX_PATH])
 #else
 local_fd_type tun_open(char name[IFNAMSIZ])
 {
-    struct ifreq ifr;
     int fd;
 
     if ((fd = open("/dev/net/tun", O_RDWR)) == -1)
     {
-        perror("open");
+        char str[128] = {0};
+        int i;
+        for (i = 0; i <= 255; ++i)
+        {
+            sprintf(str, "/dev/tun%d", i);
+            if ((fd = open(str, O_RDWR)) != -1)
+            {
+                sprintf(name, "tun%d", i);
+                return fd;
+            }
+        }
         return -1;
     }
-
-    memset(&ifr, 0, sizeof(ifr));
-    ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-    strncpy(ifr.ifr_name, name, IFNAMSIZ);
-
-    if (ioctl(fd, TUNSETIFF, (void *) &ifr) == -1)
+    else
     {
-        perror("ioctl");
-        close(fd);
-        return -1;
+#if defined(unix) && defined(HAVE_LINUX_IF_TUN_H)
+        struct ifreq ifr;
+        memset(&ifr, 0, sizeof(ifr));
+        ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
+        strncpy(ifr.ifr_name, name, IFNAMSIZ);
+        
+        if (ioctl(fd, TUNSETIFF, (void *) &ifr) == -1)
+        {
+            perror("ioctl");
+            close(fd);
+            return -1;
+        }
+        
+        this.localfd = fd;
+        strncpy(name, ifr.ifr_name, IFNAMSIZ);
+#endif
+        return fd;
     }
-
-    this.localfd = fd;
-    strncpy(name, ifr.ifr_name, IFNAMSIZ);
-    return fd;
 }
 #endif
 

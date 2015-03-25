@@ -1,5 +1,8 @@
 #ifndef WIN32
 #include <netinet/in.h>
+#endif
+
+#ifdef HAVE_BYTESWAP_H
 #include <byteswap.h>
 #endif
 

@@ -15,3 +15,4 @@ SET(ZLIB_SOURCES
     ${THIRDPARTY_PATH}/zlib/trees.c
     ${THIRDPARTY_PATH}/zlib/zutil.c
 )
+SOURCE_GROUP(3rdParty\\zlib FILES ${ZLIB_SOURCES})

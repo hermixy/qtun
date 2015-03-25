@@ -22,13 +22,6 @@ extern size_t enum_devices(enum_device_t devices[MAX_DEVICE_COUNT]);
 #define read(a, b, c) recv(a, b, c, 0)
 #define close(x) closesocket(x)
 
-#define bswap_16(x) \
-((unsigned short int) ((((x) >> 8) & 0xff) | (((x) & 0xff) << 8)))
-
-#define bswap_32(x) (\
-(((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
-(((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
-
 #define LOG_EMERG   0   /* system is unusable */
 #define LOG_ALERT   1   /* action must be taken immediately */
 #define LOG_CRIT    2   /* critical conditions */

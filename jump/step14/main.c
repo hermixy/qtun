@@ -123,14 +123,14 @@ int main(int argc, char* argv[])
     localfd = remotefd = -1;
 #endif
 
-    { // TODO: test
+/*    { // TODO: test
 #include "library/script.h"
         lua_State* lua = luaL_newstate();
         script_global_init(lua);
         luaL_dofile(lua, "test.lua");
         lua_close(lua);
         return 0;
-    }
+    }*/
 
     memset(&this, 0, sizeof(this));
 
@@ -297,15 +297,27 @@ int main(int argc, char* argv[])
             return 1;
         }
 #ifdef WIN32
-        a.s_addr = conf.localip;
-        sprintf(cmd, "netsh interface ip set address name=\"%s\" static %s %s", conf.dev_name, inet_ntoa(a), STR_LEN2MASK(conf.netmask));
-        SYSTEM_EXIT(cmd);
+        {
+            a.s_addr = conf.localip;
+            sprintf(cmd, "netsh interface ip set address name=\"%s\" static %s %s", conf.dev_name, inet_ntoa(a), STR_LEN2MASK(conf.netmask));
+            SYSTEM_EXIT(cmd);
+        }
+#elif defined(__APPLE__)
+        {
+            sprintf(cmd, "ifconfig %s %s/%u up", this.dev_name, inet_ntoa(a), conf.netmask);
+            SYSTEM_EXIT(cmd);
+            a.s_addr = conf.localip & LEN2MASK(conf.netmask);
+            sprintf(cmd, "route add -net %s/%u %s", inet_ntoa(a), conf.netmask, inet_ntoa(a));
+            SYSTEM_EXIT(cmd);
+        }
 #else
-        sprintf(cmd, "ifconfig %s %s/%u up", this.dev_name, inet_ntoa(a), conf.netmask);
-        SYSTEM_EXIT(cmd);
-        a.s_addr = conf.localip & LEN2MASK(conf.netmask);
-        sprintf(cmd, "route add -net %s/%u dev %s", inet_ntoa(a), conf.netmask, this.dev_name);
-        SYSTEM_EXIT(cmd);
+        {
+            sprintf(cmd, "ifconfig %s %s/%u up", this.dev_name, inet_ntoa(a), conf.netmask);
+            SYSTEM_EXIT(cmd);
+            a.s_addr = conf.localip & LEN2MASK(conf.netmask);
+            sprintf(cmd, "route add -net %s/%u dev %s", inet_ntoa(a), conf.netmask, this.dev_name);
+            SYSTEM_EXIT(cmd);
+        }
 #endif
         server_loop(remotefd, localfd);
     }
@@ -328,16 +340,34 @@ int main(int argc, char* argv[])
             if (!inited)
             {
 #ifdef WIN32
-                a.s_addr = conf.localip;
-                sprintf(cmd, "netsh interface ip set address name=\"%s\" static %s %s", conf.dev_name, inet_ntoa(a), STR_LEN2MASK(conf.netmask));
-                SYSTEM_EXIT(cmd);
+                {
+                    a.s_addr = conf.localip;
+                    sprintf(cmd, "netsh interface ip set address name=\"%s\" static %s %s", conf.dev_name, inet_ntoa(a), STR_LEN2MASK(conf.netmask));
+                    SYSTEM_EXIT(cmd);
+                }
+#elif defined(__APPLE__)
+                {
+                    char ip1[16], ip2[16];
+                    a.s_addr = this.localip;
+                    strcpy(ip1, inet_ntoa(a));
+                    a.s_addr = this.client.local_ip;
+                    strcpy(ip2, inet_ntoa(a));
+                    sprintf(cmd, "ifconfig %s inet %s %s up", this.dev_name, ip1, ip2);
+                    SYSTEM_EXIT(cmd);
+                    mask = netmask();
+                    a.s_addr = conf.localip & LEN2MASK(mask);
+                    sprintf(cmd, "route add -net %s/%u %s", inet_ntoa(a), mask, ip2);
+                    SYSTEM_EXIT(cmd);
+                }
 #else
-                sprintf(cmd, "ifconfig %s %s up", this.dev_name, inet_ntoa(a));
-                SYSTEM_EXIT(cmd);
-                mask = netmask();
-                a.s_addr = conf.localip & LEN2MASK(mask);
-                sprintf(cmd, "route add -net %s/%u dev %s", inet_ntoa(a), mask, this.dev_name);
-                SYSTEM_EXIT(cmd);
+                {
+                    sprintf(cmd, "ifconfig %s %s up", this.dev_name, inet_ntoa(a));
+                    SYSTEM_EXIT(cmd);
+                    mask = netmask();
+                    a.s_addr = conf.localip & LEN2MASK(mask);
+                    sprintf(cmd, "route add -net %s/%u dev %s", inet_ntoa(a), mask, this.dev_name);
+                    SYSTEM_EXIT(cmd);
+                }
 #endif
                 inited = 1;
             }

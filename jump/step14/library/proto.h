@@ -25,7 +25,7 @@ struct udphdr
     uint16_t check;
 };
 
-#if !defined(unix) || !defined(HAVE_LINUX_TCP_H)
+#if !defined(unix) || (!defined(HAVE_LINUX_TCP_H) && !defined(HAVE_NETINET_TCP_H))
 struct tcphdr
 {
     uint16_t source;

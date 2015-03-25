@@ -13,3 +13,4 @@ SET(OPENSSL_SOURCES
     ${THIRDPARTY_PATH}/openssl/crypto/des/cbc_enc.c
     ${THIRDPARTY_PATH}/openssl/crypto/des/des_enc.c
 )
+SOURCE_GROUP(3rdParty\\openssl FILES ${OPENSSL_SOURCES})

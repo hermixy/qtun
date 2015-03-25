@@ -5,7 +5,7 @@
 #include <winsock.h>
 #else
 #include <sys/socket.h>
-#include <linux/if.h>
+#include <net/if.h>
 #include <netinet/in.h>
 #endif
 #include <openssl/aes.h>

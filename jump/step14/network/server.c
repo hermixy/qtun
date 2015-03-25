@@ -2,8 +2,12 @@
 #include <arpa/inet.h>
 #endif
 
-#if defined(unix) && defined(HAVE_LINUX_TCP_H)
-#include <linux/tcp.h>
+#ifdef unix
+#  ifdef HAVE_LINUX_TCP_H
+#    include <linux/tcp.h>
+#  elif HAVE_NETINET_TCP_H
+#    include <netinet/tcp.h>
+#  endif
 #endif
 
 #ifdef HAVE_IO_H

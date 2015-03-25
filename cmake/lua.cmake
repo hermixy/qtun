@@ -30,3 +30,4 @@ SET(LUA_SOURCES
     ${THIRDPARTY_PATH}/lua/src/lvm.c
     ${THIRDPARTY_PATH}/lua/src/lzio.c
 )
+SOURCE_GROUP(3rdParty\\lua FILES ${LUA_SOURCES})
