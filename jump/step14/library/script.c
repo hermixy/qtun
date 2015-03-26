@@ -12,9 +12,8 @@
 
 static void load_lib(lua_State* lua, const char* name, lua_CFunction func)
 {
-    lua_pushcfunction(lua, func);
-    lua_pushstring(lua, name);
-    lua_call(lua, 1, 0);
+    luaL_requiref(lua, name, func, 1);
+    lua_pop(lua, 1);
 }
 
 static int state_get(lua_State* lua)
@@ -182,12 +181,20 @@ static int state_set(lua_State* lua)
     return 0;
 }
 
+static int _syslog(lua_State* lua)
+{
+    lua_Number level = luaL_checknumber(lua, 1);
+    const char* str = luaL_checkstring(lua, 2);
+    SYSLOG(level, str, "");
+    return 0;
+}
+
 static void get_qtun_obj(lua_State* lua)
 {
     lua_getglobal(lua, "qtun");
     if (lua_isnil(lua, -1))
     {
-        lua_pop(lua, -1);
+        lua_pop(lua, 1);
         lua_newtable(lua);
         lua_setglobal(lua, "qtun");
         lua_getglobal(lua, "qtun");
@@ -221,8 +228,16 @@ static void init_qtun_state(lua_State* lua)
 
     lua_pop(lua, 1);
     {
+        int new_log = 0;
         lua_pushstring(lua, "log");
-        lua_newtable(lua);
+        lua_gettable(lua, -2);
+        if (lua_isnil(lua, -1))
+        {
+            lua_pop(lua, 1);
+            lua_pushstring(lua, "log");
+            lua_newtable(lua);
+            new_log = 1;
+        }
         push_log_level(lua, "LOG_EMERG"  , 0);
         push_log_level(lua, "LOG_ALERT"  , 1);
         push_log_level(lua, "LOG_CRIT"   , 2);
@@ -231,16 +246,22 @@ static void init_qtun_state(lua_State* lua)
         push_log_level(lua, "LOG_NOTICE" , 5);
         push_log_level(lua, "LOG_INFO"   , 6);
         push_log_level(lua, "LOG_DEBUG"  , 7);
-        lua_settable(lua, -3);
+        if (new_log)
+            lua_settable(lua, -3);
     }
     lua_pop(lua, 1);
 }
 
 int script_global_init(lua_State* lua)
 {
-    load_lib(lua, "", luaopen_base);
+    load_lib(lua, "_G", luaopen_base);
     load_lib(lua, LUA_TABLIBNAME, luaopen_table);
     load_lib(lua, LUA_STRLIBNAME, luaopen_string);
+    load_lib(lua, LUA_IOLIBNAME, luaopen_io);
+    
+    lua_pushcfunction(lua, _syslog);
+    lua_setglobal(lua, "_syslog");
+    
     init_qtun_state(lua);
     return 1;
 }

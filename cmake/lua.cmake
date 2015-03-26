@@ -15,6 +15,7 @@ SET(LUA_SOURCES
     ${THIRDPARTY_PATH}/lua/src/ldump.c
     ${THIRDPARTY_PATH}/lua/src/lfunc.c
     ${THIRDPARTY_PATH}/lua/src/lgc.c
+    ${THIRDPARTY_PATH}/lua/src/liolib.c
     ${THIRDPARTY_PATH}/lua/src/llex.c
     ${THIRDPARTY_PATH}/lua/src/lmem.c
     ${THIRDPARTY_PATH}/lua/src/lobject.c
