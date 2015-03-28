@@ -122,6 +122,8 @@ int main(int argc, char* argv[])
 #else
     localfd = remotefd = -1;
 #endif
+    
+    conf_init(&conf);
 
     { // TODO: test
 #include "library/script.h"
@@ -131,32 +133,12 @@ int main(int argc, char* argv[])
             printf("%s\n", lua_tostring(lua, -1));
         }
         script_global_init(lua);
-        if (luaL_dofile(lua, "test.lua") != 0)
-        {
-            printf("%s\n", lua_tostring(lua, -1));
-        }
+        script_load_config(lua, &conf, "config");
         lua_close(lua);
         return 0;
     }
 
     memset(&this, 0, sizeof(this));
-
-    conf.conf_file    = NULL;
-    conf.localip      = 0;
-    conf.netmask      = 24;
-    conf.log_level    = LOG_WARNING;
-    conf.internal_mtu = 1492; // keep not to clip
-#ifdef WIN32
-    memset(conf.dev_symbol, 0, sizeof(conf.dev_symbol));
-    memset(conf.dev_name, 0, sizeof(conf.dev_name));
-    conf.dev_index = -1;
-#endif
-    conf.use_gzip     = 0;
-    conf.use_udp      = 0;
-    conf.use_aes      = 0;
-    conf.aes_key_file = NULL;
-    conf.use_des      = 0;
-    conf.des_key_file = NULL;
 
     while ((opt = getopt_long(argc, argv, short_options, long_options, NULL)) != -1)
     {
@@ -164,11 +146,11 @@ int main(int argc, char* argv[])
         {
         case 'a':
             conf.use_aes = 1;
-            conf.aes_key_file = optarg;
+            strcpy(conf.aes_key_file, optarg);
             break;
         case 'd':
             conf.use_des = 1;
-            conf.des_key_file = optarg;
+            strcpy(conf.des_key_file, optarg);
             break;
         case 'g':
             conf.use_gzip = 1;
@@ -195,7 +177,7 @@ int main(int argc, char* argv[])
             conf.use_udp = 1;
             break;
         case 'c':
-            conf.conf_file = optarg;
+            strcpy(conf.conf_file, optarg);
             break;
         default:
             fprintf(stderr, "param error\n");
@@ -215,7 +197,6 @@ int main(int argc, char* argv[])
         {
             strcpy(conf.dev_symbol, devs[0].dev_path);
             strcpy(conf.dev_name, devs[0].dev_name);
-            conf.dev_index = devs[0].index;
         }
         else
         {
@@ -245,7 +226,6 @@ int main(int argc, char* argv[])
             }
             strcpy(conf.dev_symbol, devs[n].dev_path);
             strcpy(conf.dev_name, devs[n].dev_name);
-            conf.dev_index = devs[n].index;
         }
     }
 #endif

@@ -56,6 +56,12 @@ typedef int local_fd_type;
 #define SLEEP(n) sleep(n)
 #endif
 
+#ifndef MAX_PATH
+#define MAX_PATH 255
+#endif
+
+typedef struct library_conf_s library_conf_t;
+
 typedef struct
 {
     unsigned int       local_ip;
@@ -86,7 +92,6 @@ typedef struct
 #ifdef WIN32
     char            dev_symbol[MAX_PATH];
     char            dev_name[255];
-    DWORD           dev_index;
 #else
     char            dev_name[IFNAMSIZ];
 #endif
@@ -126,9 +131,9 @@ typedef struct
 
 extern this_t this;
 
-typedef struct
+struct library_conf_s
 {
-    char*          conf_file;
+    char           conf_file[MAX_PATH];
     unsigned int   localip;
     unsigned char  netmask;
     unsigned char  log_level;
@@ -136,21 +141,21 @@ typedef struct
 #ifdef WIN32
     char           dev_symbol[MAX_PATH];
     char           dev_name[255];
-    DWORD          dev_index;
 #endif
     unsigned char  use_udp;
 
     int            use_gzip;
 
     int            use_aes;
-    char*          aes_key_file;
+    char           aes_key_file[MAX_PATH];
 
     int            use_des;
-    char*          des_key_file;
-} library_conf_t;
+    char           des_key_file[MAX_PATH];
+};
 
 extern int library_init(library_conf_t conf);
 extern void library_free();
+extern void conf_init(library_conf_t* conf);
 extern int compare_clients_by_fd(const void* d1, const size_t l1, const void* d2, const size_t l2);
 extern int compare_clients_by_local_ip(const void* d1, const size_t l1, const void* d2, const size_t l2);
 extern int compare_clients_by_remote_ip_and_port(const void* d1, const size_t l1, const void* d2, const size_t l2);

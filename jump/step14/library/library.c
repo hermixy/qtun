@@ -33,7 +33,6 @@ int library_init(library_conf_t conf)
     this.internal_mtu = conf.internal_mtu;
 #ifdef WIN32
     strcpy(this.dev_symbol, conf.dev_symbol);
-    this.dev_index = conf.dev_index;
 #endif
     this.max_length   = ROUND_UP(conf.internal_mtu - sizeof(msg_t) - sizeof(struct iphdr) - (conf.use_udp ? sizeof(struct udphdr) : sizeof(struct tcphdr)), 8);
     this.use_udp      = conf.use_udp;
@@ -123,6 +122,25 @@ int library_init(library_conf_t conf)
 void library_free()
 {
     lua_close(this.lua);
+}
+
+void conf_init(library_conf_t* conf)
+{
+    memset(conf->conf_file, 0, sizeof(conf->conf_file));
+    conf->localip      = 0;
+    conf->netmask      = 24;
+    conf->log_level    = LOG_WARNING;
+    conf->internal_mtu = 1492; // keep not to clip
+#ifdef WIN32
+    memset(conf->dev_symbol, 0, sizeof(conf.dev_symbol));
+    memset(conf->dev_name, 0, sizeof(conf.dev_name));
+#endif
+    conf->use_gzip     = 0;
+    conf->use_udp      = 0;
+    conf->use_aes      = 0;
+    memset(conf->aes_key_file, 0, sizeof(conf->aes_key_file));
+    conf->use_des      = 0;
+    memset(conf->des_key_file, 0, sizeof(conf->des_key_file));
 }
 
 int compare_clients_by_fd(const void* d1, const size_t l1, const void* d2, const size_t l2)
