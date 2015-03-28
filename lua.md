@@ -9,9 +9,9 @@
 
 1. [\_\_conf\_\_](#__conf__)
 2. [\_syslog](#_syslog)
-3. [qtun.state](#qtun\.state)
-4. [qtun.conf](#qtun\.conf)
-5. [qtun.log](#qtun\.log)
+3. [qtun.state](#qtunstate)
+4. [qtun.conf](#qtunconf)
+5. [qtun.log](#qtunlog)
 
 ## \_\_conf\_\_
 
@@ -33,7 +33,7 @@
 
 *fmt*: format string for follow arguments.
 
-## qtun\.state
+## qtun.state
 
 | key        | value                         |
 | ---------- | ----------------------------- |
