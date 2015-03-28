@@ -29,7 +29,7 @@
 
 	_syslog(level, fmt, ...)
 	
-*level*: write log when [qtun.state.log_level](#qtun\.state\.log_level) >= level.
+*level*: write log when [qtun.state.log_level](#qtunstatelog_level) >= level.
 
 *fmt*: format string for follow arguments.
 
