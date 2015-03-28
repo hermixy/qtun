@@ -1,0 +1,10 @@
+# 这是一个注释
+localip      = 10.0.1.2 # 本地局域网地址
+netmask      = 24       # 子网掩码
+log_level    = LOG_ERR  # log等级
+internal_mtu = 1490     # 内部MTU
+use_udp                 # 使用UDP协议
+use_gzip                # 使用GZIP压缩
+
+#aes_file     = xxx.aes  # AES密钥文件
+#des_file     = xxx.des  # DES密钥文件

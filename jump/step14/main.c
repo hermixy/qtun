@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
             printf("%s\n", lua_tostring(lua, -1));
         }
         script_global_init(lua);
-        script_load_config(lua, &conf, "config");
+        script_load_config(lua, &conf, "../config");
         lua_close(lua);
         return 0;
     }
