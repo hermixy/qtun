@@ -33,7 +33,7 @@
 
 *fmt*: format string for follow arguments.
 
-## qtun.state
+## qtun\.state
 
 | key        | value                         |
 | ---------- | ----------------------------- |
