@@ -9,9 +9,9 @@
 
 1. [\_\_conf\_\_](#__conf__)
 2. [\_syslog](#_syslog)
-3. [qtun.state](#qtun.state)
-4. [qtun.conf](#qtun.conf)
-5. [qtun.log](#qtun.log)
+3. [qtun.state](#qtun\.state)
+4. [qtun.conf](#qtun\.conf)
+5. [qtun.log](#qtun\.log)
 
 ## \_\_conf\_\_
 
@@ -29,7 +29,7 @@
 
 	_syslog(level, fmt, ...)
 	
-*level*: write log when [qtun.state.log_level](#qtun.state.log_levels) >= level.
+*level*: write log when [qtun.state.log_level](#qtun\.state\.log_level) >= level.
 
 *fmt*: format string for follow arguments.
 
