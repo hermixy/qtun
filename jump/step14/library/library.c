@@ -41,9 +41,6 @@ int library_init(library_conf_t conf)
     this.netmask      = conf.netmask;
     this.keepalive    = 0;
     this.keepalive_replyed = 0;
-    this.lua          = luaL_newstate();
-
-    script_global_init(this.lua);
 
     active_vector_init(&this.clients, functor_clients);
     pool_init(&this.pool);
@@ -119,6 +116,19 @@ int library_init(library_conf_t conf)
     return 1;
 }
 
+int init_lua()
+{
+    this.lua = luaL_newstate();
+    if (luaL_dofile(this.lua, "../scripts/qtun.lua") != 0)
+    {
+        fprintf(stderr, "%s\n", lua_tostring(this.lua, -1));
+        lua_close(this.lua);
+        exit(1);
+    }
+    script_global_init(this.lua);
+    return 1;
+}
+
 void library_free()
 {
     lua_close(this.lua);
@@ -126,6 +136,8 @@ void library_free()
 
 void conf_init(library_conf_t* conf)
 {
+    memset(conf->server, 0, sizeof(conf->server));
+    conf->server_port = 6687;
     memset(conf->conf_file, 0, sizeof(conf->conf_file));
     conf->localip      = 0;
     conf->netmask      = 24;

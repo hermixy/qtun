@@ -141,13 +141,13 @@ static int conf_get(lua_State* lua)
 static int conf_set_and_check(lua_State* lua, library_conf_t* conf, const char* key, int input_type)
 {
     int rc = 0;
-    if (strcmp(key, "server"))
+    if (strcmp(key, "server") == 0)
     {
         rc = input_type == LUA_TSTRING;
         if (!rc) goto end;
         strncpy(conf->server, lua_tostring(lua, 3), sizeof(conf->server));
     }
-    else if (strcmp(key, "server_port"))
+    else if (strcmp(key, "server_port") == 0)
     {
         rc = input_type == LUA_TNUMBER;
         if (!rc) goto end;
@@ -179,15 +179,15 @@ static int conf_set_and_check(lua_State* lua, library_conf_t* conf, const char* 
     }
     else if (strcmp(key, "use_udp") == 0)
     {
-        rc = input_type == LUA_TNUMBER || input_type == LUA_TBOOLEAN;
+        rc = input_type == LUA_TBOOLEAN;
         if (!rc) goto end;
-        conf->use_udp = lua_tonumber(lua, 3);
+        conf->use_udp = lua_toboolean(lua, 3);
     }
     else if (strcmp(key, "use_gzip") == 0)
     {
-        rc = input_type == LUA_TNUMBER || input_type == LUA_TBOOLEAN;
+        rc = input_type == LUA_TBOOLEAN;
         if (!rc) goto end;
-        conf->use_gzip = lua_tonumber(lua, 3);
+        conf->use_gzip = lua_toboolean(lua, 3);
     }
     else if (strcmp(key, "aes_file") == 0)
     {
@@ -347,12 +347,15 @@ int script_global_init(lua_State* lua)
 
 int script_load_config(lua_State* lua, library_conf_t* conf, const char* file_path)
 {
-    strncpy(conf->conf_file, file_path, sizeof(conf->conf_file));
-    
     lua_pushlightuserdata(lua, conf);
     lua_setglobal(lua, "__conf__");
     
-    luaL_dofile(lua, "../scripts/load_config.lua");
+    if (luaL_dofile(lua, "../scripts/load_config.lua") != 0)
+    {
+        fprintf(stderr, "%s\n", lua_tostring(this.lua, -1));
+        lua_close(this.lua);
+        exit(1);
+    }
     return 1;
 }
 

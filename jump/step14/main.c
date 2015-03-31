@@ -30,6 +30,7 @@
 
 #include "library/common.h"
 #include "library/library.h"
+#include "library/script.h"
 
 #include "network/network.h"
 
@@ -92,23 +93,11 @@ int main(int argc, char* argv[])
     int remotefd;
     library_conf_t conf;
     int opt;
-    char* host = NULL;
-    unsigned int port = 6687;
     struct in_addr a;
 
     struct option long_options[] = {
-        { "aes",          1, NULL, 'a' },
-        { "des",          1, NULL, 'd' },
-        { "gzip",         0, NULL, 'g' },
-        { "mask",         1, NULL, 'm' },
-        { "localip",      1, NULL, 'l' },
-        { "server",       1, NULL, 's' },
-        { "port",         1, NULL, 'p' },
-        { "log-level",    1, NULL, 'v' },
-        { "internal-mtu", 1, NULL, 't' },
-        { "udp",          0, NULL, 'u' },
-        { "conf",         1, NULL, 'c' },
-        { NULL,           0, NULL,  0  }
+        { "conf", 1, NULL, 'c' },
+        { NULL,   0, NULL,  0  }
     };
     char short_options[512] = {0};
     longopt2shortopt(long_options, sizeof(long_options) / sizeof(struct option), short_options);
@@ -125,18 +114,6 @@ int main(int argc, char* argv[])
     
     conf_init(&conf);
 
-    { // TODO: test
-#include "library/script.h"
-        lua_State* lua = luaL_newstate();
-        if (luaL_dofile(lua, "../scripts/qtun.lua") != 0)
-        {
-            printf("%s\n", lua_tostring(lua, -1));
-        }
-        script_global_init(lua);
-        script_load_config(lua, &conf, "../config");
-        lua_close(lua);
-        return 0;
-    }
 
     memset(&this, 0, sizeof(this));
 
@@ -144,40 +121,8 @@ int main(int argc, char* argv[])
     {
         switch (opt)
         {
-        case 'a':
-            conf.use_aes = 1;
-            strcpy(conf.aes_key_file, optarg);
-            break;
-        case 'd':
-            conf.use_des = 1;
-            strcpy(conf.des_key_file, optarg);
-            break;
-        case 'g':
-            conf.use_gzip = 1;
-            break;
-        case 'l':
-            conf.localip = inet_addr(optarg);
-            break;
-        case 's':
-            host = optarg;
-            break;
-        case 'm':
-            conf.netmask = atoi(optarg);
-            break;
-        case 'p':
-            port = atoi(optarg);
-            break;
-        case 'v':
-            conf.log_level = atoi(optarg);
-            break;
-        case 't':
-            conf.internal_mtu = atoi(optarg);
-            break;
-        case 'u':
-            conf.use_udp = 1;
-            break;
         case 'c':
-            strcpy(conf.conf_file, optarg);
+            realpath(optarg, conf.conf_file);
             break;
         default:
             fprintf(stderr, "param error\n");
@@ -229,15 +174,13 @@ int main(int argc, char* argv[])
         }
     }
 #endif
-
+    
+    init_lua();
+    script_load_config(this.lua, &conf, conf.conf_file);
+    
     if (conf.localip == 0)
     {
         fprintf(stderr, "localip is zero\n");
-        return 1;
-    }
-    if (port == 0)
-    {
-        fprintf(stderr, "port is zero\n");
         return 1;
     }
 #ifdef WIN32
@@ -263,7 +206,7 @@ int main(int argc, char* argv[])
 #ifdef WIN32
     WSAStartup(MAKEWORD(2, 2), &wsa);
 #endif
-    if (host == NULL)
+    if (strlen(conf.server) == 0)
     {
         if (conf.netmask == 0 || conf.netmask > 31)
         {
@@ -271,11 +214,11 @@ int main(int argc, char* argv[])
             WSACleanup();
 #endif
 
-            fprintf(stderr, "netmask must >0 and <= 31\n");
+            fprintf(stderr, "netmask must > 0 and <= 31\n");
             return 1;
         }
         library_init(conf);
-        remotefd = bind_and_listen(port);
+        remotefd = bind_and_listen(conf.server_port);
         if (remotefd == -1)
         {
 #ifdef WIN32
@@ -318,7 +261,7 @@ int main(int argc, char* argv[])
 
         while (1)
         {
-            remotefd = connect_server(host, port);
+            remotefd = connect_server(conf.server, conf.server_port);
             if (remotefd == -1)
             {
                 SLEEP(5);

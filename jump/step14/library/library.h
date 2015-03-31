@@ -134,7 +134,7 @@ extern this_t this;
 struct library_conf_s
 {
     // for client
-    char           server[16];
+    char           server[MAX_PATH];
     unsigned short server_port;
     
     char           conf_file[MAX_PATH];
@@ -158,6 +158,7 @@ struct library_conf_s
 };
 
 extern int library_init(library_conf_t conf);
+extern int init_lua();
 extern void library_free();
 extern void conf_init(library_conf_t* conf);
 extern int compare_clients_by_fd(const void* d1, const size_t l1, const void* d2, const size_t l2);

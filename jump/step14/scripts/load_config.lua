@@ -30,7 +30,9 @@ while true do
 	local have_key = false
 	local have_value = false
 	local added = false
+	local j = 0
 	for i=0, len do
+		j = i
 		local ch = line:sub(i + 1, i + 1)
 		if first == '' and ch ~= ' ' then
 			first = ch
@@ -58,9 +60,11 @@ while true do
 	
 	if not added then
 		if not have_key then
-			set_true(trim(line:sub(start, i)))
+			local key = trim(line:sub(start, j))
+			if key == '' then goto start end
+			set_true(key)
 		else
-			append_key_value(key, trim(line:sub(start, i)))
+			append_key_value(key, trim(line:sub(start, j)))
 		end
 	end
 end
