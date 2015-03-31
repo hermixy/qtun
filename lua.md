@@ -182,91 +182,120 @@
 
 ### qtun.conf.conf\_file
 
-| key        | value                         |
-| ---------- | ----------------------------- |
-| **type**   | string                        |
-| **access** | readonly                      |
-| **desc**   | path for config file.         |
+| key         | value                         |
+| ----------- | ----------------------------- |
+| **type**    | string                        |
+| **access**  | readonly                      |
+| **default** | /                             |
+| **desc**    | path for config file.         |
+
+### qtun.conf.server
+
+| key         | value                                       |
+| ----------- | ------------------------------------------- |
+| **type**    | string                                      |
+| **access**  | read and write                              |
+| **default** | /                                           |
+| **desc**    | It's using for client, server domain or ip. |
+
+### qtun.conf.server\_port
+
+| key         | value                               |
+| ----------- | ----------------------------------- |
+| **type**    | number                              |
+| **access**  | read and write                      |
+| **default** | 6687                                |
+| **desc**    | It's using for client, server port. |
 
 ### qtun.conf.localip
 
-| key        | value                         |
-| ---------- | ----------------------------- |
-| **type**   | string                        |
-| **access** | read and write                |
-| **desc**   | Virtual LAN ip address.       |
+| key         | value                         |
+| ----------- | ----------------------------- |
+| **type**    | string                        |
+| **access**  | read and write                |
+| **default** | /                             |
+| **desc**    | Virtual LAN ip address.       |
 
 ### qtun.conf.netmask
 
-| key        | value                         |
-| ---------- | ----------------------------- |
-| **type**   | number                        |
-| **access** | read and write                |
-| **desc**   | Netmask for Virtual LAN.      |
+| key         | value                    |
+| ----------- | ------------------------ |
+| **type**    | number                   |
+| **access**  | read and write           |
+| **default** | 24                       |
+| **desc**    | Netmask for Virtual LAN. |
 
 ### qtun.conf.log\_level
 
-| key        | value          |
-| ---------- | -------------- |
-| **type**   | number         |
-| **access** | read and write |
-| **desc**   | Log level in [`qtun.log.LOG_EMERG`](#log_levels), [`qtun.log.LOG_ALERT`](#log_levels), [`qtun.log.LOG_CRIT`](#log_levels), [`qtun.log.LOG_ERR`](#log_levels), [`qtun.log.LOG_WARNING`](#log_levels), [`qtun.log.LOG_NOTICE`](#log_levels), [`qtun.log.LOG_INFO`](#log_levels) and [`qtun.log.LOG_DEBUG`](#log_levels).|
+| key         | value                                 |
+| ----------- | ------------------------------------- |
+| **type**    | number                                |
+| **access**  | read and write                        |
+| **default** | [`qtun.log.LOG_WARNING`](#log_levels) |
+| **desc**    | Log level in [`qtun.log.LOG_EMERG`](#log_levels), [`qtun.log.LOG_ALERT`](#log_levels), [`qtun.log.LOG_CRIT`](#log_levels), [`qtun.log.LOG_ERR`](#log_levels), [`qtun.log.LOG_WARNING`](#log_levels), [`qtun.log.LOG_NOTICE`](#log_levels), [`qtun.log.LOG_INFO`](#log_levels) and [`qtun.log.LOG_DEBUG`](#log_levels). |
 
 ### qtun.conf.internal\_mtu
 
-| key        | value                          |
-| ---------- | ------------------------------ |
-| **type**   | number                         |
-| **access** | read and write                 |
-| **desc**   | Limit for send message length. |
+| key         | value                          |
+| ----------- | ------------------------------ |
+| **type**    | number                         |
+| **access**  | read and write                 |
+| **default** | 1492                           |
+| **desc**    | Limit for send message length. |
 
 ### qtun.conf.dev\_symbol
 
-| key        | value                         |
-| ---------- | ----------------------------- |
-| **type**   | string                        |
-| **access** | readonly                      |
-| **desc**   | It's only use for `windows` to show the symbol path for an adapter driver. |
+| key         | value                         |
+| ----------- | ----------------------------- |
+| **type**    | string                        |
+| **access**  | readonly                      |
+| **default** | /                             |
+| **desc**    | It's only use for `windows` to show the symbol path for an adapter driver. |
 
 ### qtun.conf.dev\_name
 
-| key        | value                         |
-| ---------- | ----------------------------- |
-| **type**   | string                        |
-| **access** | readonly                      |
-| **desc**   | It's only use for `windows` to show the adapter name in `control panel -> network connectioins`. |
+| key         | value                         |
+| ----------- | ----------------------------- |
+| **type**    | string                        |
+| **access**  | readonly                      |
+| **default** | /                             |
+| **desc**    | It's only use for `windows` to show the adapter name in `control panel -> network connectioins`. |
 
 ### qtun.conf.use\_udp
 
-| key        | value                             |
-| ---------- | --------------------------------- |
-| **type**   | boolean                           |
-| **access** | read and write                    |
-| **desc**   | Set or get if use udp connection. |
+| key         | value                             |
+| ----------- | --------------------------------- |
+| **type**    | boolean                           |
+| **access**  | read and write                    |
+| **default** | false                             |
+| **desc**    | Set or get if use udp connection. |
 
 ### qtun.conf.use\_gzip
 
-| key        | value                               |
-| ---------- | ----------------------------------- |
-| **type**   | boolean                             |
-| **access** | read and write                      |
-| **desc**   | Set or get if use gzip compression. |
+| key         | value                               |
+| ----------- | ----------------------------------- |
+| **type**    | boolean                             |
+| **access**  | read and write                      |
+| **default** | false                               |
+| **desc**    | Set or get if use gzip compression. |
 
 ### qtun.conf.aes\_file
 
-| key        | value                         |
-| ---------- | ----------------------------- |
-| **type**   | string or nil                 |
-| **access** | read and write                |
-| **desc**   | Set AES encryption key file, when not using AES encryption, it will return nil. |
+| key         | value                         |
+| ----------- | ----------------------------- |
+| **type**    | string or nil                 |
+| **access**  | read and write                |
+| **default** | nil                           |
+| **desc**    | Set AES encryption key file, when not using AES encryption, it will return nil. |
 
 ### qtun.conf.des\_file
 
-| key        | value                         |
-| ---------- | ----------------------------- |
-| **type**   | string or nil                 |
-| **access** | read and write                |
-| **desc**   | Set DES encryption key file, when not using DES encryption, it will return nil. |
+| key         | value                         |
+| ----------- | ----------------------------- |
+| **type**    | string or nil                 |
+| **access**  | read and write                |
+| **default** | nil                           |
+| **desc**    | Set DES encryption key file, when not using DES encryption, it will return nil. |
 
 ## qtun.log
 
