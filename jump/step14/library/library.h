@@ -133,6 +133,10 @@ extern this_t this;
 
 struct library_conf_s
 {
+    // for client
+    char           server[16];
+    unsigned short server_port;
+    
     char           conf_file[MAX_PATH];
     unsigned int   localip;
     unsigned char  netmask;

@@ -141,7 +141,19 @@ static int conf_get(lua_State* lua)
 static int conf_set_and_check(lua_State* lua, library_conf_t* conf, const char* key, int input_type)
 {
     int rc = 0;
-    if (strcmp(key, "localip") == 0)
+    if (strcmp(key, "server"))
+    {
+        rc = input_type == LUA_TSTRING;
+        if (!rc) goto end;
+        strncpy(conf->server, lua_tostring(lua, 3), sizeof(conf->server));
+    }
+    else if (strcmp(key, "server_port"))
+    {
+        rc = input_type == LUA_TNUMBER;
+        if (!rc) goto end;
+        conf->server_port = lua_tonumber(lua, 3);
+    }
+    else if (strcmp(key, "localip") == 0)
     {
         rc = input_type == LUA_TSTRING;
         if (!rc) goto end;
